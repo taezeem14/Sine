@@ -208,7 +208,7 @@ class LogService extends ChangeNotifier {
     final now = DateTime.now().toUtc().toIso8601String();
 
     buffer.writeln('## Sine Diagnostics & Error Report');
-    buffer.writeln('* __App:__ Sine v1.0.8 (Build 9)');
+    buffer.writeln('* __App:__ Sine v1.0.9 (Build 11)');
     buffer.writeln('* __OS:__ $_osInfo');
     buffer.writeln('* __Engine:__ just_audio 0.9.44 / Android ExoPlayer (DSP Hardware Decoder)');
     buffer.writeln('* __Timestamp:__ `$now`');
@@ -281,7 +281,7 @@ class LogService extends ChangeNotifier {
   String exportJson() {
     final map = {
       'app': 'Sine',
-      'version': '1.0.8+10',
+      'version': '1.0.9+11',
       'os': _osInfo,
       'timestamp': DateTime.now().toUtc().toIso8601String(),
       'consecutive_failures': _consecutiveFailures,

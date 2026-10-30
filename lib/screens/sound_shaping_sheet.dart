@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../theme/ember_theme.dart';
 
-class SoundShapingSheet extends StatelessWidget {
+class SoundShapingSheet extends StatefulWidget {
   const SoundShapingSheet({super.key});
 
   static void show(BuildContext context) {
@@ -21,9 +21,25 @@ class SoundShapingSheet extends StatelessWidget {
   }
 
   @override
+  State<SoundShapingSheet> createState() => _SoundShapingSheetState();
+}
+
+class _SoundShapingSheetState extends State<SoundShapingSheet> {
+  Future<AndroidEqualizerParameters>? _parametersFuture;
+  double? _localBassBoost;
+  DateTime _lastBassSent = DateTime.fromMillisecondsSinceEpoch(0);
+
+  @override
+  void initState() {
+    super.initState();
+    final player = Provider.of<PlayerProvider>(context, listen: false);
+    _parametersFuture = player.audioHandler.equalizer.parameters;
+    _localBassBoost = player.bassBoost;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerProvider>();
-    final equalizer = player.audioHandler.equalizer;
 
     return SafeArea(
       child: Padding(
@@ -89,7 +105,13 @@ class SoundShapingSheet extends StatelessWidget {
                   Row(
                     children: [
                       TextButton(
-                        onPressed: () => player.resetEqualizer(),
+                        onPressed: () {
+                          setState(() {
+                            _localBassBoost = null;
+                            _parametersFuture = player.audioHandler.equalizer.parameters;
+                          });
+                          player.resetEqualizer();
+                        },
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           minimumSize: Size.zero,
@@ -113,13 +135,17 @@ class SoundShapingSheet extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'STUDIO STEM ISOLATION & KARAOKE',
-                    style: TextStyle(
-                      color: EmberColors.textMuted,
-                      fontSize: 11,
-                      letterSpacing: 1.2,
-                      fontWeight: FontWeight.bold,
+                  const Expanded(
+                    child: Text(
+                      'STUDIO STEM ISOLATION & KARAOKE',
+                      style: TextStyle(
+                        color: EmberColors.textMuted,
+                        fontSize: 11,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (player.stemStatusBadgeText != null)
@@ -232,18 +258,24 @@ class SoundShapingSheet extends StatelessWidget {
                         fontSize: 12,
                       ),
                       backgroundColor: EmberColors.surfaceContainerLow,
-                      onSelected: (_) => player.setEqualizerPreset(p),
+                      onSelected: (_) {
+                        setState(() {
+                          _localBassBoost = null;
+                          _parametersFuture = player.audioHandler.equalizer.parameters;
+                        });
+                        player.setEqualizerPreset(p);
+                      },
                     ),
                 ],
               ),
               const SizedBox(height: 24),
 
-              // Bass Boost / Sub-Warmth Slider
+              // Bass Boost / Sub-Warmth Slider (Throttled 50ms & instant local UI feedback)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Hearth Bass Boost', style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
-                  Text('${(player.bassBoost * 100).toInt()}%', style: const TextStyle(color: EmberColors.primaryAmber, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('${((_localBassBoost ?? player.bassBoost) * 100).toInt()}%', style: const TextStyle(color: EmberColors.primaryAmber, fontSize: 13, fontWeight: FontWeight.bold)),
                 ],
               ),
               SliderTheme(
@@ -254,10 +286,21 @@ class SoundShapingSheet extends StatelessWidget {
                   inactiveTrackColor: EmberColors.surfaceContainerHigh,
                 ),
                 child: Slider(
-                  value: player.bassBoost.clamp(0.0, 1.0),
+                  value: (_localBassBoost ?? player.bassBoost).clamp(0.0, 1.0),
                   min: 0.0,
                   max: 1.0,
-                  onChanged: (val) => player.setBassBoost(val),
+                  onChanged: (val) {
+                    setState(() => _localBassBoost = val);
+                    final now = DateTime.now();
+                    if (now.difference(_lastBassSent).inMilliseconds >= 50) {
+                      _lastBassSent = now;
+                      player.setBassBoost(val);
+                    }
+                  },
+                  onChangeEnd: (val) {
+                    setState(() => _localBassBoost = val);
+                    player.setBassBoost(val);
+                  },
                 ),
               ),
 
@@ -267,7 +310,7 @@ class SoundShapingSheet extends StatelessWidget {
               const SizedBox(height: 10),
 
               FutureBuilder<AndroidEqualizerParameters>(
-                future: equalizer.parameters,
+                future: _parametersFuture,
                 builder: (context, snapshot) {
                   final params = snapshot.data;
                   if (params == null || params.bands.isEmpty) {
@@ -392,6 +435,7 @@ class _BandSlider extends StatefulWidget {
 
 class _BandSliderState extends State<_BandSlider> {
   late double _gain;
+  DateTime _lastSent = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void initState() {
@@ -443,6 +487,14 @@ class _BandSliderState extends State<_BandSlider> {
                 min: minDb,
                 max: maxDb,
                 onChanged: (val) {
+                  setState(() => _gain = val);
+                  final now = DateTime.now();
+                  if (now.difference(_lastSent).inMilliseconds >= 50) {
+                    _lastSent = now;
+                    widget.onChanged(val);
+                  }
+                },
+                onChangeEnd: (val) {
                   setState(() => _gain = val);
                   widget.onChanged(val);
                 },

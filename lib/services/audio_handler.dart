@@ -149,7 +149,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 _preDuckVolume = _player.volume;
                 _isDucked = true;
               }
-              _player.setVolume(0.35);
+              _player.setVolume((_preDuckVolume * 0.35).clamp(0.01, 1.0));
               break;
             case AudioInterruptionType.pause:
             case AudioInterruptionType.unknown:
@@ -328,6 +328,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               if (totalSec > 10.0 && segment.end >= (totalSec - 1.5)) {
                 debugPrint('SponsorBlock: Outro reached [${segment.start}s - ${segment.end}s]. Completing track cleanly.');
                 _isSkippingSponsor = false;
+                _currentTrackActive = false;
+                _completionHandled = true;
+                _player.stop().catchError((_) {});
                 _onCompleted?.call();
                 return;
               }
@@ -410,7 +413,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             url,
             headers: isYouTubeStream ? _youtubeHeaders : null,
             initialPosition: resumePos,
-            preload: true,
+            preload: false,
           ).timeout(const Duration(seconds: 12));
 
           await _player.play();
@@ -440,7 +443,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               pipedUrl,
               headers: _proxyHeaders,
               initialPosition: resumePos,
-              preload: true,
+              preload: false,
             ).timeout(const Duration(seconds: 7));
 
             await _player.play();
@@ -589,7 +592,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             url,
             headers: isYouTubeStream ? _youtubeHeaders : null,
             initialPosition: Duration.zero,
-            preload: true,
+            preload: false,
           ).timeout(const Duration(seconds: 12));
           if (currentRequestId != _playRequestId) {
             try { await _player.stop(); } catch (_) {}
@@ -629,7 +632,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 url,
                 headers: isYouTubeStream ? _youtubeHeaders : null,
                 initialPosition: Duration.zero,
-                preload: true,
+                preload: false,
               ).timeout(const Duration(seconds: 12));
               if (currentRequestId != _playRequestId) {
                 try { await _player.stop(); } catch (_) {}
@@ -665,7 +668,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 pipedUrl,
                 headers: _proxyHeaders,
                 initialPosition: Duration.zero,
-                preload: true,
+                preload: false,
               ).timeout(const Duration(seconds: 12));
               if (currentRequestId != _playRequestId) {
                 try { await _player.stop(); } catch (_) {}
@@ -751,8 +754,17 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
   Future<void> setBassBoost(double gain) async {
     _bassBoost = gain.clamp(0.0, 1.0);
-    if (_eqEnabled) {
-      await applyEqualizerPreset(_currentPreset);
+    try {
+      if (_bassBoost > 0.0 && !_eqEnabled) {
+        _eqEnabled = true;
+        await _equalizer.setEnabled(true);
+      }
+      if (_eqEnabled) {
+        await _equalizer.setEnabled(true);
+        await applyEqualizerPreset(_currentPreset);
+      }
+    } catch (e) {
+      debugPrint('[AudioHandler] setBassBoost error: $e');
     }
   }
 
@@ -770,6 +782,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> applyEqualizerPreset(String preset) async {
     _currentPreset = preset;
     try {
+      if (_eqEnabled) {
+        await _equalizer.setEnabled(true);
+      }
       final params = await _equalizer.parameters;
       final bands = params.bands;
       final n = bands.length;
@@ -779,9 +794,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       final maxDb = params.maxDecibels;
       double clampGain(double g) => g.clamp(minDb, maxDb);
 
-      // Clean, musical low-end boost without digital distortion or ear-splitting gain multiplication
-      final bassAdd = _bassBoost * 3.5;
-      final lowMidAdd = _bassBoost * 1.5;
+      // Deep, punchy, rich Hearth Bass boost (pure hardware low-shelf harmonics)
+      final bassAdd = _bassBoost * 9.0;
+      final lowMidAdd = _bassBoost * 4.5;
 
       switch (preset) {
         case 'Custom':
@@ -1048,14 +1063,14 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         await _player.setFilePath(
           localPath,
           initialPosition: targetPosition,
-          preload: true,
+          preload: false,
         ).timeout(const Duration(seconds: 12));
       } else {
         await _player.setUrl(
           newStreamUrl,
           headers: headers,
           initialPosition: targetPosition,
-          preload: true,
+          preload: false,
         ).timeout(const Duration(seconds: 12));
       }
 
@@ -1122,8 +1137,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> seek(Duration position) async {
     final targetSec = position.inMilliseconds / 1000.0;
     _skippedSegmentKeys.removeWhere((key) {
-      final start = double.tryParse(key.split('_').first) ?? 0.0;
-      return start >= targetSec;
+      final parts = key.split('_');
+      final end = double.tryParse(parts.length > 1 ? parts[1] : parts[0]) ?? 0.0;
+      return end > targetSec;
     });
     await _player.seek(position);
   }

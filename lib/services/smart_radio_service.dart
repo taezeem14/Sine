@@ -54,7 +54,7 @@ class SmartRadioService {
     return title
         .toLowerCase()
         .replaceAll(RegExp(r'[\(\[\{].*?[\)\]\}]'), '')
-        .replaceAll(RegExp(r'[^\w\s]'), '')
+        .replaceAll(RegExp(r'[\p{P}\p{S}]', unicode: true), '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }

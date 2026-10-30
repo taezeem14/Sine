@@ -592,7 +592,7 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
               icon: FontAwesomeIcons.microchip,
               children: [
                 _buildInfoRow('Operating System', log.osInfo),
-                _buildInfoRow('App Version', 'Sine 1.0.8 (Build 10)'),
+                _buildInfoRow('App Version', 'Sine 1.0.9 (Build 11)'),
                 _buildInfoRow('Audio Decoder', 'ExoPlayer / MediaCodec DSP Hardware Accelerated'),
                 _buildInfoRow('Architecture', 'NewPipe-Direct InnerTube Extractor'),
               ],

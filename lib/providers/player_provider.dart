@@ -1032,7 +1032,12 @@ class PlayerProvider extends ChangeNotifier {
       if (_isShuffle && !_unshuffledQueue.any((s) => s.id == song.id)) {
         _unshuffledQueue.add(song);
       }
-      notifyListeners();
+      if (currentSong == null) {
+        _currentIndex = 0;
+        playSong(song);
+      } else {
+        notifyListeners();
+      }
     }
   }
 
@@ -1063,15 +1068,15 @@ class PlayerProvider extends ChangeNotifier {
     if (oldIndex < newIndex) {
       newIndex -= 1;
     }
-    if (newIndex < 0 || newIndex >= _queue.length) return;
+    final targetIndex = newIndex.clamp(0, _queue.length - 1);
     final item = _queue.removeAt(oldIndex);
-    _queue.insert(newIndex, item);
+    _queue.insert(targetIndex, item);
 
     if (oldIndex == _currentIndex) {
-      _currentIndex = newIndex;
-    } else if (oldIndex < _currentIndex && newIndex >= _currentIndex) {
+      _currentIndex = targetIndex;
+    } else if (oldIndex < _currentIndex && targetIndex >= _currentIndex) {
       _currentIndex--;
-    } else if (oldIndex > _currentIndex && newIndex <= _currentIndex) {
+    } else if (oldIndex > _currentIndex && targetIndex <= _currentIndex) {
       _currentIndex++;
     }
     notifyListeners();
@@ -1428,6 +1433,11 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> setBassBoost(double gain) async {
     _bassBoost = gain;
+    if (gain > 0.0 && !_eqEnabled) {
+      _eqEnabled = true;
+      await _storageService.saveEqualizerEnabled(true);
+      await _audioHandler.setEqualizerEnabled(true);
+    }
     await _storageService.saveBassBoost(gain);
     await _audioHandler.setBassBoost(gain);
     notifyListenersPlatform();

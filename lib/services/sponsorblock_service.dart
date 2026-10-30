@@ -32,6 +32,7 @@ class SponsorBlockService {
   static List<SponsorSegment> mergeSegments(List<SponsorSegment> raw) {
     if (raw.isEmpty) return [];
     final valid = raw.where((s) => s.end > s.start).toList();
+    if (valid.isEmpty) return [];
     valid.sort((a, b) => a.start.compareTo(b.start));
 
     final merged = <SponsorSegment>[];
