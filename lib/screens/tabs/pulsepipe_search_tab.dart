@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/song.dart';
 import '../../providers/player_provider.dart';
 import '../../theme/ember_theme.dart';
+import '../../widgets/spectrum_bars.dart';
 import '../track_options_sheet.dart';
+import '../sine_qr_scanner_screen.dart';
 
 typedef SineSearchTab = PulsePipeSearchTab;
 
@@ -19,6 +22,7 @@ class PulsePipeSearchTab extends StatefulWidget {
 class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  List<String> _recentSearches = [];
 
   final List<GenreBrowseCardData> _browseCategories = const [
     GenreBrowseCardData(
@@ -99,6 +103,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChange);
+    _loadRecentSearches();
   }
 
   void _onFocusChange() {
@@ -113,8 +118,65 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
     super.dispose();
   }
 
+  Future<void> _loadRecentSearches() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _recentSearches = prefs.getStringList('sine_recent_searches') ?? [];
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveRecentSearch(String query) async {
+    final clean = query.trim();
+    if (clean.isEmpty) return;
+    _recentSearches.remove(clean);
+    _recentSearches.insert(0, clean);
+    if (_recentSearches.length > 8) {
+      _recentSearches = _recentSearches.sublist(0, 8);
+    }
+    if (mounted) setState(() {});
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('sine_recent_searches', _recentSearches);
+    } catch (_) {}
+  }
+
+  Future<void> _clearRecentSearches() async {
+    if (mounted) setState(() => _recentSearches.clear());
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('sine_recent_searches');
+    } catch (_) {}
+  }
+
+  Future<void> _removeRecentSearch(String query) async {
+    if (mounted) setState(() => _recentSearches.remove(query));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('sine_recent_searches', _recentSearches);
+    } catch (_) {}
+  }
+
+  Future<void> _openQrScanner() async {
+    final scanned = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const SineQrScannerScreen()),
+    );
+    if (!mounted) return;
+    if (scanned != null && scanned.trim().isNotEmpty) {
+      _controller.text = scanned.trim();
+      final player = context.read<PlayerProvider>();
+      player.search(scanned.trim());
+      _saveRecentSearch(scanned.trim());
+      setState(() {});
+    }
+  }
+
   void _onCategoryTap(GenreBrowseCardData category, PlayerProvider player) {
     _controller.text = category.query;
+    _saveRecentSearch(category.query);
     player.search(category.query);
   }
 
@@ -147,6 +209,12 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                       ),
                     ),
                     const Spacer(),
+                    IconButton(
+                      icon: const FaIcon(FontAwesomeIcons.camera, color: EmberColors.textPrimary, size: 18),
+                      tooltip: 'Scan Sine Code',
+                      onPressed: _openQrScanner,
+                    ),
+                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
@@ -227,6 +295,11 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                             player.search(text);
                             setState(() {});
                           },
+                          onSubmitted: (text) {
+                            if (text.trim().isNotEmpty) {
+                              _saveRecentSearch(text);
+                            }
+                          },
                         ),
                       ),
                       if (_controller.text.isNotEmpty)
@@ -242,6 +315,18 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                               FontAwesomeIcons.xmark,
                               size: 16,
                               color: EmberColors.textMuted,
+                            ),
+                          ),
+                        )
+                      else
+                        GestureDetector(
+                          onTap: _openQrScanner,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            child: const FaIcon(
+                              FontAwesomeIcons.camera,
+                              size: 15,
+                              color: EmberColors.textSecondary,
                             ),
                           ),
                         ),
@@ -297,8 +382,44 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                 Builder(
                   builder: (context) {
                     final searchResultsSnapshot = List<Song>.from(player.searchResults);
+                    final topSong = searchResultsSnapshot.isNotEmpty ? searchResultsSnapshot.first : null;
+                    final otherSongs = searchResultsSnapshot.length > 1 ? searchResultsSnapshot.sublist(1) : <Song>[];
+
                     return SliverMainAxisGroup(
                       slivers: [
+                        if (topSong != null) ...[
+                          const SliverPadding(
+                            padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                            sliver: SliverToBoxAdapter(
+                              child: Text(
+                                'Top result',
+                                style: TextStyle(
+                                  color: EmberColors.textPrimary,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SliverToBoxAdapter(
+                            child: _SpotifyTopResultCard(
+                              song: topSong,
+                              isCurrent: player.currentSong?.id == topSong.id,
+                              isPlaying: player.currentSong?.id == topSong.id && player.isPlaying,
+                              onTap: () {
+                                final q = _controller.text.trim();
+                                if (q.isNotEmpty) _saveRecentSearch(q);
+                                player.playCategoryTracks(
+                                  searchResultsSnapshot,
+                                  startIndex: 0,
+                                  targetSong: topSong,
+                                  playingFrom: q.isNotEmpty ? 'Search: "$q"' : 'Top Result',
+                                );
+                              },
+                              onOptions: () => TrackOptionsSheet.show(context, topSong),
+                            ),
+                          ),
+                        ],
                         SliverPadding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           sliver: SliverToBoxAdapter(
@@ -306,7 +427,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Text(
-                                  'Top Results',
+                                  'Songs',
                                   style: TextStyle(
                                     color: EmberColors.textPrimary,
                                     fontSize: 18,
@@ -329,7 +450,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
-                                final song = searchResultsSnapshot[index];
+                                final song = otherSongs[index];
                                 final isCurrent = player.currentSong?.id == song.id;
 
                                 return _SearchResultRow(
@@ -338,9 +459,10 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                                   isPlaying: isCurrent && player.isPlaying,
                                   onTap: () {
                                     final q = _controller.text.trim();
+                                    if (q.isNotEmpty) _saveRecentSearch(q);
                                     player.playCategoryTracks(
                                       searchResultsSnapshot,
-                                      startIndex: index,
+                                      startIndex: index + 1,
                                       targetSong: song,
                                       playingFrom: q.isNotEmpty ? 'Search: "$q"' : 'Search Results',
                                     );
@@ -348,7 +470,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                                   onOptions: () => TrackOptionsSheet.show(context, song),
                                 );
                               },
-                              childCount: searchResultsSnapshot.length,
+                              childCount: otherSongs.length,
                             ),
                           ),
                         ),
@@ -358,9 +480,86 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                 ),
               ],
             ] else ...[
-              // Idle Browse Mode: "Browse all"
+              // Idle Browse Mode: Recent Searches (if any) + "Browse all"
+              if (_recentSearches.isNotEmpty) ...[
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  sliver: SliverToBoxAdapter(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Recent searches',
+                          style: TextStyle(
+                            color: EmberColors.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _clearRecentSearches,
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            'Clear all',
+                            style: TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _recentSearches.map((query) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: EmberColors.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.5)),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () {
+                              _controller.text = query;
+                              player.search(query);
+                              _saveRecentSearch(query);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.history_rounded, size: 14, color: EmberColors.textMuted),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    query,
+                                    style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  GestureDetector(
+                                    onTap: () => _removeRecentSearch(query),
+                                    child: const Icon(Icons.close_rounded, size: 14, color: EmberColors.textMuted),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
               const SliverPadding(
-                padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
                 sliver: SliverToBoxAdapter(
                   child: Text(
                     'Browse all',
@@ -607,6 +806,145 @@ class _SearchResultRow extends StatelessWidget {
               onPressed: onOptions,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SpotifyTopResultCard extends StatelessWidget {
+  final Song song;
+  final bool isCurrent;
+  final bool isPlaying;
+  final VoidCallback onTap;
+  final VoidCallback onOptions;
+
+  const _SpotifyTopResultCard({
+    required this.song,
+    required this.isCurrent,
+    required this.isPlaying,
+    required this.onTap,
+    required this.onOptions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: EmberColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isCurrent
+              ? EmberColors.primaryBlue.withValues(alpha: 0.5)
+              : EmberColors.outlineVariant.withValues(alpha: 0.5),
+          width: isCurrent ? 1.5 : 1.0,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CachedNetworkImage(
+                        imageUrl: song.artworkUrl,
+                        width: 76,
+                        height: 76,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, _, _) => Container(
+                          width: 76,
+                          height: 76,
+                          color: EmberColors.surfaceContainerHigh,
+                          child: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 16, color: EmberColors.textMuted),
+                      onPressed: onOptions,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  song.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: EmberColors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF242424),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'Song',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        song.artist,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: EmberColors.textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (isCurrent && isPlaying)
+                      const SpectrumBars(isPlaying: true, height: 18)
+                    else
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: EmberColors.primaryBlue,
+                          boxShadow: [
+                            BoxShadow(
+                              color: EmberColors.primaryBlue.withValues(alpha: 0.4),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
 
     <application
         android:label="Sine"
@@ -58,6 +61,22 @@
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
+        </receiver>
+
+        <!-- Sine Android Home Screen Playback Widget -->
+        <receiver
+            android:name=".SineMusicWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.taezeem.spotify_newpipe.ACTION_UPDATE_WIDGET" />
+                <action android:name="com.taezeem.spotify_newpipe.ACTION_WIDGET_PLAY_PAUSE" />
+                <action android:name="com.taezeem.spotify_newpipe.ACTION_WIDGET_NEXT" />
+                <action android:name="com.taezeem.spotify_newpipe.ACTION_WIDGET_PREV" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/sine_widget_info" />
         </receiver>
 
         <!-- Don't delete the meta-data below.

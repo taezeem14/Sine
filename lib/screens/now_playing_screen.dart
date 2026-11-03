@@ -7,6 +7,7 @@ import '../theme/ember_theme.dart';
 import '../widgets/ambient_glow.dart';
 import '../widgets/vinyl_disc.dart';
 import '../widgets/synchronized_lyrics_view.dart';
+import '../widgets/sine_qr_code_sheet.dart';
 import 'sound_shaping_sheet.dart';
 import 'playback_speed_sheet.dart';
 import 'track_options_sheet.dart';
@@ -113,6 +114,11 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  // Quick Sine QR Code Share
+                  IconButton(
+                    icon: const FaIcon(FontAwesomeIcons.qrcode, size: 18, color: EmberColors.textSecondary),
+                    onPressed: () => SineQrCodeSheet.show(context, song),
                   ),
                   // Three Dots Menu -> Opens comprehensive Track Options Bottom Sheet
                   IconButton(

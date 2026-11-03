@@ -1,4 +1,4 @@
-import 'package:shared_preferences/shared_preferences.dart';
+﻿import 'package:shared_preferences/shared_preferences.dart';
 
 class PasskeyService {
   static const String _keyActivated = 'sine_passkey_activated_v1';

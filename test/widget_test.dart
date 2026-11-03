@@ -7,6 +7,9 @@ import 'package:spotify_newpipe/services/sponsorblock_service.dart';
 import 'package:spotify_newpipe/services/youtube_importer_service.dart';
 import 'package:spotify_newpipe/services/stem_service.dart';
 import 'package:spotify_newpipe/services/smart_radio_service.dart';
+import 'package:spotify_newpipe/services/app_lock_service.dart';
+import 'package:spotify_newpipe/widgets/spotify_graph_equalizer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
 void main() {
@@ -245,6 +248,65 @@ void main() {
       expect(station.seedSong.id, seed.id);
       expect(station.songs, isNotEmpty);
       expect(station.songs.first.id, seed.id);
+    });
+
+    test('AppLockService correctly sets, verifies, and removes PIN', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      expect(await AppLockService.isLockEnabled(), isFalse);
+      expect(await AppLockService.hasPinSetup(), isFalse);
+
+      final success = await AppLockService.setPin('1234');
+      expect(success, isTrue);
+      expect(await AppLockService.isLockEnabled(), isTrue);
+      expect(await AppLockService.hasPinSetup(), isTrue);
+
+      expect(await AppLockService.verifyPin('1234'), isTrue);
+      expect(await AppLockService.verifyPin('0000'), isFalse);
+      expect(await AppLockService.verifyPin('123'), isFalse);
+
+      await AppLockService.setLockEnabled(false);
+      expect(await AppLockService.isLockEnabled(), isFalse);
+      expect(await AppLockService.hasPinSetup(), isTrue);
+
+      await AppLockService.removePin();
+      expect(await AppLockService.isLockEnabled(), isFalse);
+      expect(await AppLockService.hasPinSetup(), isFalse);
+    });
+
+    test('SpotifyGraphEqualizer defines complete 6-band preset curves', () {
+      expect(SpotifyGraphEqualizer.frequencyLabels.length, 6);
+      expect(SpotifyGraphEqualizer.standardPresets, isNotEmpty);
+
+      for (final preset in SpotifyGraphEqualizer.standardPresets) {
+        expect(preset.name, isNotEmpty);
+        expect(preset.gains.length, 6, reason: 'Preset ${preset.name} must have 6 frequency bands');
+        for (final g in preset.gains) {
+          expect(g >= -12.0 && g <= 12.0, isTrue, reason: 'Gain $g in preset ${preset.name} must be within [-12, 12] dB');
+        }
+      }
+    });
+
+    test('Sine QR URI schema correctly formats and decodes track metadata', () {
+      const song = Song(
+        id: 'yt_abc123',
+        title: 'Starboy (feat. Daft Punk)',
+        artist: 'The Weeknd',
+        duration: Duration(minutes: 3, seconds: 50),
+        artworkUrl: '',
+        streamUrl: '',
+      );
+
+      final encodedTitle = Uri.encodeComponent(song.title);
+      final encodedArtist = Uri.encodeComponent(song.artist);
+      final uriStr = 'sine://track?id=${song.id}&title=$encodedTitle&artist=$encodedArtist';
+
+      final parsed = Uri.parse(uriStr);
+      expect(parsed.scheme, 'sine');
+      expect(parsed.host, 'track');
+      expect(parsed.queryParameters['id'], 'yt_abc123');
+      expect(parsed.queryParameters['title'], 'Starboy (feat. Daft Punk)');
+      expect(parsed.queryParameters['artist'], 'The Weeknd');
     });
   });
 }

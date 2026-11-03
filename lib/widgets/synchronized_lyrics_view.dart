@@ -15,6 +15,7 @@ class SynchronizedLyricsView extends StatefulWidget {
 
 class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
   final ScrollController _scrollController = ScrollController();
+  final Map<int, GlobalKey> _lineKeys = {};
   int _lastIndex = -1;
   bool _userScrolling = false;
   Timer? _userScrollTimer;
@@ -25,6 +26,7 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
   void dispose() {
     _userScrollTimer?.cancel();
     _scrollController.dispose();
+    _lineKeys.clear();
     super.dispose();
   }
 
@@ -37,10 +39,23 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
       return;
     }
 
-    const lineEstimate = 56.0;
-    // With viewport-centered padding, offset of line index is index * lineEstimate
-    final targetOffset = index * lineEstimate;
-    final clamped = targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
+    final lineKey = _lineKeys[index];
+    final keyContext = lineKey?.currentContext;
+    if (keyContext != null) {
+      Scrollable.ensureVisible(
+        keyContext,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeOutCubic,
+      );
+      return;
+    }
+
+    // Precise fallback: proportional positioning against full extent with viewport centering
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final ratio = totalLines > 1 ? (index / (totalLines - 1)) : 0.0;
+    final targetOffset = ratio * maxScroll;
+    final clamped = targetOffset.clamp(0.0, maxScroll);
 
     _scrollController.animateTo(
       clamped,
@@ -56,6 +71,7 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
 
     if (cur != null && cur.id != _currentSongId) {
       _currentSongId = cur.id;
+      _lineKeys.clear();
       _lastIndex = -1;
       _userScrolling = false;
     }
@@ -116,8 +132,8 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
 
       return LayoutBuilder(
         builder: (context, constraints) {
-          final verticalCenterPadding = (constraints.maxHeight / 2) - 28.0;
-          final safeVerticalPadding = verticalCenterPadding.clamp(24.0, 500.0);
+          final topPadding = (constraints.maxHeight * 0.42).clamp(40.0, 400.0);
+          final bottomPadding = (constraints.maxHeight * 0.60).clamp(60.0, 600.0);
 
           return Stack(
             alignment: Alignment.topCenter,
@@ -136,29 +152,32 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
                   return false;
                 },
                 child: ListView.builder(
-              controller: _scrollController,
-              padding: EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: safeVerticalPadding,
-              ),
-              itemCount: synced.length,
-              itemBuilder: (context, index) {
-                final line = synced[index];
-                final isActive = index == activeIdx;
+                  controller: _scrollController,
+                  padding: EdgeInsets.only(
+                    left: 20,
+                    right: 20,
+                    top: topPadding,
+                    bottom: bottomPadding,
+                  ),
+                  itemCount: synced.length,
+                  itemBuilder: (context, index) {
+                    final line = synced[index];
+                    final isActive = index == activeIdx;
 
-                if (line.text.trim().isEmpty) {
-                  return const SizedBox(height: 16);
-                }
+                    if (line.text.trim().isEmpty) {
+                      return const SizedBox(height: 16);
+                    }
 
-                return Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      player.seek(line.timestamp);
-                      _userScrolling = false;
-                      _scrollToIndex(index, synced.length);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
+                    return Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          player.seek(line.timestamp);
+                          _userScrolling = false;
+                          _scrollToIndex(index, synced.length);
+                        },
+                        child: AnimatedContainer(
+                          key: _lineKeys.putIfAbsent(index, () => GlobalKey()),
+                          duration: const Duration(milliseconds: 250),
                       margin: const EdgeInsets.symmetric(vertical: 4),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(

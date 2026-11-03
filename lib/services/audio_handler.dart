@@ -38,6 +38,32 @@ Future<AudioHandler> initAudioHandler() async {
 typedef EmberAudioHandler = SineAudioHandler;
 
 class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
+  static const Map<String, List<double>> _spotifyPresetMap = {
+    'dance': [4.5, 3.0, -1.0, 0.0, 3.0, 4.0],
+    'deep': [5.5, 3.5, 1.5, -1.0, -2.5, -4.0],
+    'electronic': [4.5, 2.5, 0.0, -1.0, 2.0, 4.5],
+    'flat': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    'hip-hop': [5.5, 4.0, 1.0, 1.0, 3.0, 3.0],
+    'jazz': [3.0, 2.0, -1.0, 1.0, 2.0, 3.0],
+    'latin': [4.0, 2.0, 0.0, 0.0, 3.0, 4.0],
+    'loudness': [6.0, 3.0, -1.0, 0.0, 2.0, 5.0],
+    'lounge': [2.0, 3.0, 1.0, -1.0, 0.0, -1.5],
+    'piano': [1.0, 2.0, 3.0, 2.0, 3.0, 2.0],
+    'pop': [3.0, 2.0, 2.0, 3.0, 2.0, 2.0],
+    'r&b': [5.5, 4.0, 1.0, 2.0, 3.0, 2.0],
+    'rock': [5.0, 3.0, -1.0, 1.0, 3.0, 4.0],
+    'small speakers': [-3.0, 2.0, 4.0, 3.0, 3.0, 2.0],
+    'spoken word': [-4.0, -1.0, 3.0, 4.0, 2.0, -2.0],
+    'treble booster': [-1.0, 0.0, 0.0, 2.0, 4.0, 6.0],
+    'treble reducer': [0.0, 0.0, 0.0, -1.0, -3.0, -5.0],
+    'vocal booster': [-2.0, 0.0, 3.0, 4.0, 2.0, -1.0],
+    'bass boost': [6.0, 4.0, 1.5, 0.0, 0.0, 0.0],
+    'lo-fi': [-1.0, 2.0, 3.0, 1.0, -2.0, -4.0],
+    'warm tape': [2.0, 1.0, 0.0, 0.0, -1.0, -2.0],
+    'vocal air': [0.0, 0.5, 1.0, 2.0, 2.5, 2.0],
+    'acoustic': [1.0, 0.5, 0.5, 0.5, 1.2, 1.0],
+  };
+
   final AndroidEqualizer _equalizer = AndroidEqualizer();
   final AndroidLoudnessEnhancer _loudnessEnhancer = AndroidLoudnessEnhancer();
   late final AudioPlayer _player;
@@ -797,6 +823,24 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       // Deep, punchy, rich Hearth Bass boost (pure hardware low-shelf harmonics)
       final bassAdd = _bassBoost * 9.0;
       final lowMidAdd = _bassBoost * 4.5;
+
+      final lowerPreset = preset.toLowerCase().trim();
+      if (_spotifyPresetMap.containsKey(lowerPreset)) {
+        final targetList = _spotifyPresetMap[lowerPreset]!;
+        for (int i = 0; i < n; i++) {
+          final targetIdx = ((i / (n > 1 ? (n - 1) : 1)) * (targetList.length - 1)).round().clamp(0, targetList.length - 1);
+          var g = targetList[targetIdx];
+          if (i == 0) {
+            g += bassAdd;
+          } else if (i == 1) {
+            g += lowMidAdd;
+          }
+          final finalGain = clampGain(g);
+          _customBandGains[i] = finalGain;
+          await bands[i].setGain(finalGain);
+        }
+        return;
+      }
 
       switch (preset) {
         case 'Custom':

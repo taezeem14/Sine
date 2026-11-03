@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sine</string>
+    <string name="widget_name">Sine Now Playing</string>
+    <string name="widget_description">Sine music playback controller</string>
+</resources>

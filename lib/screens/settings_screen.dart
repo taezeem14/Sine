@@ -6,6 +6,8 @@ import '../theme/ember_theme.dart';
 import '../widgets/upi_donation_view.dart';
 import 'sound_shaping_sheet.dart';
 import 'diagnostics_log_screen.dart';
+import 'app_lock_screen.dart';
+import '../services/app_lock_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   final int initialTab;
@@ -162,18 +164,77 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 }
 
-class SettingsContent extends StatelessWidget {
+class SettingsContent extends StatefulWidget {
   final ScrollController? scrollController;
   final VoidCallback? onNavigateToDonate;
 
   const SettingsContent({super.key, this.scrollController, this.onNavigateToDonate});
 
   @override
+  State<SettingsContent> createState() => _SettingsContentState();
+}
+
+class _SettingsContentState extends State<SettingsContent> {
+  bool _isLockEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLockStatus();
+  }
+
+  Future<void> _loadLockStatus() async {
+    final enabled = await AppLockService.isLockEnabled();
+    if (mounted) setState(() => _isLockEnabled = enabled);
+  }
+
+  Future<void> _toggleLock(bool enable) async {
+    if (enable) {
+      final success = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => const AppLockScreen(mode: AppLockMode.setupNew),
+        ),
+      );
+      if (success == true) {
+        _loadLockStatus();
+      }
+    } else {
+      final verified = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => const AppLockScreen(mode: AppLockMode.unlock),
+        ),
+      );
+      if (verified == true) {
+        await AppLockService.removePin();
+        _loadLockStatus();
+      }
+    }
+  }
+
+  Future<void> _changePasscode() async {
+    final verified = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const AppLockScreen(mode: AppLockMode.unlock),
+      ),
+    );
+    if (verified == true && mounted) {
+      final success = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => const AppLockScreen(mode: AppLockMode.setupNew),
+        ),
+      );
+      if (success == true) {
+        _loadLockStatus();
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerProvider>();
 
     return ListView(
-      controller: scrollController,
+      controller: widget.scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       children: [
         // ==========================================
@@ -309,7 +370,7 @@ class SettingsContent extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               InkWell(
-                onTap: onNavigateToDonate,
+                onTap: widget.onNavigateToDonate,
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   width: double.infinity,
@@ -358,7 +419,49 @@ class SettingsContent extends StatelessWidget {
           title: 'Donate via UPI (7006616470@fam)',
           subtitle: 'Support development directly using GPay, PhonePe, Paytm or FamPay',
           trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.primaryAmber),
-          onTap: onNavigateToDonate,
+          onTap: widget.onNavigateToDonate,
+        ),
+
+        const SizedBox(height: 16),
+
+        // ==========================================
+        // SECTION: SECURITY & APP LOCK
+        // ==========================================
+        const _SectionHeader(title: 'Security & App Lock'),
+        _SettingsTile(
+          icon: FontAwesomeIcons.lock,
+          iconColor: EmberColors.primaryBlue,
+          title: 'App Lock Passcode',
+          subtitle: _isLockEnabled ? 'Passcode active • Require 4-digit PIN on app launch' : 'Secure your Sine music player with a 4-digit PIN',
+          trailing: Switch(
+            value: _isLockEnabled,
+            activeThumbColor: EmberColors.primaryBlue,
+            onChanged: (val) => _toggleLock(val),
+          ),
+          onTap: () => _toggleLock(!_isLockEnabled),
+        ),
+        if (_isLockEnabled)
+          _SettingsTile(
+            icon: FontAwesomeIcons.key,
+            title: 'Change Passcode',
+            subtitle: 'Update your 4-digit security PIN',
+            trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+            onTap: _changePasscode,
+          ),
+
+        const SizedBox(height: 16),
+
+        // ==========================================
+        // SECTION: HOME SCREEN WIDGETS
+        // ==========================================
+        const _SectionHeader(title: 'Android Home Screen Widgets'),
+        const _SettingsTile(
+          icon: FontAwesomeIcons.tableCellsLarge,
+          iconColor: EmberColors.secondaryCyan,
+          title: 'Sine Now Playing Widget (4x2)',
+          subtitle: 'Control playback, view track title and artist directly from your home screen. Long-press home screen to add!',
+          trailing: Text('Available', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 11, fontWeight: FontWeight.bold)),
+          onTap: null,
         ),
 
         const SizedBox(height: 16),
@@ -464,8 +567,8 @@ class SettingsContent extends StatelessWidget {
         const _SettingsTile(
           icon: FontAwesomeIcons.mobileScreen,
           title: 'Sine Version',
-          subtitle: 'v1.0.9 (Release Build)',
-          trailing: Text('1.0.9', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
+          subtitle: 'v1.1.0 (Release Build)',
+          trailing: Text('1.1.0', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
           onTap: null,
         ),
         const _SettingsTile(

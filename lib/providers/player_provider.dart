@@ -13,6 +13,7 @@ import '../services/youtube_importer_service.dart';
 import '../services/stream_resolver_service.dart';
 import '../services/stem_service.dart';
 import '../services/smart_radio_service.dart';
+import '../services/widget_service.dart';
 
 enum IsolationMode {
   none,
@@ -323,6 +324,11 @@ class PlayerProvider extends ChangeNotifier {
       }
       if (_isPlaying != playing) {
         _isPlaying = playing;
+        SineWidgetService.updateWidget(
+          title: currentSong?.title,
+          artist: currentSong?.artist,
+          isPlaying: _isPlaying,
+        );
         notifyListeners();
       }
     });
@@ -502,6 +508,11 @@ class PlayerProvider extends ChangeNotifier {
     }
 
     _recordHistory(song);
+    SineWidgetService.updateWidget(
+      title: song.title,
+      artist: song.artist,
+      isPlaying: true,
+    );
     _position = Duration.zero;
     _duration = song.duration;
     _isPlaying = true;
@@ -717,6 +728,11 @@ class PlayerProvider extends ChangeNotifier {
     _queue.clear();
     _currentIndex = 0;
     _isPlaying = false;
+    SineWidgetService.updateWidget(
+      title: 'No Song Playing',
+      artist: 'Tap to open Sine',
+      isPlaying: false,
+    );
     _position = Duration.zero;
     _duration = Duration.zero;
     _lyrics = LyricsResult.empty;

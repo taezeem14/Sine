@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../theme/ember_theme.dart';
+import '../widgets/spotify_graph_equalizer.dart';
 
 class SoundShapingSheet extends StatefulWidget {
   const SoundShapingSheet({super.key});
@@ -25,7 +25,6 @@ class SoundShapingSheet extends StatefulWidget {
 }
 
 class _SoundShapingSheetState extends State<SoundShapingSheet> {
-  Future<AndroidEqualizerParameters>? _parametersFuture;
   double? _localBassBoost;
   DateTime _lastBassSent = DateTime.fromMillisecondsSinceEpoch(0);
 
@@ -33,7 +32,6 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
   void initState() {
     super.initState();
     final player = Provider.of<PlayerProvider>(context, listen: false);
-    _parametersFuture = player.audioHandler.equalizer.parameters;
     _localBassBoost = player.bassBoost;
   }
 
@@ -108,7 +106,6 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                         onPressed: () {
                           setState(() {
                             _localBassBoost = null;
-                            _parametersFuture = player.audioHandler.equalizer.parameters;
                           });
                           player.resetEqualizer();
                         },
@@ -238,37 +235,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                   ),
                 ),
               ],
-              const SizedBox(height: 22),
-
-              // Presets
-              const Text('ACOUSTIC PROFILES', style: TextStyle(color: EmberColors.textMuted, fontSize: 11, letterSpacing: 1.2, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final p in ['Warm Tape', 'Lo-Fi', 'Bass Boost', 'Vocal Air', 'Acoustic', 'Flat'])
-                    ChoiceChip(
-                      label: Text(p),
-                      selected: player.eqPreset == p,
-                      selectedColor: EmberColors.primaryAmber,
-                      labelStyle: TextStyle(
-                        color: player.eqPreset == p ? EmberColors.obsidianBase : EmberColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                      backgroundColor: EmberColors.surfaceContainerLow,
-                      onSelected: (_) {
-                        setState(() {
-                          _localBassBoost = null;
-                          _parametersFuture = player.audioHandler.equalizer.parameters;
-                        });
-                        player.setEqualizerPreset(p);
-                      },
-                    ),
-                ],
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
 
               // Bass Boost / Sub-Warmth Slider (Throttled 50ms & instant local UI feedback)
               Row(
@@ -304,37 +271,12 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                 ),
               ),
 
-              const SizedBox(height: 16),
-              // Multi-Band Frequency Sliders
-              const Text('FREQUENCY BANDS', style: TextStyle(color: EmberColors.textMuted, fontSize: 11, letterSpacing: 1.2, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
+              const Divider(color: EmberColors.outlineVariant, height: 1),
+              const SizedBox(height: 14),
 
-              FutureBuilder<AndroidEqualizerParameters>(
-                future: _parametersFuture,
-                builder: (context, snapshot) {
-                  final params = snapshot.data;
-                  if (params == null || params.bands.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      alignment: Alignment.center,
-                      child: const Text('Hardware equalizer ready on playback', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
-                    );
-                  }
-
-                  return Column(
-                    children: [
-                      for (int i = 0; i < params.bands.length; i++)
-                        _BandSlider(
-                          key: ValueKey('band_$i'),
-                          band: params.bands[i],
-                          minDecibels: params.minDecibels,
-                          maxDecibels: params.maxDecibels,
-                          onChanged: (gain) => player.setBandGain(i, gain),
-                        ),
-                    ],
-                  );
-                },
-              ),
+              // Spotify-Style Interactive Graph Equalizer & Presets
+              const SpotifyGraphEqualizer(),
               const SizedBox(height: 16),
               const Divider(color: EmberColors.outlineVariant, height: 1),
               const SizedBox(height: 16),
@@ -410,112 +352,6 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _BandSlider extends StatefulWidget {
-  final AndroidEqualizerBand band;
-  final double minDecibels;
-  final double maxDecibels;
-  final ValueChanged<double> onChanged;
-
-  const _BandSlider({
-    super.key,
-    required this.band,
-    required this.minDecibels,
-    required this.maxDecibels,
-    required this.onChanged,
-  });
-
-  @override
-  State<_BandSlider> createState() => _BandSliderState();
-}
-
-class _BandSliderState extends State<_BandSlider> {
-  late double _gain;
-  DateTime _lastSent = DateTime.fromMillisecondsSinceEpoch(0);
-
-  @override
-  void initState() {
-    super.initState();
-    _gain = widget.band.gain;
-  }
-
-  @override
-  void didUpdateWidget(covariant _BandSlider oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.band.gain != widget.band.gain) {
-      _gain = widget.band.gain;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    double freq = widget.band.centerFrequency;
-    if (freq > 20000) {
-      freq = freq / 1000.0;
-    }
-    final freqStr = freq >= 1000 ? '${(freq / 1000).toStringAsFixed(1)} kHz' : '${freq.round()} Hz';
-    final minDb = widget.minDecibels.isFinite ? widget.minDecibels : -12.0;
-    final maxDb = widget.maxDecibels.isFinite && widget.maxDecibels > minDb ? widget.maxDecibels : 12.0;
-    final safeGain = _gain.isFinite ? _gain.clamp(minDb, maxDb) : 0.0;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 65,
-            child: Text(
-              freqStr,
-              style: const TextStyle(color: EmberColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
-            ),
-          ),
-          Expanded(
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 3,
-                activeTrackColor: EmberColors.primaryAmber,
-                thumbColor: EmberColors.textPrimary,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
-                inactiveTrackColor: EmberColors.surfaceContainerHigh,
-              ),
-              child: Slider(
-                value: safeGain,
-                min: minDb,
-                max: maxDb,
-                onChanged: (val) {
-                  setState(() => _gain = val);
-                  final now = DateTime.now();
-                  if (now.difference(_lastSent).inMilliseconds >= 50) {
-                    _lastSent = now;
-                    widget.onChanged(val);
-                  }
-                },
-                onChangeEnd: (val) {
-                  setState(() => _gain = val);
-                  widget.onChanged(val);
-                },
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 52,
-            child: Text(
-              _gain.abs() < 0.05
-                  ? '0.0 dB'
-                  : '${_gain > 0 ? '+' : ''}${_gain.toStringAsFixed(1)} dB',
-              textAlign: TextAlign.end,
-              style: TextStyle(
-                color: _gain.abs() > 0.5 ? EmberColors.primaryAmber : EmberColors.textMuted,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/player_provider.dart';
 import '../theme/ember_theme.dart';
+import '../widgets/sine_qr_code_sheet.dart';
 import 'sound_shaping_sheet.dart';
 
 class TrackOptionsSheet extends StatelessWidget {
@@ -254,6 +255,16 @@ class TrackOptionsSheet extends StatelessWidget {
                   );
                 },
               ),
+            _OptionTile(
+              icon: FontAwesomeIcons.qrcode,
+              iconColor: EmberColors.secondaryCyan,
+              title: 'Show Sine QR Code',
+              subtitle: 'Scannable Spotify-style code for instant sharing',
+              onTap: () {
+                Navigator.pop(context);
+                SineQrCodeSheet.show(context, song);
+              },
+            ),
             _OptionTile(
               icon: FontAwesomeIcons.folderPlus,
               title: 'Add to Playlist',

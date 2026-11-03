@@ -9,6 +9,8 @@ import 'tabs/pulsepipe_home_tab.dart';
 import 'tabs/pulsepipe_search_tab.dart';
 import 'tabs/pulsepipe_library_tab.dart';
 import 'diagnostics_log_screen.dart';
+import 'app_lock_screen.dart';
+import '../services/app_lock_service.dart';
 
 typedef SineShellScreen = PulsePipeShellScreen;
 
@@ -19,9 +21,34 @@ class PulsePipeShellScreen extends StatefulWidget {
   State<PulsePipeShellScreen> createState() => _PulsePipeShellScreenState();
 }
 
-class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> {
+class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
   ValueNotifier<Song?>? _errorNotifier;
+  bool _isLocked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkAppLock();
+  }
+
+  Future<void> _checkAppLock() async {
+    final enabled = await AppLockService.isLockEnabled();
+    if (enabled && !AppLockService.isUnlockedThisSession && mounted) {
+      setState(() => _isLocked = true);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused) {
+      AppLockService.isUnlockedThisSession = false;
+    } else if (state == AppLifecycleState.resumed) {
+      _checkAppLock();
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -36,6 +63,7 @@ class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _errorNotifier?.removeListener(_onPlaybackError);
     super.dispose();
   }
@@ -160,6 +188,15 @@ class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> {
               ],
             ),
           ),
+
+          // 3. Security & App Lock Screen Overlay (if enabled & locked)
+          if (_isLocked)
+            Positioned.fill(
+              child: AppLockScreen(
+                mode: AppLockMode.unlock,
+                onUnlocked: () => setState(() => _isLocked = false),
+              ),
+            ),
         ],
       ),
     );
