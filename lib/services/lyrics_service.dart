@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class LyricLine {
@@ -57,6 +57,17 @@ class LyricsService {
 
   static void clearCache() {
     _cache.clear();
+  }
+
+  /// Checks whether a track has been tempo-modified (slowed, reverb, sped up, nightcore, daycore, etc.)
+  /// Synchronized lyrics are disabled for modified-tempo tracks to prevent timing desync.
+  static bool isTempoModified(String title, [String? artist]) {
+    final combined = '$title ${artist ?? ''}'.toLowerCase();
+    final regex = RegExp(
+      r'\b(slowed(\s*[\+\&]\s*reverb)?|reverb|sped\s*up|speed\s*up|speedup|nightcore|daycore|pitched(\s*up|\s*down)?|fast\s*version|chopped(\s*[\+\&]\s*screwed)?)\b',
+      caseSensitive: false,
+    );
+    return regex.hasMatch(combined);
   }
 
   /// Deep-cleans title string by stripping noise tags, resolution/fps, brackets, quotes, etc.
@@ -259,6 +270,10 @@ class LyricsService {
     String artist, {
     bool forceRefresh = false,
   }) async {
+    if (isTempoModified(title, artist)) {
+      return LyricsResult.empty;
+    }
+
     final cacheKey = '${title.toLowerCase().trim()}___${artist.toLowerCase().trim()}';
 
     if (!forceRefresh && _cache.containsKey(cacheKey)) {

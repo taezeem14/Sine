@@ -549,15 +549,25 @@ class PlayerProvider extends ChangeNotifier {
 
     // Offline interception: if this song was downloaded to disk, play offline seamlessly
     Song resolvedSong = song;
-    final downloadedIndex = _downloads.indexWhere((d) => d.id == song.id);
-    if (downloadedIndex != -1) {
-      final downloaded = _downloads[downloadedIndex];
-      var checkPath = downloaded.streamUrl.replaceFirst('file://', '');
-      if (Platform.isWindows && checkPath.startsWith('/') && checkPath.length > 2 && checkPath[2] == ':') {
-        checkPath = checkPath.substring(1);
-      }
-      if (File(checkPath).existsSync()) {
-        resolvedSong = downloaded;
+    final sPath = song.streamUrl.replaceFirst('file://', '');
+    if ((song.source == 'download' || sPath.startsWith('/') || RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(sPath)) && File(sPath).existsSync()) {
+      resolvedSong = song;
+    } else {
+      final downloadedIndex = _downloads.indexWhere((d) =>
+          d.id == song.id ||
+          d.id.replaceFirst('yt_', '') == song.id.replaceFirst('yt_', '') ||
+          (d.title.trim().toLowerCase() == song.title.trim().toLowerCase() &&
+              d.artist.trim().toLowerCase() == song.artist.trim().toLowerCase()));
+
+      if (downloadedIndex != -1) {
+        final downloaded = _downloads[downloadedIndex];
+        var checkPath = downloaded.streamUrl.replaceFirst('file://', '');
+        if (Platform.isWindows && checkPath.startsWith('/') && checkPath.length > 2 && checkPath[2] == ':') {
+          checkPath = checkPath.substring(1);
+        }
+        if (File(checkPath).existsSync()) {
+          resolvedSong = downloaded;
+        }
       }
     }
 
@@ -591,6 +601,13 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> _loadLyrics(Song song) async {
+    if (LyricsService.isTempoModified(song.title, song.artist)) {
+      _isLoadingLyrics = false;
+      _lyrics = LyricsResult.empty;
+      notifyListeners();
+      return;
+    }
+
     _isLoadingLyrics = true;
     _lyrics = LyricsResult.empty;
     notifyListeners();
@@ -1197,6 +1214,12 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> removeSongFromPlaylistAt(String playlistId, int index) async {
+    if (playlistId == 'downloaded_songs') {
+      if (index >= 0 && index < _downloads.length) {
+        await deleteDownload(_downloads[index].id);
+      }
+      return;
+    }
     final idx = _playlists.indexWhere((p) => p.id == playlistId);
     if (idx != -1) {
       final p = _playlists[idx];

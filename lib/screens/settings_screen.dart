@@ -391,12 +391,16 @@ class _SettingsContentState extends State<SettingsContent> {
                     children: [
                       FaIcon(FontAwesomeIcons.heart, size: 14, color: EmberColors.obsidianBase),
                       SizedBox(width: 8),
-                      Text(
-                        'Support Taezeem via UPI (7006616470@fam) 💖',
-                        style: TextStyle(
-                          color: EmberColors.obsidianBase,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                      Flexible(
+                        child: Text(
+                          'Support Taezeem via UPI (7006616470@fam)',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: EmberColors.obsidianBase,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
@@ -599,8 +603,8 @@ class _SettingsContentState extends State<SettingsContent> {
         const _SettingsTile(
           icon: FontAwesomeIcons.mobileScreen,
           title: 'Sine Version',
-          subtitle: 'v1.1.0 (Release Build)',
-          trailing: Text('1.1.0', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
+          subtitle: 'v1.1.2 (Release Build)',
+          trailing: Text('1.1.2', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
           onTap: null,
         ),
         const _SettingsTile(

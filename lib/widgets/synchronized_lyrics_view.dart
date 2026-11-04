@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/player_provider.dart';
+import '../services/lyrics_service.dart';
 import '../theme/ember_theme.dart';
 
 class SynchronizedLyricsView extends StatefulWidget {
@@ -85,6 +86,47 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
             SizedBox(height: 12),
             Text('No song playing', style: TextStyle(color: EmberColors.textMuted)),
           ],
+        ),
+      );
+    }
+
+    if (LyricsService.isTempoModified(cur.title, cur.artist)) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: EmberColors.surfaceContainerHigh.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const FaIcon(FontAwesomeIcons.gaugeHigh, size: 32, color: EmberColors.textMuted),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Lyrics Unavailable for Modified-Tempo Audio',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: EmberColors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Synchronized lyrics are disabled on slowed, reverb, or sped-up tracks to prevent audio timing mismatch.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: EmberColors.textMuted,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }

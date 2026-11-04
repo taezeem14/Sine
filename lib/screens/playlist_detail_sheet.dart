@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -44,10 +44,21 @@ class PlaylistDetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final player = context.watch<PlayerProvider>();
     // Look up latest state of this playlist
-    final currentPl = player.playlists.firstWhere(
-      (p) => p.id == playlist.id,
-      orElse: () => playlist,
-    );
+    final Playlist currentPl;
+    if (playlist.id == 'downloaded_songs') {
+      currentPl = Playlist(
+        id: 'downloaded_songs',
+        title: 'Downloaded Songs',
+        description: 'Tracks stored locally on your device for offline playback',
+        songs: player.downloads,
+        createdAt: playlist.createdAt,
+      );
+    } else {
+      currentPl = player.playlists.firstWhere(
+        (p) => p.id == playlist.id,
+        orElse: () => playlist,
+      );
+    }
 
     return DraggableScrollableSheet(
       initialChildSize: 0.88,
@@ -118,10 +129,11 @@ class PlaylistDetailSheet extends StatelessWidget {
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const FaIcon(FontAwesomeIcons.penToSquare, size: 16, color: EmberColors.textMuted),
-                    tooltip: 'Rename Playlist',
-                    onPressed: () {
+                  if (currentPl.id != 'downloaded_songs')
+                    IconButton(
+                      icon: const FaIcon(FontAwesomeIcons.penToSquare, size: 16, color: EmberColors.textMuted),
+                      tooltip: 'Rename Playlist',
+                      onPressed: () {
                       final textController = TextEditingController(text: currentPl.title);
                       showDialog(
                         context: context,

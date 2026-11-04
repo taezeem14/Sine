@@ -402,7 +402,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
               // ==========================================
 
               // A. Spotify Synced Lyrics Preview Card
-              if (!_showLyrics)
+              if (!_showLyrics && !LyricsService.isTempoModified(song.title, song.artist))
                 _SpotifyLyricsPreviewCard(
                   onExpand: () => setState(() => _showLyrics = true),
                 ),
@@ -740,54 +740,107 @@ class _UtilityPillsRow extends StatelessWidget {
   void _showSleepTimerDialog(BuildContext context, PlayerProvider player) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: EmberColors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) {
+        final isTimerActive = player.sleepAtTrackEnd || player.sleepSecondsRemaining > 0;
+        final remainingText = player.sleepAtTrackEnd
+            ? 'At end of this song'
+            : (player.sleepSecondsRemaining > 0
+                ? '${(player.sleepSecondsRemaining / 60).ceil()} mins remaining'
+                : 'Off');
+
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Sleep Timer',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: EmberColors.textPrimary,
-                        fontWeight: FontWeight.bold,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.75,
+            ),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: EmberColors.textMuted.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
+                    ),
+                    Text(
+                      'Sleep Timer',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: EmberColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isTimerActive ? 'Active: $remainingText' : 'Set music to stop automatically',
+                      style: TextStyle(
+                        color: isTimerActive ? EmberColors.primaryBlue : EmberColors.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Clear & Explicit Cancel / Turn Off Option (Always Available)
+                    ListTile(
+                      leading: Icon(
+                        Icons.timer_off_rounded,
+                        color: isTimerActive ? EmberColors.error : EmberColors.textMuted,
+                      ),
+                      title: Text(
+                        'Turn Off Timer',
+                        style: TextStyle(
+                          color: isTimerActive ? EmberColors.error : EmberColors.textSecondary,
+                          fontWeight: isTimerActive ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      subtitle: Text(
+                        isTimerActive ? 'Cancel the active sleep timer immediately' : 'No sleep timer is currently active',
+                        style: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
+                      ),
+                      trailing: !isTimerActive ? const Icon(Icons.check, color: EmberColors.textMuted, size: 18) : null,
+                      onTap: () {
+                        player.cancelSleepTimer();
+                        Navigator.pop(context);
+                      },
+                    ),
+                    const Divider(color: EmberColors.outlineVariant, height: 16),
+
+                    ListTile(
+                      leading: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                      title: const Text('End of this song', style: TextStyle(color: EmberColors.textPrimary, fontWeight: FontWeight.w600)),
+                      trailing: player.sleepAtTrackEnd ? const Icon(Icons.check, color: EmberColors.primaryBlue) : null,
+                      onTap: () {
+                        player.setSleepAtTrackEnd(true);
+                        Navigator.pop(context);
+                      },
+                    ),
+                    for (final mins in [5, 10, 15, 30, 45, 60, 90, 120])
+                      ListTile(
+                        leading: const FaIcon(FontAwesomeIcons.clock, size: 16, color: EmberColors.textMuted),
+                        title: Text('$mins minutes', style: const TextStyle(color: EmberColors.textPrimary)),
+                        trailing: (!player.sleepAtTrackEnd && player.sleepSecondsRemaining == mins * 60)
+                            ? const Icon(Icons.check, color: EmberColors.primaryBlue)
+                            : null,
+                        onTap: () {
+                          player.startSleepTimer(mins);
+                          Navigator.pop(context);
+                        },
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                ListTile(
-                  leading: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
-                  title: const Text('End of this song', style: TextStyle(color: EmberColors.textPrimary, fontWeight: FontWeight.w600)),
-                  trailing: player.sleepAtTrackEnd ? const Icon(Icons.check, color: EmberColors.primaryBlue) : null,
-                  onTap: () {
-                    player.setSleepAtTrackEnd(true);
-                    Navigator.pop(context);
-                  },
-                ),
-                for (final mins in [5, 10, 15, 30, 45, 60])
-                  ListTile(
-                    leading: const FaIcon(FontAwesomeIcons.clock, size: 16, color: EmberColors.textMuted),
-                    title: Text('$mins minutes', style: const TextStyle(color: EmberColors.textPrimary)),
-                    trailing: (!player.sleepAtTrackEnd && player.sleepSecondsRemaining == mins * 60)
-                        ? const Icon(Icons.check, color: EmberColors.primaryBlue)
-                        : null,
-                    onTap: () {
-                      player.startSleepTimer(mins);
-                      Navigator.pop(context);
-                    },
-                  ),
-                if (player.sleepAtTrackEnd || player.sleepSecondsRemaining > 0)
-                  ListTile(
-                    leading: const FaIcon(FontAwesomeIcons.xmark, size: 16, color: EmberColors.error),
-                    title: const Text('Turn Off Timer', style: TextStyle(color: EmberColors.error, fontWeight: FontWeight.bold)),
-                    onTap: () {
-                      player.cancelSleepTimer();
-                      Navigator.pop(context);
-                    },
-                  ),
-              ],
+              ),
             ),
           ),
         );

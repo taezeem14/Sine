@@ -140,6 +140,21 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
             }
             ACTION_WIDGET_PLAY_PAUSE -> {
                 sendMediaKeyEvent(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
+                // Optimistically toggle icon state immediately in SharedPreferences & RemoteViews
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val currentPlaying = prefs.getBoolean(KEY_PLAYING, false)
+                val newPlaying = !currentPlaying
+                val title = prefs.getString(KEY_TITLE, "No Song Playing")
+                val artist = prefs.getString(KEY_ARTIST, "Tap to open Sine")
+                updateAllWidgets(context, title, artist, newPlaying)
+
+                // If no song was ever loaded, launch app so user can choose music
+                if (title == "No Song Playing" || title.isNullOrEmpty()) {
+                    val openAppIntent = Intent(context, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    }
+                    context.startActivity(openAppIntent)
+                }
             }
             ACTION_WIDGET_NEXT -> {
                 sendMediaKeyEvent(context, KeyEvent.KEYCODE_MEDIA_NEXT)
@@ -152,18 +167,28 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
 
     private fun sendMediaKeyEvent(context: Context, keyCode: Int) {
         try {
+            // Explicit component routing for Android 8+ (Oreo through Android 15)
+            val component = ComponentName(context, "com.ryanheise.audioservice.MediaButtonReceiver")
+
             val downIntent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
-                setPackage(context.packageName)
+                this.component = component
                 putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
             }
             context.sendOrderedBroadcast(downIntent, null)
 
             val upIntent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
-                setPackage(context.packageName)
+                this.component = component
                 putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(KeyEvent.ACTION_UP, keyCode))
             }
             context.sendOrderedBroadcast(upIntent, null)
         } catch (_: Exception) {
+            try {
+                val downIntent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
+                    setPackage(context.packageName)
+                    putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+                }
+                context.sendBroadcast(downIntent)
+            } catch (_: Exception) {}
         }
     }
 }

@@ -194,11 +194,16 @@ class TrackOptionsSheet extends StatelessWidget {
     final isDownloaded = player.isDownloaded(song.id);
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             Center(
               child: Container(
                 width: 40,
@@ -275,19 +280,37 @@ class TrackOptionsSheet extends StatelessWidget {
                 _showAddToPlaylistDialog(context, player);
               },
             ),
-            _OptionTile(
-              icon: isDownloaded ? FontAwesomeIcons.circleCheck : FontAwesomeIcons.download,
-              iconColor: isDownloaded ? EmberColors.primaryAmber : null,
-              title: isDownloaded ? 'Downloaded (Offline Ready)' : 'Download Audio (MP3)',
-              subtitle: 'Save high-bitrate audio to Sine-Music folder',
-              onTap: () async {
-                final messenger = ScaffoldMessenger.of(context);
-                Navigator.pop(context);
-                if (!isDownloaded) {
+            if (isDownloaded)
+              _OptionTile(
+                icon: FontAwesomeIcons.trashCan,
+                iconColor: EmberColors.error,
+                title: 'Remove Download',
+                subtitle: 'Delete offline audio file from device storage',
+                onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  Navigator.pop(context);
+                  await player.deleteDownload(song.id);
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      backgroundColor: EmberColors.surfaceContainerHigh,
+                      content: Text('Removed track from downloads', style: TextStyle(color: EmberColors.error)),
+                    ),
+                  );
+                },
+              )
+            else
+              _OptionTile(
+                icon: FontAwesomeIcons.download,
+                iconColor: null,
+                title: 'Download Audio (MP3/M4A)',
+                subtitle: 'Save high-bitrate audio to Sine-Music folder',
+                onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  Navigator.pop(context);
                   messenger.showSnackBar(
                     SnackBar(
                       backgroundColor: EmberColors.surfaceContainerHigh,
-                      content: Text('Downloading "${song.title}" MP3...', style: const TextStyle(color: EmberColors.primaryAmber)),
+                      content: Text('Downloading "${song.title}" audio...', style: const TextStyle(color: EmberColors.primaryAmber)),
                     ),
                   );
                   final path = await player.downloadAudio(song);
@@ -306,9 +329,8 @@ class TrackOptionsSheet extends StatelessWidget {
                       ),
                     );
                   }
-                }
-              },
-            ),
+                },
+              ),
             _OptionTile(
               icon: FontAwesomeIcons.video,
               title: 'Download Video (MP4)',
@@ -429,7 +451,8 @@ class TrackOptionsSheet extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

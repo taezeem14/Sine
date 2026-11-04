@@ -308,5 +308,47 @@ void main() {
       expect(parsed.queryParameters['title'], 'Starboy (feat. Daft Punk)');
       expect(parsed.queryParameters['artist'], 'The Weeknd');
     });
+
+    test('parseYouTubeMetadata correctly parses titles and reverses swapped Artist - Title vs Title - Artist', () {
+      // Case 1: Standard YouTube Music auto-generated upload (Title with Artist - Topic channel)
+      final meta1 = YouTubeImporterService.parseYouTubeMetadata('Blinding Lights', 'The Weeknd - Topic');
+      expect(meta1.cleanTitle, 'Blinding Lights');
+      expect(meta1.cleanArtist, 'The Weeknd');
+
+      // Case 2: Swapped format "Title - Artist" where channel is the Artist
+      final meta2 = YouTubeImporterService.parseYouTubeMetadata('Blinding Lights - The Weeknd', 'The Weeknd');
+      expect(meta2.cleanTitle, 'Blinding Lights');
+      expect(meta2.cleanArtist, 'The Weeknd');
+
+      // Case 3: Standard format "Artist - Title"
+      final meta3 = YouTubeImporterService.parseYouTubeMetadata('The Weeknd - Blinding Lights (Official Video)', 'TheWeekndVEVO');
+      expect(meta3.cleanTitle, 'Blinding Lights');
+      expect(meta3.cleanArtist, 'The Weeknd');
+
+      // Case 4: Quoted title e.g. "Song Name" - Artist
+      final meta4 = YouTubeImporterService.parseYouTubeMetadata('"As It Was" - Harry Styles', 'Harry Styles');
+      expect(meta4.cleanTitle, 'As It Was');
+      expect(meta4.cleanArtist, 'Harry Styles');
+
+      // Case 5: "Title by Artist" pattern
+      final meta5 = YouTubeImporterService.parseYouTubeMetadata('Shape of You by Ed Sheeran', 'Ed Sheeran');
+      expect(meta5.cleanTitle, 'Shape of You');
+      expect(meta5.cleanArtist, 'Ed Sheeran');
+    });
+
+    test('isTempoModified correctly identifies slowed, reverb, sped-up, and nightcore tracks', () {
+      expect(LyricsService.isTempoModified('Die For You (Slowed + Reverb)'), isTrue);
+      expect(LyricsService.isTempoModified('Starboy - Slowed and Reverb'), isTrue);
+      expect(LyricsService.isTempoModified('After Hours [Sped Up]'), isTrue);
+      expect(LyricsService.isTempoModified('Save Your Tears (Nightcore)'), isTrue);
+      expect(LyricsService.isTempoModified('Blinding Lights (Fast version)'), isTrue);
+      expect(LyricsService.isTempoModified('Ordinary Track Title', 'Standard Artist'), isFalse);
+    });
+
+    test('fetchLyrics returns empty result immediately for tempo-modified songs', () async {
+      final res = await LyricsService.fetchLyrics('Die For You (Slowed + Reverb)', 'The Weeknd');
+      expect(res.syncedLyrics, isEmpty);
+      expect(res.hasSynced, isFalse);
+    });
   });
 }

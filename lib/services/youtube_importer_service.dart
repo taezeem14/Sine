@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' hide Playlist;
@@ -123,35 +123,28 @@ class YouTubeImporterService {
     return obj['simpleText'] as String?;
   }
 
-  /// Smart YouTube metadata cleaner: extracts true song title, artist, and clean search query
+  /// Smart YouTube metadata cleaner: accurately extracts song title & artist,
+  /// correcting for inverted "Title - Artist" vs "Artist - Title", stripping YouTube topic/VEVO suffixes,
+  /// and handling quotes or "by" patterns.
   static ({String cleanTitle, String cleanArtist, String searchQuery}) parseYouTubeMetadata(String rawTitle, String rawAuthor) {
-    var t = rawTitle
-        .replaceAll(RegExp(r'\((?:official|music|video|audio|lyrics|hd|4k|visualizer|remastered|lyric|prod\.|feat\.|ft\.).*?\)', caseSensitive: false), '')
-        .replaceAll(RegExp(r'\[(?:official|music|video|audio|lyrics|hd|4k|visualizer|remastered|lyric|prod\.|feat\.|ft\.).*?\]', caseSensitive: false), '')
-        .trim();
+    // 1. Clean author / channel name
+    String cleanAuthor = rawAuthor.trim();
+    // Strip " - Topic", " (Topic)", " Topic"
+    cleanAuthor = cleanAuthor.replaceAll(RegExp(r'\s*-\s*Topic$', caseSensitive: false), '').trim();
+    cleanAuthor = cleanAuthor.replaceAll(RegExp(r'\s*\(Topic\)$', caseSensitive: false), '').trim();
+    cleanAuthor = cleanAuthor.replaceAll(RegExp(r'\s+Topic$', caseSensitive: false), '').trim();
 
-    if (t.contains('|')) {
-      t = t.split('|').first.trim();
+    // Strip "VEVO" / "vevo" suffix
+    if (cleanAuthor.toLowerCase().endsWith('vevo') && cleanAuthor.length > 4) {
+      cleanAuthor = cleanAuthor.substring(0, cleanAuthor.length - 4).trim();
     }
+    // Strip " Official Channel", " Official"
+    cleanAuthor = cleanAuthor.replaceAll(RegExp(r'\s*Official(\s+Channel)?$', caseSensitive: false), '').trim();
 
-    String extractedArtist = '';
-    String extractedTitle = t;
-
-    if (t.contains(' - ') || t.contains(' – ') || t.contains(' — ')) {
-      final delimiter = t.contains(' - ') ? ' - ' : (t.contains(' – ') ? ' – ' : ' — ');
-      final parts = t.split(delimiter);
-      if (parts.length >= 2) {
-        extractedArtist = parts[0].trim();
-        extractedTitle = parts.sublist(1).join(delimiter).trim();
-      }
-    }
-
-    final lowerAuthor = rawAuthor.toLowerCase();
-    final isPublisher = lowerAuthor.contains('vevo') ||
-        lowerAuthor.contains('topic') ||
-        lowerAuthor.contains('records') ||
+    // Strip generic YouTube channel names
+    final lowerAuthor = cleanAuthor.toLowerCase();
+    final isPublisherOrCurator = lowerAuthor.contains('records') ||
         lowerAuthor.contains('record') ||
-        lowerAuthor.contains('music') ||
         lowerAuthor.contains('series') ||
         lowerAuthor.contains('studio') ||
         lowerAuthor.contains('studios') ||
@@ -160,29 +153,116 @@ class YouTubeImporterService {
         lowerAuthor.contains('nation') ||
         lowerAuthor.contains('clouds') ||
         lowerAuthor.contains('chill') ||
-        lowerAuthor.contains('sound') ||
         lowerAuthor.contains('entertainment') ||
         lowerAuthor.contains('media') ||
-        rawAuthor == 'Unknown Artist';
+        cleanAuthor == 'YouTube' ||
+        cleanAuthor == 'Unknown Artist';
 
-    String finalArtist = extractedArtist;
-    if (finalArtist.isEmpty && !isPublisher) {
-      finalArtist = rawAuthor.trim();
-    }
-
-    extractedTitle = extractedTitle
-        .replaceAll(RegExp(r'\(.*?\)|\[.*?\]', caseSensitive: false), '')
-        .replaceAll(RegExp(r'\b(?:official|video|audio|lyrics|hd|4k|full song|lyric video)\b', caseSensitive: false), '')
-        .replaceAll(RegExp(r'\b(?:feat\.|ft\.)\s+[A-Za-z0-9\s,&]+', caseSensitive: false), '')
+    // 2. Initial title cleaning (strip common YouTube junk: official video, audio, 4K, visualizer, etc.)
+    var t = rawTitle
+        .replaceAll(RegExp(r'\((?:official\s*(?:music\s*)?video|official\s*audio|lyrics?|hd|4k|visualizer|remastered|prod\.|video|audio).*?\)', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\[(?:official\s*(?:music\s*)?video|official\s*audio|lyrics?|hd|4k|visualizer|remastered|prod\.|video|audio).*?\]', caseSensitive: false), '')
         .trim();
 
-    if (extractedTitle.isEmpty) {
-      extractedTitle = t.isNotEmpty ? t : (rawTitle.trim().isNotEmpty ? rawTitle.trim() : 'YouTube Song');
+    if (t.contains('|')) {
+      t = t.split('|').first.trim();
     }
 
-    final searchQuery = finalArtist.isNotEmpty ? '$extractedTitle $finalArtist' : extractedTitle;
+    String candidateArtist = '';
+    String candidateTitle = t;
+
+    // Check for "Title" by Artist pattern
+    final byMatch = RegExp(r'^(.*?)\s+by\s+(.*?)$', caseSensitive: false).firstMatch(t);
+    if (byMatch != null) {
+      candidateTitle = byMatch.group(1)?.trim() ?? t;
+      candidateArtist = byMatch.group(2)?.trim() ?? '';
+    } else if (t.contains(' - ') || t.contains(' – ') || t.contains(' — ') || t.contains(' : ')) {
+      final delimiter = t.contains(' - ')
+          ? ' - '
+          : (t.contains(' – ')
+              ? ' – '
+              : (t.contains(' — ') ? ' — ' : ' : '));
+      final parts = t.split(delimiter);
+
+      if (parts.length >= 2) {
+        final partA = parts[0].trim();
+        final partB = parts.sublist(1).join(delimiter).trim();
+
+        // Check if one of the parts is enclosed in quotes -> Quotes ALWAYS indicate Title
+        final aQuoted = (partA.startsWith('"') && partA.endsWith('"')) ||
+            (partA.startsWith('“') && partA.endsWith('”')) ||
+            (partA.startsWith("'") && partA.endsWith("'"));
+        final bQuoted = (partB.startsWith('"') && partB.endsWith('"')) ||
+            (partB.startsWith('“') && partB.endsWith('”')) ||
+            (partB.startsWith("'") && partB.endsWith("'"));
+
+        if (aQuoted && !bQuoted) {
+          // "Song Title" - Artist
+          candidateTitle = partA;
+          candidateArtist = partB;
+        } else if (bQuoted && !aQuoted) {
+          // Artist - "Song Title"
+          candidateArtist = partA;
+          candidateTitle = partB;
+        } else {
+          // Compare both parts against cleanAuthor (if cleanAuthor is an artist)
+          final normAuthor = cleanAuthor.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+          final normA = partA.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+          final normB = partB.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+          final matchA = normAuthor.isNotEmpty && (normA == normAuthor || normA.contains(normAuthor) || normAuthor.contains(normA));
+          final matchB = normAuthor.isNotEmpty && (normB == normAuthor || normB.contains(normAuthor) || normAuthor.contains(normB));
+
+          if (matchB && !matchA) {
+            // "Song Title - Artist" format! e.g. "Blinding Lights - The Weeknd"
+            candidateTitle = partA;
+            candidateArtist = partB;
+          } else if (matchA && !matchB) {
+            // Standard "Artist - Song Title" format! e.g. "The Weeknd - Blinding Lights"
+            candidateArtist = partA;
+            candidateTitle = partB;
+          } else {
+            // Neither or both match cleanAuthor.
+            // Check if partA has remix/acoustic/live markers: that means partA is the title!
+            final aHasMusicKeywords = RegExp(r'\b(remix|acoustic|live|cover|version|slowed|reverb)\b', caseSensitive: false).hasMatch(partA);
+            final bHasMusicKeywords = RegExp(r'\b(remix|acoustic|live|cover|version|slowed|reverb)\b', caseSensitive: false).hasMatch(partB);
+
+            if (aHasMusicKeywords && !bHasMusicKeywords) {
+              candidateTitle = partA;
+              candidateArtist = partB;
+            } else {
+              // Default to standard "Artist - Title"
+              candidateArtist = partA;
+              candidateTitle = partB;
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Fallback artist assignment if title had no delimiter
+    String finalArtist = candidateArtist.trim();
+    if (finalArtist.isEmpty && cleanAuthor.isNotEmpty && !isPublisherOrCurator) {
+      finalArtist = cleanAuthor.trim();
+    }
+
+    // 4. Polish title: strip outer quotes and remaining bracketed video tags
+    String finalTitle = candidateTitle
+        .replaceAll(RegExp(r'^["“\x27]|["”\x27]$'), '')
+        .replaceAll(RegExp(r'\(.*?\)|\[.*?\]', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\b(?:official|video|audio|lyrics|hd|4k|full song|lyric video)\b', caseSensitive: false), '')
+        .trim();
+
+    if (finalTitle.isEmpty) {
+      finalTitle = t.isNotEmpty ? t : (rawTitle.trim().isNotEmpty ? rawTitle.trim() : 'YouTube Song');
+    }
+
+    // Strip outer quotes on artist as well
+    finalArtist = finalArtist.replaceAll(RegExp(r'^["“\x27]|["”\x27]$'), '').trim();
+
+    final searchQuery = finalArtist.isNotEmpty ? '$finalTitle $finalArtist' : finalTitle;
     return (
-      cleanTitle: extractedTitle,
+      cleanTitle: finalTitle,
       cleanArtist: finalArtist,
       searchQuery: searchQuery,
     );
@@ -595,10 +675,11 @@ class YouTubeImporterService {
             ? video.thumbnails.highResUrl
             : video.thumbnails.standardResUrl;
 
+        final meta = parseYouTubeMetadata(video.title, video.author);
         final song = Song(
           id: 'yt_${video.id.value}',
-          title: video.title,
-          artist: video.author,
+          title: meta.cleanTitle,
+          artist: meta.cleanArtist.isNotEmpty ? meta.cleanArtist : video.author,
           duration: video.duration ?? const Duration(minutes: 3, seconds: 30),
           artworkUrl: artwork,
           streamUrl: streamUrl,
@@ -658,12 +739,13 @@ class YouTubeImporterService {
               final title = _extractText(v['title']) ?? 'YouTube Song';
               final author = _extractText(v['ownerText']) ?? _extractText(v['shortBylineText']) ?? 'YouTube';
               final durText = v['lengthText']?['simpleText'] as String?;
+              final meta = parseYouTubeMetadata(title, author);
 
               songs.add(
                 Song(
                   id: 'yt_$vId',
-                  title: title,
-                  artist: author,
+                  title: meta.cleanTitle,
+                  artist: meta.cleanArtist.isNotEmpty ? meta.cleanArtist : author,
                   duration: parseDurationText(durText),
                   artworkUrl: 'https://i.ytimg.com/vi/$vId/hqdefault.jpg',
                   streamUrl: 'https://www.youtube.com/watch?v=$vId',
@@ -688,11 +770,12 @@ class YouTubeImporterService {
       final searchList = await _yt.search.search(query).timeout(const Duration(seconds: 6));
       final fallbackSongs = <Song>[];
       for (final video in searchList.take(limit)) {
+        final meta = parseYouTubeMetadata(video.title, video.author);
         fallbackSongs.add(
           Song(
             id: 'yt_${video.id.value}',
-            title: video.title,
-            artist: video.author,
+            title: meta.cleanTitle,
+            artist: meta.cleanArtist.isNotEmpty ? meta.cleanArtist : video.author,
             duration: video.duration ?? const Duration(minutes: 3, seconds: 30),
             artworkUrl: video.thumbnails.highResUrl.isNotEmpty
                 ? video.thumbnails.highResUrl
@@ -718,10 +801,13 @@ class YouTubeImporterService {
           final rawUrl = item['url'] as String? ?? '';
           final vid = extractVideoId(rawUrl) ?? rawUrl.replaceFirst('/watch?v=', '').split('&').first.trim();
           final durSecs = (item['duration'] as num?)?.toInt() ?? 210;
+          final rawTitle = item['title'] as String? ?? 'YouTube Track';
+          final rawAuthor = item['uploaderName'] as String? ?? 'Artist';
+          final meta = parseYouTubeMetadata(rawTitle, rawAuthor);
           return Song(
             id: 'yt_$vid',
-            title: item['title'] as String? ?? 'YouTube Track',
-            artist: item['uploaderName'] as String? ?? 'Artist',
+            title: meta.cleanTitle,
+            artist: meta.cleanArtist.isNotEmpty ? meta.cleanArtist : rawAuthor,
             duration: Duration(seconds: durSecs),
             artworkUrl: item['thumbnail'] as String? ?? (vid.isNotEmpty ? 'https://i.ytimg.com/vi/$vid/hqdefault.jpg' : ''),
             streamUrl: 'https://www.youtube.com/watch?v=$vid',
