@@ -192,6 +192,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
             // 1. Header Title "Search"
             SliverToBoxAdapter(

@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -69,38 +70,42 @@ class MiniPlayer extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 2px top progress bar
-            LinearProgressIndicator(
-              value: progress,
-              minHeight: 2,
-              backgroundColor: Colors.white.withValues(alpha: 0.05),
-              valueColor: const AlwaysStoppedAnimation<Color>(EmberColors.primaryAmber),
+            // 2px top progress bar (RepaintBoundary for 120 FPS)
+            RepaintBoundary(
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 2,
+                backgroundColor: Colors.white.withValues(alpha: 0.05),
+                valueColor: const AlwaysStoppedAnimation<Color>(EmberColors.primaryBlue),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
                   // Vinyl disc with art peek
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      VinylDisc(
-                        size: 42,
-                        isPlaying: player.isPlaying,
-                      ),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(21),
-                        child: song.artworkUrl.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: song.artworkUrl,
-                                width: 28,
-                                height: 28,
-                                fit: BoxFit.cover,
-                                errorWidget: (_, _, _) => const FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryAmber),
-                              )
-                            : const FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryAmber),
-                      ),
-                    ],
+                  RepaintBoundary(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        VinylDisc(
+                          size: 42,
+                          isPlaying: player.isPlaying,
+                        ),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(21),
+                          child: song.artworkUrl.isNotEmpty
+                              ? CachedNetworkImage(
+                                  imageUrl: song.artworkUrl,
+                                  width: 28,
+                                  height: 28,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, _, _) => const FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryBlue),
+                                )
+                              : const FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryBlue),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 12),
                   // Title and Artist
@@ -160,9 +165,12 @@ class MiniPlayer extends StatelessWidget {
                     icon: FaIcon(
                       player.isFavorite(song.id) ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
                       size: 18,
-                      color: player.isFavorite(song.id) ? EmberColors.primaryAmber : EmberColors.textMuted,
+                      color: player.isFavorite(song.id) ? EmberColors.primaryBlue : EmberColors.textMuted,
                     ),
-                    onPressed: () => player.toggleFavorite(song),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      player.toggleFavorite(song);
+                    },
                     splashRadius: 20,
                   ),
                   // Circular Play/Pause button
@@ -171,7 +179,7 @@ class MiniPlayer extends StatelessWidget {
                     height: 38,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: EmberColors.primaryAmber,
+                      color: EmberColors.primaryBlue,
                     ),
                     child: IconButton(
                       padding: EdgeInsets.zero,
@@ -181,15 +189,18 @@ class MiniPlayer extends StatelessWidget {
                               height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(EmberColors.obsidianBase),
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : FaIcon(
                               player.isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
-                              color: EmberColors.obsidianBase,
+                              color: Colors.white,
                               size: 16,
                             ),
-                      onPressed: () => player.togglePlay(),
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        player.togglePlay();
+                      },
                     ),
                   ),
                   const SizedBox(width: 4),

@@ -478,6 +478,38 @@ class _SettingsContentState extends State<SettingsContent> {
           onTap: () => SoundShapingSheet.show(context),
         ),
         _SettingsTile(
+          icon: FontAwesomeIcons.shuffle,
+          title: 'Crossfade Audio',
+          subtitle: player.crossfadeSeconds > 0
+              ? 'Overlap track transitions by ${player.crossfadeSeconds}s'
+              : 'Off • Seamless direct transitions',
+          trailing: SizedBox(
+            width: 120,
+            child: Slider(
+              value: player.crossfadeSeconds.toDouble(),
+              min: 0,
+              max: 12,
+              divisions: 12,
+              activeColor: EmberColors.primaryBlue,
+              inactiveColor: EmberColors.outlineVariant,
+              label: player.crossfadeSeconds > 0 ? '${player.crossfadeSeconds}s' : 'Off',
+              onChanged: (val) => player.setCrossfadeSeconds(val.toInt()),
+            ),
+          ),
+          onTap: null,
+        ),
+        _SettingsTile(
+          icon: FontAwesomeIcons.arrowsLeftRight,
+          title: 'Gapless Playback',
+          subtitle: 'Eliminate pause between sequential tracks',
+          trailing: Switch(
+            value: player.gaplessPlayback,
+            activeThumbColor: EmberColors.primaryBlue,
+            onChanged: (val) => player.setGaplessPlayback(val),
+          ),
+          onTap: () => player.setGaplessPlayback(!player.gaplessPlayback),
+        ),
+        _SettingsTile(
           icon: FontAwesomeIcons.bolt,
           title: 'Autoplay Smart Radio',
           subtitle: 'Automatically queue recommended tracks when songs end',

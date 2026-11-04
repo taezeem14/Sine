@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import '../models/song.dart';
 import 'youtube_importer_service.dart';
 import 'log_service.dart';
@@ -161,6 +161,27 @@ class SmartRadioService {
     _stationCache[cacheKey] = result;
 
     return result;
+  }
+
+  /// Convenience helper to generate an artist-centric radio station
+  Future<List<Song>> generateArtistRadio({
+    required String artistName,
+    Song? seedSong,
+  }) async {
+    final effectiveSeed = seedSong ??
+        Song(
+          id: 'artist_${artistName.toLowerCase().replaceAll(RegExp(r'\s+'), '_')}',
+          title: '$artistName Radio',
+          artist: artistName,
+          duration: Duration.zero,
+          artworkUrl: '',
+          streamUrl: '',
+        );
+    final station = await generateRadioStation(
+      seedSong: effectiveSeed,
+      isArtistRadio: true,
+    );
+    return station.songs;
   }
 
   /// Infinite Radio Pagination: Fetches next batch of tracks for an active radio session

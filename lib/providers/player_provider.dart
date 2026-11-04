@@ -109,6 +109,9 @@ class PlayerProvider extends ChangeNotifier {
 
   Timer? _sleepTimer;
   int _sleepSecondsRemaining = 0;
+  bool _sleepAtTrackEnd = false;
+  int _crossfadeSeconds = 0;
+  bool _gaplessPlayback = true;
   Timer? _searchDebounce;
   bool _isSearching = false;
 
@@ -165,6 +168,9 @@ class PlayerProvider extends ChangeNotifier {
   List<Song> get categoryTracks => _categoryTracks;
   bool get isAutoplayEnabled => _isAutoplayEnabled;
   int get sleepSecondsRemaining => _sleepSecondsRemaining;
+  bool get sleepAtTrackEnd => _sleepAtTrackEnd;
+  int get crossfadeSeconds => _crossfadeSeconds;
+  bool get gaplessPlayback => _gaplessPlayback;
 
   List<Song> get youtubeTracks => _youtubeTracks;
   bool get isLoadingYouTube => _isLoadingYouTube;
@@ -216,6 +222,8 @@ class PlayerProvider extends ChangeNotifier {
     _bassBoost = _storageService.loadBassBoost();
     _bandGains = _storageService.loadBandGains();
     _isAutoplayEnabled = _storageService.loadAutoplayEnabled();
+    _crossfadeSeconds = _storageService.loadCrossfadeSeconds();
+    _gaplessPlayback = _storageService.loadGaplessPlayback();
 
     // Wire up hardware / notification / completion navigation callbacks
     _audioHandler.setNavigationCallbacks(
@@ -335,6 +343,19 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> _handleSongCompleted() async {
+    // 0. Spotify-grade Sleep Timer: End of Track
+    if (_sleepAtTrackEnd) {
+      _sleepAtTrackEnd = false;
+      _sleepTimer?.cancel();
+      _sleepTimer = null;
+      _sleepSecondsRemaining = 0;
+      _isPlaying = false;
+      _isLoadingStream = false;
+      notifyListeners();
+      await _audioHandler.pause();
+      return;
+    }
+
     // 1. Single track loop mode: seek to start and replay instantly
     if (_repeatMode == 'one') {
       _consecutiveStreamFailures = 0;
@@ -1582,6 +1603,7 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
     _sleepTimer?.cancel();
+    _sleepAtTrackEnd = false;
     _sleepSecondsRemaining = minutes * 60;
     notifyListeners();
 
@@ -1600,10 +1622,31 @@ class PlayerProvider extends ChangeNotifier {
     });
   }
 
+  void setSleepAtTrackEnd(bool enable) {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepSecondsRemaining = 0;
+    _sleepAtTrackEnd = enable;
+    notifyListeners();
+  }
+
   void cancelSleepTimer() {
     _sleepTimer?.cancel();
     _sleepTimer = null;
     _sleepSecondsRemaining = 0;
+    _sleepAtTrackEnd = false;
+    notifyListeners();
+  }
+
+  Future<void> setCrossfadeSeconds(int seconds) async {
+    _crossfadeSeconds = seconds.clamp(0, 12);
+    await _storageService.saveCrossfadeSeconds(_crossfadeSeconds);
+    notifyListeners();
+  }
+
+  Future<void> setGaplessPlayback(bool enabled) async {
+    _gaplessPlayback = enabled;
+    await _storageService.saveGaplessPlayback(enabled);
     notifyListeners();
   }
 

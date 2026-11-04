@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
@@ -33,6 +33,8 @@ class StorageService {
 
   static const String _searchesKey = 'sine_recent_searches_v1';
   static const String _searchesLegacyKey = 'ember_recent_searches_v1';
+  static const String _crossfadeKey = 'sine_crossfade_seconds';
+  static const String _gaplessKey = 'sine_gapless_playback';
 
   final SharedPreferences? _prefs;
   final List<Song> _memFavorites = [];
@@ -413,5 +415,21 @@ class StorageService {
   Future<void> clearRecentSearches() async {
     _memSearches.clear();
     await _prefs?.remove(_searchesKey);
+  }
+
+  int loadCrossfadeSeconds() {
+    return _prefs?.getInt(_crossfadeKey) ?? 0;
+  }
+
+  Future<void> saveCrossfadeSeconds(int seconds) async {
+    await _prefs?.setInt(_crossfadeKey, seconds);
+  }
+
+  bool loadGaplessPlayback() {
+    return _prefs?.getBool(_gaplessKey) ?? true;
+  }
+
+  Future<void> saveGaplessPlayback(bool enabled) async {
+    await _prefs?.setBool(_gaplessKey, enabled);
   }
 }

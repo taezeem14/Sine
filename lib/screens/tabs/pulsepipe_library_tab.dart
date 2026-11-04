@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -230,6 +230,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
             // 1. Header: "Your Library" + Add Button + Settings
             SliverToBoxAdapter(

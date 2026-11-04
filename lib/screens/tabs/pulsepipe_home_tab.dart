@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -53,6 +53,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
     return Scaffold(
       backgroundColor: EmberColors.obsidianBase,
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
           // 1. Top Bar with Greeting & Quick Actions
           SliverAppBar(

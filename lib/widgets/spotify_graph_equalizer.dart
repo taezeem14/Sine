@@ -57,8 +57,8 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
   int? _activeDragBand;
   DateTime _lastHaptic = DateTime.fromMillisecondsSinceEpoch(0);
 
-  static const Color spotifyGreen = Color(0xFF1ED760);
-  static const Color spotifyGreenDark = Color(0xFF1DB954);
+  static const Color sineBlue = Color(0xFF00D4FF);
+  static const Color sineBlueDark = Color(0xFF2979FF);
 
   @override
   void initState() {
@@ -192,8 +192,8 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
                         painter: _SpotifyEqPainter(
                           gains: _currentGains,
                           activeBand: _activeDragBand,
-                          strokeColor: spotifyGreen,
-                          gradientDark: spotifyGreenDark,
+                          strokeColor: sineBlue,
+                          gradientDark: sineBlueDark,
                         ),
                       ),
                     );
@@ -243,14 +243,14 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: spotifyGreen.withValues(alpha: 0.15),
+                    color: sineBlue.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: spotifyGreen.withValues(alpha: 0.3)),
+                    border: Border.all(color: sineBlue.withValues(alpha: 0.3)),
                   ),
                   child: const Text(
                     'Custom Curve',
                     style: TextStyle(
-                      color: spotifyGreen,
+                      color: sineBlue,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
@@ -271,7 +271,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
 
             return InkWell(
               onTap: () => _selectPreset(preset),
-              splashColor: spotifyGreen.withValues(alpha: 0.12),
+              splashColor: sineBlue.withValues(alpha: 0.12),
               highlightColor: Colors.white.withValues(alpha: 0.05),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
@@ -290,7 +290,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
                     if (isSelected)
                       const Icon(
                         Icons.check,
-                        color: spotifyGreen,
+                        color: sineBlue,
                         size: 20,
                       ),
                   ],

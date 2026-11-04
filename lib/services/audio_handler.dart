@@ -149,6 +149,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       audioPipeline: AudioPipeline(
         androidAudioEffects: [
           _equalizer,
+          _loudnessEnhancer,
         ],
       ),
     );
@@ -785,6 +786,10 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         _eqEnabled = true;
         await _equalizer.setEnabled(true);
       }
+      try {
+        await _loudnessEnhancer.setEnabled(_bassBoost > 0.0);
+        await _loudnessEnhancer.setTargetGain(_bassBoost * 0.35);
+      } catch (_) {}
       if (_eqEnabled) {
         await _equalizer.setEnabled(true);
         await applyEqualizerPreset(_currentPreset);
