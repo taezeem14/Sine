@@ -24,7 +24,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.0.9)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.0.9.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.1.2)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.2.apk) 👈
 
 *Tap above to download the APK, install on Android, and elevate your earholes immediately.*
 
@@ -46,7 +46,12 @@ Look, Spotify got greedy with \$11+/month subscription prices and YouTube Music 
 - **Zero ads. Ever.**
 - **Instant sub-1.2s playback** powered by native Android hardware DSP decoding.
 - **Offline vault** for saving tracks directly to `/storage/emulated/0/Sine-Music`.
-- **Real-Time Sound Shaping** with Vocals-Only, Instruments-Only, and 5-band hardware parametric EQ.
+- **Real-Time Sound Shaping & 6-Band Graph Equalizer**: Electric Blue spline curve (60 Hz – 15 kHz) with draggable nodes.
+- **AI Sound Isolation**: Studio-grade Vocals-Only (acapella) and Instruments-Only (karaoke) real-time extraction.
+- **Spotify Content Cards**: Synced lyrics preview, dynamic "About the Artist" biography & realistic listener counts, and credits.
+- **Scannable Sine QR Codes**: Spotify-style audio wave QR codes for instant offline track sharing.
+- **App Lock Security**: 4-digit PIN protection safeguarding your library.
+- **Android Home Screen Widget (4x2)** with instant play/pause, track skip, and live song metadata.
 - **Spotify-Grade Smart Radio & Autoplay**: Infinite, algorithmic Song Radio and Artist Radio powered by YouTube Music's recommendation graph (RDAMVM/RD), featuring deduplication, anti-clustering, and seamless queue continuation.
 - Just pure, uninterrupted, audiophile-grade music streamed straight from YouTube & YouTube Music's global catalog.
 
@@ -132,7 +137,7 @@ sequenceDiagram
 ```mermaid
 xychart-beta
     title "Cold-Start Track Playback Latency in Seconds (Lower is Better)"
-    x-axis ["Sine v1.0.9", "Spotify Free", "YouTube Music", "Generic YT Scrapers"]
+    x-axis ["Sine v1.1.2", "Spotify Free", "YouTube Music", "Generic YT Scrapers"]
     y-axis "Startup Latency (Seconds)" 0 --> 35
     bar [1.2, 8.5, 6.2, 28.0]
 ```
@@ -140,7 +145,7 @@ xychart-beta
 ```
 Playback Latency Comparison:
 ========================================================================
-Sine v1.0.9          [██] 1.2s (Hardware AAC DSP + itag 140 Prioritization)
+Sine v1.1.2          [██] 1.2s (Hardware AAC DSP + itag 140 Prioritization)
 Spotify Free         [████████] 8.5s (Audio Ad Insertion + DRM Handshake)
 YouTube Music        [██████] 6.2s (Video Ad Ingestion + Player Handshake)
 Generic Scrapers     [████████████████████████████] 28.0s (DASH 403 Retries)
@@ -187,7 +192,7 @@ stateDiagram-v2
 
 ## 🥊 Sine vs. The Competition
 
-| Feature | ⚡ **Sine v1.0.9** | 🟢 **Spotify Free** | 🔴 **YouTube Music** | 📺 **NewPipe** |
+| Feature | ⚡ **Sine v1.1.2** | 🟢 **Spotify Free** | 🔴 **YouTube Music** | 📺 **NewPipe** |
 | :--- | :---: | :---: | :---: | :---: |
 | **Monthly Cost** | **\$0 / Free Forever** | \$11.99/mo (Premium) | \$13.99/mo (Premium) | \$0 / Free |
 | **Audio Ads** | 🚫 **ZERO ADS** | 🔊 Unskippable 30s Ads | 🔊 Unskippable Video Ads | 🚫 ZERO ADS |
@@ -272,19 +277,45 @@ stateDiagram-v2
 - Fully integrated with Android `MediaSession` and `AudioService`.
 - Rich notification with album artwork, seekbar, next/previous buttons, and bluetooth headset integration with auto-pause on headphone unplug.
 
+### 🎛️ 12. Spotify-Style 6-Band Graph Equalizer (Electric Cyan-Blue Theme)
+- Interactive spline graph equalizer featuring 6 calibrated frequency nodes (60 Hz, 150 Hz, 400 Hz, 1 kHz, 2.4 kHz, 15 kHz).
+- Drag nodes freely across a ±12 dB curve with real-time gradient fill and haptic response.
+- Comprehensive presets: Flat, Bass Boost, Bass Reducer, Electronic, Dance, Acoustic, Hip-Hop, Pop, Rock, Classical, Jazz, Latin, and Spoken Word.
+
+### 📜 13. Dedicated Queue & Spotify-Style Content Cards
+- **Dedicated Queue Screen**: View upcoming tracks, reorder the queue with drag-and-drop handles, remove tracks, or clear upcoming songs.
+- **Scrollable Now Playing Cards**:
+  - 🎤 *Live Synced Lyrics Preview*: Embedded preview card with one-tap expansion.
+  - 👤 *About the Artist*: Dynamic artist hero banner, bio synopsis, realistic monthly listener telemetry, and instant Artist Radio shortcut.
+  - 🎼 *Song Credits*: Extracted performers, lyricists, composers, producers, and audio source details.
+  - ⏭️ *Next Up*: Live thumbnail and title preview of the upcoming song.
+
+### 🔐 14. App Lock Security & Scannable Sine QR Codes
+- **4-Digit PIN Security**: Lock your Sine music player with PIN verification, auto-lock on minimize, and biometric integration.
+- **Scannable Sine QR Codes**: Generate Spotify-style audio wave QR codes for any song to share instantly offline with friends.
+
+### 📱 15. Android Home Screen Playback Widget (4x2)
+- Sleek 4x2 home screen widget styled with the Sine aesthetic.
+- Displays live track title, artist name, and playback status.
+- Direct media button controls (Play/Pause, Next, Previous) with optimistic instant visual feedback.
+
+### 🧠 16. Smart Metadata Inversion Resolver & Modified-Tempo Lyrics Guard
+- **Automatic Title vs Artist Resolver**: Intelligently detects whether YouTube uploaders formatted a track as `"Song - Artist"` or `"Artist - Song"`, stripping `- Topic`, `VEVO`, and publisher noise.
+- **Modified-Tempo Lyric Guard**: Automatically disables lyrics for slowed + reverb, sped-up, nightcore, or pitched tracks to prevent audio timing mismatch.
+
 ---
 
 ## ⚡ Installation (Super Easy)
 
 1. Head over to the **[Latest Releases](https://github.com/taezeem14/Sine/releases/latest)**.
-2. Download **`Sine-v1.0.9.apk`**.
+2. Download **`Sine-v1.1.2.apk`**.
 3. On your Android device, tap the downloaded APK.
 4. If prompted, toggle *"Allow install from unknown sources"* (it's open-source, safe, and completely transparent).
 5. Open Sine and start streaming! 🚀
 
 ### Or Install via ADB:
 ```bash
-adb install -r Sine-v1.0.9.apk
+adb install -r Sine-v1.1.2.apk
 ```
 
 ---
@@ -349,7 +380,7 @@ flutter build apk --release --no-tree-shake-icons
 ```
 
 Your compiled APK will be located at:
-`build/app/outputs/flutter-apk/app-release.apk` (or `Sine-v1.0.9.apk`)
+`build/app/outputs/flutter-apk/app-release.apk` (or `Sine-v1.1.2.apk`)
 
 ---
 
