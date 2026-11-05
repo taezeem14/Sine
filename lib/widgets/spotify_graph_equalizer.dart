@@ -200,13 +200,15 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
                       onPanUpdate: (d) => _onPanUpdate(d.localPosition, size),
                       onPanEnd: (_) => setState(() => _activeDragBand = null),
                       onPanCancel: () => setState(() => _activeDragBand = null),
-                      child: CustomPaint(
-                        size: size,
-                        painter: _SpotifyEqPainter(
-                          gains: _currentGains,
-                          activeBand: _activeDragBand,
-                          strokeColor: sineBlue,
-                          gradientDark: sineBlueDark,
+                      child: RepaintBoundary(
+                        child: CustomPaint(
+                          size: size,
+                          painter: _SpotifyEqPainter(
+                            gains: _currentGains,
+                            activeBand: _activeDragBand,
+                            strokeColor: sineBlue,
+                            gradientDark: sineBlueDark,
+                          ),
                         ),
                       ),
                     );

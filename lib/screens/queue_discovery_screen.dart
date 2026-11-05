@@ -117,6 +117,8 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                                 imageUrl: currentSong.artworkUrl,
                                 width: 52,
                                 height: 52,
+                                memCacheWidth: 150,
+                                memCacheHeight: 150,
                                 fit: BoxFit.cover,
                                 errorWidget: (_, _, _) => Container(
                                   width: 52,
@@ -359,6 +361,8 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                               imageUrl: song.artworkUrl,
                               width: 44,
                               height: 44,
+                              memCacheWidth: 150,
+                              memCacheHeight: 150,
                               fit: BoxFit.cover,
                               errorWidget: (_, _, _) => Container(
                                 width: 44,
@@ -478,6 +482,8 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                             imageUrl: song.artworkUrl,
                             width: 44,
                             height: 44,
+                            memCacheWidth: 150,
+                            memCacheHeight: 150,
                             fit: BoxFit.cover,
                             errorWidget: (_, _, _) => Container(
                               width: 44,

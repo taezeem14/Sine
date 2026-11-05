@@ -316,6 +316,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                               child: song.artworkUrl.isNotEmpty
                                                   ? CachedNetworkImage(
                                                       imageUrl: song.artworkUrl,
+                                                      memCacheWidth: 600,
                                                       fit: BoxFit.cover,
                                                       errorWidget: (_, _, _) => const Center(
                                                         child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
@@ -1131,6 +1132,7 @@ class _SpotifyAboutArtistCard extends StatelessWidget {
                 children: [
                   CachedNetworkImage(
                     imageUrl: artworkUrl,
+                    memCacheWidth: 400,
                     fit: BoxFit.cover,
                     errorWidget: (_, _, _) => Container(color: EmberColors.surfaceContainerHigh),
                   ),
@@ -1335,6 +1337,8 @@ class _SpotifyNextUpCard extends StatelessWidget {
             imageUrl: nextSong.artworkUrl,
             width: 44,
             height: 44,
+            memCacheWidth: 150,
+            memCacheHeight: 150,
             fit: BoxFit.cover,
             errorWidget: (_, _, _) => Container(
               width: 44,

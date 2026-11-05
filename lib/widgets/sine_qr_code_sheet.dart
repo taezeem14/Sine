@@ -4,12 +4,18 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../models/song.dart';
+import '../models/playlist.dart';
 import '../theme/ember_theme.dart';
 
 class SineQrCodeSheet extends StatelessWidget {
-  final Song song;
+  final Song? song;
+  final Playlist? playlist;
 
-  const SineQrCodeSheet({super.key, required this.song});
+  const SineQrCodeSheet({
+    super.key,
+    this.song,
+    this.playlist,
+  }) : assert(song != null || playlist != null, 'Either song or playlist must be provided');
 
   static void show(BuildContext context, Song song) {
     showModalBottomSheet(
@@ -20,12 +26,48 @@ class SineQrCodeSheet extends StatelessWidget {
     );
   }
 
-  String get _qrPayload {
-    // Encodes standard Sine scannable URI with YouTube fallback
-    final encodedTitle = Uri.encodeComponent(song.title);
-    final encodedArtist = Uri.encodeComponent(song.artist);
-    return 'sine://track?id=${song.id}&title=$encodedTitle&artist=$encodedArtist';
+  static void showForPlaylist(BuildContext context, Playlist playlist) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SineQrCodeSheet(playlist: playlist),
+    );
   }
+
+  String get _qrPayload {
+    if (playlist != null) {
+      final p = playlist!;
+      final encodedTitle = Uri.encodeComponent(p.title);
+      final isYt = p.id.startsWith('PL') || p.id.startsWith('yt_') || p.id.startsWith('RD');
+      final ytId = isYt ? p.id.replaceFirst('yt_pl_', '').replaceFirst('yt_mix_', '') : '';
+
+      // Compact encoding of tracks: id*artist*title separated by ~ (first 25 tracks)
+      final compactTracks = p.songs.take(25).map((s) {
+        final safeId = s.id.replaceAll('*', '').replaceAll('~', '');
+        final safeArtist = s.artist.replaceAll('*', '').replaceAll('~', '');
+        final safeTitle = s.title.replaceAll('*', '').replaceAll('~', '');
+        return '$safeId*$safeArtist*$safeTitle';
+      }).join('~');
+
+      final encodedTracks = Uri.encodeComponent(compactTracks);
+      return 'sine://playlist?id=${p.id}&title=$encodedTitle&ytId=$ytId&tracks=$encodedTracks';
+    }
+
+    final s = song!;
+    final encodedTitle = Uri.encodeComponent(s.title);
+    final encodedArtist = Uri.encodeComponent(s.artist);
+    return 'sine://track?id=${s.id}&title=$encodedTitle&artist=$encodedArtist';
+  }
+
+  String get _itemTitle => playlist?.title ?? song?.title ?? 'Unknown';
+  String get _itemSubtitle =>
+      playlist != null ? '${playlist!.songs.length} tracks • Sine Playlist' : (song?.artist ?? 'Unknown Artist');
+  String get _itemArtwork =>
+      playlist != null
+          ? (playlist!.coverUrl ?? (playlist!.songs.isNotEmpty ? playlist!.songs.first.artworkUrl : ''))
+          : (song?.artworkUrl ?? '');
+  String get _codeTag => playlist != null ? 'PLAYLIST' : 'SINE CODE';
 
   @override
   Widget build(BuildContext context) {
@@ -83,18 +125,33 @@ class SineQrCodeSheet extends StatelessWidget {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: CachedNetworkImage(
-                        imageUrl: song.artworkUrl,
-                        width: 56,
-                        height: 56,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, _, _) => Container(
-                          width: 56,
-                          height: 56,
-                          color: EmberColors.surfaceContainerHigh,
-                          child: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
-                        ),
-                      ),
+                      child: _itemArtwork.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: _itemArtwork,
+                              width: 56,
+                              height: 56,
+                              memCacheWidth: 150,
+                              memCacheHeight: 150,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, _, _) => Container(
+                                width: 56,
+                                height: 56,
+                                color: EmberColors.surfaceContainerHigh,
+                                child: Icon(
+                                  playlist != null ? Icons.queue_music_rounded : Icons.music_note_rounded,
+                                  color: EmberColors.primaryBlue,
+                                ),
+                              ),
+                            )
+                          : Container(
+                              width: 56,
+                              height: 56,
+                              color: EmberColors.surfaceContainerHigh,
+                              child: Icon(
+                                playlist != null ? Icons.queue_music_rounded : Icons.music_note_rounded,
+                                color: EmberColors.primaryBlue,
+                              ),
+                            ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -102,7 +159,7 @@ class SineQrCodeSheet extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            song.title,
+                            _itemTitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -113,7 +170,7 @@ class SineQrCodeSheet extends StatelessWidget {
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            song.artist,
+                            _itemSubtitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -131,9 +188,9 @@ class SineQrCodeSheet extends StatelessWidget {
                         color: EmberColors.primaryBlue.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: const Text(
-                        'SINE CODE',
-                        style: TextStyle(
+                      child: Text(
+                        _codeTag,
+                        style: const TextStyle(
                           color: EmberColors.primaryBlueHi,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -208,9 +265,13 @@ class SineQrCodeSheet extends StatelessWidget {
                     Clipboard.setData(ClipboardData(text: _qrPayload));
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Sine track link copied to clipboard!'),
-                        duration: Duration(seconds: 2),
+                      SnackBar(
+                        content: Text(
+                          playlist != null
+                              ? 'Sine playlist link copied to clipboard!'
+                              : 'Sine track link copied to clipboard!',
+                        ),
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   },

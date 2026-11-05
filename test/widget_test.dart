@@ -350,5 +350,47 @@ void main() {
       expect(res.syncedLyrics, isEmpty);
       expect(res.hasSynced, isFalse);
     });
+
+    test('Sine QR URI schema correctly formats and decodes playlist metadata and tracks', () {
+      const track1 = Song(
+        id: 'yt_track1',
+        title: 'Song One',
+        artist: 'Artist One',
+        duration: Duration(minutes: 3),
+        artworkUrl: '',
+        streamUrl: '',
+      );
+      const track2 = Song(
+        id: 'yt_track2',
+        title: 'Song Two',
+        artist: 'Artist Two',
+        duration: Duration(minutes: 4),
+        artworkUrl: '',
+        streamUrl: '',
+      );
+      final playlist = Playlist(
+        id: 'pl_123',
+        title: 'Synthwave Night',
+        songs: [track1, track2],
+        createdAt: DateTime.now(),
+      );
+
+      final encodedTitle = Uri.encodeComponent(playlist.title);
+      final compactTracks = playlist.songs.map((s) => '${s.id}*${s.artist}*${s.title}').join('~');
+      final encodedTracks = Uri.encodeComponent(compactTracks);
+      final uriStr = 'sine://playlist?id=${playlist.id}&title=$encodedTitle&ytId=&tracks=$encodedTracks';
+
+      final parsed = Uri.parse(uriStr);
+      expect(parsed.scheme, 'sine');
+      expect(parsed.host, 'playlist');
+      expect(parsed.queryParameters['id'], 'pl_123');
+      expect(parsed.queryParameters['title'], 'Synthwave Night');
+
+      final decodedTracks = Uri.decodeComponent(parsed.queryParameters['tracks']!);
+      final items = decodedTracks.split('~');
+      expect(items.length, 2);
+      expect(items[0], 'yt_track1*Artist One*Song One');
+      expect(items[1], 'yt_track2*Artist Two*Song Two');
+    });
   });
 }

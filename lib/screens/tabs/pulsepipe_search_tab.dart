@@ -713,6 +713,8 @@ class _SearchResultRow extends StatelessWidget {
                     imageUrl: song.artworkUrl,
                     width: 48,
                     height: 48,
+                    memCacheWidth: 150,
+                    memCacheHeight: 150,
                     fit: BoxFit.cover,
                     placeholder: (_, _) => Container(
                       width: 48,
@@ -861,6 +863,8 @@ class _SpotifyTopResultCard extends StatelessWidget {
                         imageUrl: song.artworkUrl,
                         width: 76,
                         height: 76,
+                        memCacheWidth: 200,
+                        memCacheHeight: 200,
                         fit: BoxFit.cover,
                         errorWidget: (_, _, _) => Container(
                           width: 76,

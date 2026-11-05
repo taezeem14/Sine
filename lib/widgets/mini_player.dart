@@ -112,6 +112,8 @@ class MiniPlayer extends StatelessWidget {
                                   imageUrl: song.artworkUrl,
                                   width: 28,
                                   height: 28,
+                                  memCacheWidth: 80,
+                                  memCacheHeight: 80,
                                   fit: BoxFit.cover,
                                   errorWidget: (_, _, _) => const FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryBlue),
                                 )

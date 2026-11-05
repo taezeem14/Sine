@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/song.dart';
 import 'youtube_importer_service.dart';
@@ -23,10 +23,10 @@ class CatalogService {
   static const List<MusicCategory> categories = [
     MusicCategory(
       key: 'trending',
-      icon: FontAwesomeIcons.fire,
-      title: 'YouTube Trending',
-      subtitle: 'Top charts & viral hits',
-      searchQuery: 'Top Trending Music Videos Hits',
+      icon: FontAwesomeIcons.chartLine,
+      title: 'Today\'s Top Hits',
+      subtitle: 'Global chart toppers & viral hits',
+      searchQuery: 'Today Top Hits Official Music Audio',
     ),
     MusicCategory(
       key: 'top_hits',
@@ -89,6 +89,29 @@ class CatalogService {
     _categoryCache[key] = songs;
   }
 
+  static bool _isValidMusicTrack(Song song) {
+    final secs = song.duration.inSeconds;
+    if (secs > 0 && (secs < 45 || secs > 720)) {
+      return false;
+    }
+    final lowerTitle = song.title.toLowerCase();
+    const spamTerms = [
+      '10 hour',
+      '10-hour',
+      '1 hour loop',
+      '10 hours',
+      'compilation',
+      'meme song',
+      'tiktok meme',
+      'breaking news',
+      'live news',
+    ];
+    for (final term in spamTerms) {
+      if (lowerTitle.contains(term)) return false;
+    }
+    return true;
+  }
+
   /// Search online catalog via YouTube NewPipe extractor
   static Future<List<Song>> searchOnline(String query, {int limit = 50}) async {
     final cleanQ = query.trim();
@@ -97,6 +120,8 @@ class CatalogService {
     try {
       debugPrint('[CatalogService] Searching YouTube for "$cleanQ"...');
       final results = await YouTubeImporterService.searchYouTube(cleanQ, limit: limit);
+      final filtered = results.where(_isValidMusicTrack).toList();
+      if (filtered.isNotEmpty) return filtered;
       if (results.isNotEmpty) return results;
     } catch (e) {
       debugPrint('[CatalogService] Search error: $e');

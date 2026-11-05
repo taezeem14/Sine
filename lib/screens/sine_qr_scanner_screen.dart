@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/song.dart';
+import '../models/playlist.dart';
 import '../providers/player_provider.dart';
 import '../services/youtube_importer_service.dart';
 import '../theme/ember_theme.dart';
@@ -61,7 +63,60 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
     final messenger = ScaffoldMessenger.of(context);
 
     try {
-      // 1. Sine Scannable URI: sine://track?id=...&title=...&artist=...
+      // 1. Sine Scannable Playlist URI: sine://playlist?id=...&title=...&ytId=...&tracks=...
+      if (rawCode.startsWith('sine://playlist')) {
+        final uri = Uri.parse(rawCode);
+        final playlistId = uri.queryParameters['id'] ?? 'scanned_pl_${DateTime.now().millisecondsSinceEpoch}';
+        final title = uri.queryParameters['title'] ?? 'Scanned Playlist';
+        final ytId = uri.queryParameters['ytId'] ?? '';
+        final tracksParam = uri.queryParameters['tracks'] ?? '';
+
+        List<Song> songs = [];
+        if (tracksParam.isNotEmpty) {
+          final decodedTracks = Uri.decodeComponent(tracksParam);
+          final items = decodedTracks.split('~');
+          for (final item in items) {
+            final parts = item.split('*');
+            if (parts.isNotEmpty && parts[0].isNotEmpty) {
+              final id = parts[0];
+              final artist = parts.length > 1 ? parts[1] : 'Unknown Artist';
+              final songTitle = parts.length > 2 ? parts[2] : 'Unknown Title';
+              songs.add(
+                Song(
+                  id: id,
+                  title: songTitle,
+                  artist: artist,
+                  duration: const Duration(minutes: 3, seconds: 30),
+                  artworkUrl: 'https://img.youtube.com/vi/${id.replaceFirst('yt_', '')}/hqdefault.jpg',
+                  streamUrl: 'https://www.youtube.com/watch?v=${id.replaceFirst('yt_', '')}',
+                ),
+              );
+            }
+          }
+        }
+
+        // If tracks was empty but YouTube playlist id exists, fetch remotely
+        if (songs.isEmpty && ytId.isNotEmpty) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Importing YouTube playlist from Sine Code...'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+          final result = await YouTubeImporterService.importFromUrl('https://www.youtube.com/playlist?list=$ytId');
+          if (result.playlist != null && result.playlist!.songs.isNotEmpty) {
+            songs = result.playlist!.songs;
+          }
+        }
+
+        if (mounted) {
+          Navigator.of(context).pop();
+          _showScannedPlaylistSheet(context, player, title, playlistId, songs);
+        }
+        return;
+      }
+
+      // 2. Sine Scannable Track URI: sine://track?id=...&title=...&artist=...
       if (rawCode.startsWith('sine://track')) {
         final uri = Uri.parse(rawCode);
         final id = uri.queryParameters['id'] ?? '';
@@ -90,7 +145,27 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
         }
       }
 
-      // 2. YouTube URL or Video ID
+      // 3. YouTube Playlist URL
+      final ytPlaylistId = YouTubeImporterService.extractPlaylistId(rawCode);
+      if (ytPlaylistId != null && ytPlaylistId.isNotEmpty) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Resolving YouTube playlist...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+        final importResult = await YouTubeImporterService.importFromUrl(rawCode);
+        if (importResult.playlist != null && importResult.playlist!.songs.isNotEmpty) {
+          final pl = importResult.playlist!;
+          if (mounted) {
+            Navigator.of(context).pop();
+            _showScannedPlaylistSheet(context, player, pl.title, pl.id, pl.songs);
+          }
+          return;
+        }
+      }
+
+      // 4. YouTube Video URL or Video ID
       final videoId = YouTubeImporterService.extractVideoId(rawCode);
       if (videoId != null && videoId.isNotEmpty) {
         messenger.showSnackBar(
@@ -115,12 +190,201 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
         }
       }
 
-      // 3. Fallback: Search text query
+      // 5. Fallback: Search text query
       if (mounted) Navigator.of(context).pop(rawCode);
     } catch (e) {
       debugPrint('[SineQrScanner] Scan error: $e');
       setState(() => _isProcessing = false);
     }
+  }
+
+  void _showScannedPlaylistSheet(
+    BuildContext context,
+    PlayerProvider player,
+    String title,
+    String playlistId,
+    List<Song> songs,
+  ) {
+    final playlist = Playlist(
+      id: playlistId.isNotEmpty ? playlistId : 'pl_${DateTime.now().millisecondsSinceEpoch}',
+      title: title.isNotEmpty ? title : 'Scanned Playlist',
+      songs: songs,
+      createdAt: DateTime.now(),
+      coverUrl: songs.isNotEmpty ? songs.first.artworkUrl : null,
+    );
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: EmberColors.obsidianBase,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: EmberColors.textMuted.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: playlist.coverUrl != null && playlist.coverUrl!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: playlist.coverUrl!,
+                            width: 60,
+                            height: 60,
+                            memCacheWidth: 150,
+                            memCacheHeight: 150,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, _, _) => Container(
+                              width: 60,
+                              height: 60,
+                              color: EmberColors.surfaceContainerHigh,
+                              child: const Icon(Icons.queue_music_rounded, color: EmberColors.primaryBlue),
+                            ),
+                          )
+                        : Container(
+                            width: 60,
+                            height: 60,
+                            color: EmberColors.surfaceContainerHigh,
+                            child: const Icon(Icons.queue_music_rounded, color: EmberColors.primaryBlue),
+                          ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          playlist.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: EmberColors.textPrimary,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${playlist.songs.length} tracks • Sine Playlist',
+                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (songs.isNotEmpty) ...[
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 180),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: songs.length > 5 ? 5 : songs.length,
+                    separatorBuilder: (_, _) => const Divider(color: EmberColors.outlineVariant, height: 1),
+                    itemBuilder: (_, idx) {
+                      final s = songs[idx];
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: Text(
+                          '${idx + 1}',
+                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                        ),
+                        title: Text(
+                          s.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          s.artist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                if (songs.length > 5)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      '+ ${songs.length - 5} more tracks',
+                      style: const TextStyle(color: EmberColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.w500),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+              ],
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: EmberColors.outlineVariant),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      icon: const FaIcon(FontAwesomeIcons.bookmark, size: 14, color: EmberColors.primaryBlue),
+                      label: const Text('Save to Library', style: TextStyle(color: EmberColors.textPrimary)),
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final nav = Navigator.of(sheetCtx);
+                        await player.importScannedPlaylist(playlist);
+                        nav.pop();
+                        messenger.showSnackBar(
+                          SnackBar(
+                            backgroundColor: EmberColors.surfaceContainerHigh,
+                            content: Text(
+                              'Saved "${playlist.title}" to Library!',
+                              style: const TextStyle(color: EmberColors.primaryBlueHi),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: EmberColors.primaryBlue,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                      label: const Text('Play Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      onPressed: () async {
+                        Navigator.pop(sheetCtx);
+                        await player.importScannedPlaylist(playlist);
+                        await player.playPlaylist(playlist);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showManualInputDialog() {

@@ -9,6 +9,7 @@ import '../../theme/ember_theme.dart';
 import '../playlist_detail_sheet.dart';
 import '../track_options_sheet.dart';
 import '../settings_screen.dart';
+import '../../widgets/sine_qr_code_sheet.dart';
 
 typedef SineLibraryTab = PulsePipeLibraryTab;
 
@@ -404,6 +405,8 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                                   imageUrl: song.artworkUrl,
                                   width: 48,
                                   height: 48,
+                                  memCacheWidth: 150,
+                                  memCacheHeight: 150,
                                   fit: BoxFit.cover,
                                   errorWidget: (_, _, _) => Container(
                                     width: 48,
@@ -525,7 +528,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                         playlist: pl,
                         onTap: () => PlaylistDetailSheet.show(context, pl),
                         onOptions: () {
-                          // Options to delete or rename
+                          // Options to share, delete or manage
                           showModalBottomSheet(
                             context: context,
                             backgroundColor: EmberColors.charcoalCard,
@@ -536,6 +539,14 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  ListTile(
+                                    leading: const FaIcon(FontAwesomeIcons.qrcode, color: EmberColors.primaryBlue),
+                                    title: const Text('Share Playlist QR Code', style: TextStyle(color: EmberColors.textPrimary)),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      SineQrCodeSheet.showForPlaylist(context, pl);
+                                    },
+                                  ),
                                   ListTile(
                                     leading: const FaIcon(FontAwesomeIcons.trashCan, color: Colors.redAccent),
                                     title: const Text('Delete Playlist', style: TextStyle(color: Colors.redAccent)),
@@ -638,6 +649,8 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                                     imageUrl: song.artworkUrl,
                                     width: 48,
                                     height: 48,
+                                    memCacheWidth: 150,
+                                    memCacheHeight: 150,
                                     fit: BoxFit.cover,
                                     placeholder: (_, _) => Container(
                                       width: 48,
@@ -832,6 +845,8 @@ class _PlaylistRowItem extends StatelessWidget {
                       imageUrl: playlist.coverUrl!,
                       width: 54,
                       height: 54,
+                      memCacheWidth: 150,
+                      memCacheHeight: 150,
                       fit: BoxFit.cover,
                       placeholder: (_, _) => Container(
                         width: 54,

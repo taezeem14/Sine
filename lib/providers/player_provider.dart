@@ -36,7 +36,7 @@ class PlayerProvider extends ChangeNotifier {
   String _repeatMode = 'off'; // 'off', 'all', 'one'
   String _activeTab = 'queue'; // 'queue', 'playlists', 'favorites', 'downloads', 'history'
   String _activeCategory = 'trending';
-  String _playingFrom = 'Trending';
+  String _playingFrom = 'Today\'s Top Hits';
 
   // Infinite YouTube Mix state (NewPipe-style continuation)
   bool _isMixActive = false;
@@ -1217,6 +1217,21 @@ class PlayerProvider extends ChangeNotifier {
     );
     await _storageService.savePlaylist(newPlaylist);
     _playlists = _storageService.loadPlaylists();
+    notifyListeners();
+  }
+
+  Future<void> importScannedPlaylist(Playlist playlist) async {
+    final cleanId = playlist.id.isNotEmpty
+        ? playlist.id
+        : 'pl_${DateTime.now().millisecondsSinceEpoch}';
+    final toSave = playlist.copyWith(id: cleanId);
+    final existingIdx = _playlists.indexWhere((p) => p.id == cleanId);
+    if (existingIdx != -1) {
+      _playlists[existingIdx] = toSave;
+    } else {
+      _playlists.insert(0, toSave);
+    }
+    await _storageService.savePlaylists(_playlists);
     notifyListeners();
   }
 

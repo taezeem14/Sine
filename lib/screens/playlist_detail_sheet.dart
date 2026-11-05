@@ -6,6 +6,7 @@ import '../models/song.dart';
 import '../models/playlist.dart';
 import '../providers/player_provider.dart';
 import '../theme/ember_theme.dart';
+import '../widgets/sine_qr_code_sheet.dart';
 import 'track_options_sheet.dart';
 
 class PlaylistDetailSheet extends StatelessWidget {
@@ -91,6 +92,8 @@ class PlaylistDetailSheet extends StatelessWidget {
                             imageUrl: currentPl.coverUrl!,
                             width: 64,
                             height: 64,
+                            memCacheWidth: 150,
+                            memCacheHeight: 150,
                             fit: BoxFit.cover,
                             errorWidget: (_, _, _) => Container(
                               width: 64,
@@ -128,6 +131,11 @@ class PlaylistDetailSheet extends StatelessWidget {
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    icon: const FaIcon(FontAwesomeIcons.qrcode, size: 16, color: EmberColors.primaryBlue),
+                    tooltip: 'Share Playlist QR Code',
+                    onPressed: () => SineQrCodeSheet.showForPlaylist(context, currentPl),
                   ),
                   if (currentPl.id != 'downloaded_songs')
                     IconButton(
@@ -321,6 +329,8 @@ class PlaylistDetailSheet extends StatelessWidget {
                                         imageUrl: song.artworkUrl,
                                         width: 44,
                                         height: 44,
+                                        memCacheWidth: 150,
+                                        memCacheHeight: 150,
                                         fit: BoxFit.cover,
                                         errorWidget: (_, _, _) => const FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryAmber),
                                       )

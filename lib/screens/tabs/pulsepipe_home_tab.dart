@@ -101,14 +101,14 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: ['All', 'Trending', 'Pop', 'Hip-Hop', 'Electronic', 'Lo-Fi', 'Rock'].map((pill) {
+                  children: ['All', 'Top Hits', 'Pop', 'Hip-Hop', 'Electronic', 'Lo-Fi', 'Rock'].map((pill) {
                     final isSelected = _selectedPill == pill;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: GestureDetector(
                         onTap: () {
                           setState(() => _selectedPill = pill);
-                          if (pill == 'All' || pill == 'Trending') {
+                          if (pill == 'All' || pill == 'Top Hits') {
                             player.loadYouTubeTrending();
                           } else {
                             player.loadYouTubeCategory(pill.toLowerCase().replaceAll('-', ''));
@@ -160,10 +160,10 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                   isPlaying: player.favorites.any((s) => s.id == player.currentSong?.id),
                 ),
                 _buildQuickAccessCard(
-                  title: 'YouTube Trending',
+                  title: 'Today\'s Top Hits',
                   onTap: () => player.loadYouTubeTrending(),
-                  icon: FontAwesomeIcons.fire,
-                  iconColor: Colors.redAccent,
+                  icon: FontAwesomeIcons.chartLine,
+                  iconColor: EmberColors.primaryBlue,
                 ),
                 _buildQuickAccessCard(
                   title: 'Global Top 50',
@@ -193,19 +193,19 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
             ),
           ),
 
-          // 4. Section: Trending on YouTube Music
+          // 4. Section: Today's Top Hits
           SliverToBoxAdapter(
             child: _buildSectionHeader(
-              title: 'Trending on YouTube Music',
-              subtitle: 'Top viral music videos & audio streams via NewPipe',
+              title: 'Today\'s Top Hits',
+              subtitle: 'The world\'s biggest songs right now • High-Fidelity Audio',
               actionText: 'Play all',
               onAction: () {
                 if (player.youtubeTracks.isNotEmpty) {
                   player.playPlaylist(
                     Playlist(
-                      id: 'yt_trending_all',
-                      title: 'Trending on YouTube Music',
-                      description: 'Top trending tracks on YouTube Music',
+                      id: 'yt_top_hits_all',
+                      title: 'Today\'s Top Hits',
+                      description: 'The world\'s biggest songs right now',
                       songs: player.youtubeTracks,
                       createdAt: DateTime.now(),
                       coverUrl: player.youtubeTracks.first.artworkUrl,
@@ -226,7 +226,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                       itemCount: player.youtubeTracks.length,
                       itemBuilder: (context, index) {
                         final track = player.youtubeTracks[index];
-                        return _buildTrackCarouselCard(track, () => player.playSong(track, playingFrom: 'Trending on YouTube'));
+                        return _buildTrackCarouselCard(track, () => player.playSong(track, playingFrom: 'Today\'s Top Hits'));
                       },
                     ),
             ),
@@ -234,11 +234,11 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
 
           const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-          // 5. Section: YouTube Music Top Tracks
+          // 5. Section: Global Charts & Fresh Releases
           SliverToBoxAdapter(
             child: _buildSectionHeader(
-              title: 'YouTube Music Stream Collection',
-              subtitle: 'Direct high-bitrate Opus & AAC streams with zero ads',
+              title: 'Global Charts & Fresh Releases',
+              subtitle: 'Top curated tracks streaming directly via NewPipe',
             ),
           ),
           SliverPadding(
@@ -276,6 +276,8 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                               imageUrl: track.artworkUrl,
                               width: 44,
                               height: 44,
+                              memCacheWidth: 150,
+                              memCacheHeight: 150,
                               fit: BoxFit.cover,
                               errorWidget: (context, error, stackTrace) => Container(
                                 width: 44,
@@ -405,6 +407,8 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                 imageUrl: imageUrl ?? '',
                 width: 52,
                 height: double.infinity,
+                memCacheWidth: 150,
+                memCacheHeight: 150,
                 fit: BoxFit.cover,
                 errorWidget: (context, error, stackTrace) => Container(
                   width: 52,
@@ -507,6 +511,8 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                 imageUrl: track.artworkUrl,
                 width: 135,
                 height: 135,
+                memCacheWidth: 300,
+                memCacheHeight: 300,
                 fit: BoxFit.cover,
                 errorWidget: (context, error, stackTrace) => Container(
                   width: 135,
