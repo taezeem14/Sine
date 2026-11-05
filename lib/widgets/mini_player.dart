@@ -44,12 +44,20 @@ class MiniPlayer extends StatelessWidget {
           await Navigator.of(context).push(
             PageRouteBuilder(
               pageBuilder: (context, anim, secAnim) => const NowPlayingScreen(),
+              transitionDuration: const Duration(milliseconds: 320),
+              reverseTransitionDuration: const Duration(milliseconds: 280),
               transitionsBuilder: (context, anim, secAnim, child) {
-                const begin = Offset(0.0, 1.0);
-                const end = Offset.zero;
-                const curve = Curves.easeOutCubic;
-                final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                return SlideTransition(position: anim.drive(tween), child: child);
+                final slideTween = Tween(begin: const Offset(0.0, 0.15), end: Offset.zero)
+                    .chain(CurveTween(curve: Curves.easeOutCubic));
+                final fadeTween = Tween(begin: 0.0, end: 1.0)
+                    .chain(CurveTween(curve: Curves.easeOut));
+                return SlideTransition(
+                  position: anim.drive(slideTween),
+                  child: FadeTransition(
+                    opacity: anim.drive(fadeTween),
+                    child: child,
+                  ),
+                );
               },
             ),
           );
@@ -146,13 +154,14 @@ class MiniPlayer extends StatelessWidget {
                                 margin: const EdgeInsets.only(right: 6),
                                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                 decoration: BoxDecoration(
-                                  color: EmberColors.primaryAmber.withValues(alpha: 0.18),
+                                  color: EmberColors.primaryBlue.withValues(alpha: 0.18),
                                   borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: EmberColors.primaryBlue.withValues(alpha: 0.3), width: 0.8),
                                 ),
                                 child: Text(
-                                  player.isolationMode == IsolationMode.instrumentsOnly ? 'KARAOKE' : 'VOCALS',
+                                  player.isolationMode == IsolationMode.instrumentsOnly ? 'DEMUCS KARAOKE' : 'DEMUCS VOCALS',
                                   style: const TextStyle(
-                                    color: EmberColors.primaryAmber,
+                                    color: EmberColors.primaryBlueHi,
                                     fontSize: 8.5,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: 0.5,

@@ -272,10 +272,10 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
                         decoration: BoxDecoration(
                           color: EmberColors.obsidianBase.withValues(alpha: 0.85),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: EmberColors.primaryAmber.withValues(alpha: 0.6), width: 1.2),
+                          border: Border.all(color: EmberColors.primaryBlue.withValues(alpha: 0.6), width: 1.2),
                           boxShadow: [
                             BoxShadow(
-                              color: EmberColors.primaryAmber.withValues(alpha: 0.25),
+                              color: EmberColors.primaryBlue.withValues(alpha: 0.25),
                               blurRadius: 10,
                               offset: const Offset(0, 2),
                             ),
@@ -284,10 +284,10 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.mic_external_on_rounded, size: 13, color: EmberColors.primaryAmber),
+                            Icon(Icons.mic_external_on_rounded, size: 13, color: EmberColors.primaryBlueHi),
                             SizedBox(width: 6),
                             Text(
-                              'KARAOKE STAGE • SING ALONG',
+                              'DEMUCS KARAOKE • SING ALONG',
                               style: TextStyle(
                                 color: EmberColors.primaryAmber,
                                 fontSize: 10,

@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -169,30 +169,45 @@ class StemService {
   }
 
   Future<StemResult> _resolveInternal(Song song, StemType type, String cacheKey) async {
-    // 1. Check local persistent AI stem file
+    // 1. Check local persistent AI Demucs stem file (0ms hit)
     try {
       final localStem = await _checkLocalAiStem(song, type);
       if (localStem != null) {
+        LogService.stream('StemService', 'Demucs local disk cache hit for "${song.title}" (${type.name})');
         _cacheResult(cacheKey, localStem);
         return localStem;
       }
     } catch (_) {}
 
-    // 2. Tier 1: YouTube Smart Stem Matching
+    // 2. Primary Engine: Hugging Face Demucs v4 AI Separation
+    try {
+      LogService.stream('StemService', 'Attempting Hugging Face Demucs AI separation for "${song.title}" (${type.name})...');
+      final demucsResult = await separateAudioWithDemucs(song: song, type: type);
+      if (demucsResult != null && demucsResult.isSuccess) {
+        LogService.stream('StemService', 'Hugging Face Demucs AI separation successful for "${song.title}" (${type.name})');
+        _cacheResult(cacheKey, demucsResult);
+        return demucsResult;
+      }
+    } catch (e) {
+      LogService.w('StemService', 'Demucs AI separation error: $e');
+    }
+
+    // 3. Tier 2: YouTube Smart Stem Matching (High-fidelity studio backing tracks / acapellas)
     try {
       final ytResult = await _resolveYouTubeSmartStem(song, type);
       if (ytResult != null && ytResult.isSuccess) {
+        LogService.stream('StemService', 'YouTube Smart Stem matched for "${song.title}" (${type.name})');
         _cacheResult(cacheKey, ytResult);
         return ytResult;
       }
     } catch (e) {
-      LogService.w('StemService', 'Tier 1 YouTube stem matching error: $e');
+      LogService.w('StemService', 'Tier 2 YouTube stem matching error: $e');
     }
 
-    // 3. Fallback to Tier 3 DSP
+    // 4. Fallback: Tier 3 Hardware DSP Vocal Shaper
     final fallback = StemResult.dspFallback(
       type: type,
-      reason: 'No studio stem match found within duration tolerance; using enhanced DSP.',
+      reason: 'Demucs AI and studio stems offline; using native DSP vocal notch/boost.',
     );
     _cacheResult(cacheKey, fallback);
     return fallback;
@@ -375,24 +390,28 @@ class StemService {
     return score;
   }
 
-  /// TIER 2: Check if Demucs AI stem was previously generated and cached to disk
+  /// TIER 1: Check if Demucs AI stem was previously generated and cached to disk
   Future<StemResult?> _checkLocalAiStem(Song song, StemType type) async {
     try {
       final docDir = await getApplicationDocumentsDirectory();
       final cleanId = song.id.replaceAll(RegExp(r'[^\w\-_]'), '_');
-      final stemFile = File('${docDir.path}/stems/${cleanId}_${type.name}.mp3');
-      if (await stemFile.exists() && (await stemFile.length()) > 50000) {
-        return StemResult.aiSeparated(type: type, localFilePath: stemFile.path);
+      final wavFile = File('${docDir.path}/stems/${cleanId}_${type.name}.wav');
+      if (await wavFile.exists() && (await wavFile.length()) > 50000) {
+        return StemResult.aiSeparated(type: type, localFilePath: wavFile.path);
+      }
+      final mp3File = File('${docDir.path}/stems/${cleanId}_${type.name}.mp3');
+      if (await mp3File.exists() && (await mp3File.length()) > 50000) {
+        return StemResult.aiSeparated(type: type, localFilePath: mp3File.path);
       }
     } catch (_) {}
     return null;
   }
 
-  /// TIER 2: Free AI Demucs via Hugging Face Space (Gradio 4 SSE API)
+  /// Primary AI Engine: Demucs v4 Music Source Separation via Hugging Face Space
   Future<StemResult?> separateAudioWithDemucs({
-    required File inputFile,
     required Song song,
     required StemType type,
+    File? inputFile,
   }) async {
     try {
       final docDir = await getApplicationDocumentsDirectory();
@@ -401,45 +420,89 @@ class StemService {
         await stemsDir.create(recursive: true);
       }
 
+      final cleanId = song.id.replaceAll(RegExp(r'[^\w\-_]'), '_');
       const hfSpaceBase = 'https://abidlabs-music-separation.hf.space';
 
-      // 1. Upload audio file to Gradio
-      final uploadUri = Uri.parse('$hfSpaceBase/upload');
-      final request = http.MultipartRequest('POST', uploadUri)
-        ..files.add(await http.MultipartFile.fromPath('files', inputFile.path));
+      String? audioPathOrUrl;
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 45));
-      final responseBody = await streamedResponse.stream.bytesToString();
-      if (streamedResponse.statusCode != 200) return null;
+      // 1. Determine input: Local file or high-fidelity YouTube audio stream
+      if (inputFile != null && await inputFile.exists()) {
+        // Upload local audio file via Gradio upload API
+        final uploadUri = Uri.parse('$hfSpaceBase/gradio_api/upload');
+        final request = http.MultipartRequest('POST', uploadUri)
+          ..files.add(await http.MultipartFile.fromPath('files', inputFile.path));
+        final streamedResponse = await request.send().timeout(const Duration(seconds: 40));
+        final responseBody = await streamedResponse.stream.bytesToString();
+        if (streamedResponse.statusCode == 200) {
+          final uploadJson = jsonDecode(responseBody) as List?;
+          if (uploadJson != null && uploadJson.isNotEmpty) {
+            audioPathOrUrl = uploadJson.first as String;
+          }
+        }
+      } else if (song.streamUrl.startsWith('/') || song.streamUrl.startsWith('file://')) {
+        final localPath = song.streamUrl.replaceFirst('file://', '');
+        final localFile = File(localPath);
+        if (await localFile.exists()) {
+          final uploadUri = Uri.parse('$hfSpaceBase/gradio_api/upload');
+          final request = http.MultipartRequest('POST', uploadUri)
+            ..files.add(await http.MultipartFile.fromPath('files', localFile.path));
+          final streamedResponse = await request.send().timeout(const Duration(seconds: 40));
+          final responseBody = await streamedResponse.stream.bytesToString();
+          if (streamedResponse.statusCode == 200) {
+            final uploadJson = jsonDecode(responseBody) as List?;
+            if (uploadJson != null && uploadJson.isNotEmpty) {
+              audioPathOrUrl = uploadJson.first as String;
+            }
+          }
+        }
+      }
 
-      final uploadJson = jsonDecode(responseBody) as List?;
-      if (uploadJson == null || uploadJson.isEmpty) return null;
-      final tempRemotePath = uploadJson.first as String;
+      // If not uploaded, get direct YouTube stream URL for Demucs to fetch directly
+      if (audioPathOrUrl == null) {
+        final ytId = song.id.replaceFirst('yt_', '').trim();
+        final streamUrls = await YouTubeImporterService.getAudioStreamUrls(ytId);
+        if (streamUrls.isNotEmpty) {
+          audioPathOrUrl = streamUrls.first;
+        } else if (song.streamUrl.startsWith('http')) {
+          audioPathOrUrl = song.streamUrl;
+        }
+      }
 
-      // 2. Enqueue Demucs prediction task
-      final callUri = Uri.parse('$hfSpaceBase/call/predict');
+      if (audioPathOrUrl == null || audioPathOrUrl.isEmpty) {
+        LogService.w('StemService', 'Could not obtain audio stream or file for Demucs separation');
+        return null;
+      }
+
+      // 2. Enqueue Demucs inference task on Hugging Face
+      final callUri = Uri.parse('$hfSpaceBase/gradio_api/call/inference');
       final callResp = await http.post(
         callUri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "data": [
             {
-              "path": tempRemotePath,
+              "path": audioPathOrUrl,
               "meta": {"_type": "gradio.FileData"}
             }
           ]
         }),
       ).timeout(const Duration(seconds: 20));
 
-      if (callResp.statusCode != 200) return null;
+      if (callResp.statusCode != 200) {
+        LogService.w('StemService', 'Demucs enqueue failed with HTTP ${callResp.statusCode}');
+        return null;
+      }
+
       final eventId = (jsonDecode(callResp.body) as Map<String, dynamic>)['event_id'] as String?;
       if (eventId == null) return null;
 
-      // 3. Stream result via SSE until completion (up to 120s timeout)
-      final sseUri = Uri.parse('$hfSpaceBase/call/predict/$eventId');
+      LogService.stream('StemService', 'Demucs inference task queued (event_id: $eventId). Streaming results...');
+
+      // 3. Stream result via SSE until complete
+      final sseUri = Uri.parse('$hfSpaceBase/gradio_api/call/inference/$eventId');
       final client = http.Client();
       final sseReq = http.Request('GET', sseUri);
-      final sseResp = await client.send(sseReq).timeout(const Duration(seconds: 120));
+      final sseResp = await client.send(sseReq).timeout(const Duration(seconds: 90));
 
       String? vocalsUrl;
       String? instrumentalUrl;
@@ -450,23 +513,40 @@ class StemService {
           try {
             final parsed = jsonDecode(dataStr);
             if (parsed is List && parsed.length >= 2) {
-              vocalsUrl = parsed[0]['url'] as String? ?? '$hfSpaceBase/file=${parsed[0]['path']}';
-              instrumentalUrl = parsed[1]['url'] as String? ?? '$hfSpaceBase/file=${parsed[1]['path']}';
+              final vObj = parsed[0];
+              final iObj = parsed[1];
+              vocalsUrl = vObj['url'] as String? ?? '$hfSpaceBase/gradio_api/file=${vObj['path']}';
+              instrumentalUrl = iObj['url'] as String? ?? '$hfSpaceBase/gradio_api/file=${iObj['path']}';
               break;
             }
           } catch (_) {}
         }
       }
 
-      final targetUrl = type == StemType.vocals ? vocalsUrl : instrumentalUrl;
-      if (targetUrl == null) return null;
+      // 4. Download and cache isolated stems locally
+      final vocalsFile = File('${stemsDir.path}/${cleanId}_vocals.wav');
+      final instFile = File('${stemsDir.path}/${cleanId}_instrumental.wav');
 
-      // 4. Download and cache separated stem locally
-      final cleanId = song.id.replaceAll(RegExp(r'[^\w\-_]'), '_');
-      final targetFile = File('${stemsDir.path}/${cleanId}_${type.name}.mp3');
-      final dlResp = await http.get(Uri.parse(targetUrl)).timeout(const Duration(seconds: 30));
-      if (dlResp.statusCode == 200) {
-        await targetFile.writeAsBytes(dlResp.bodyBytes);
+      if (vocalsUrl != null && !await vocalsFile.exists()) {
+        try {
+          final vResp = await http.get(Uri.parse(vocalsUrl)).timeout(const Duration(seconds: 35));
+          if (vResp.statusCode == 200) {
+            await vocalsFile.writeAsBytes(vResp.bodyBytes);
+          }
+        } catch (_) {}
+      }
+
+      if (instrumentalUrl != null && !await instFile.exists()) {
+        try {
+          final iResp = await http.get(Uri.parse(instrumentalUrl)).timeout(const Duration(seconds: 35));
+          if (iResp.statusCode == 200) {
+            await instFile.writeAsBytes(iResp.bodyBytes);
+          }
+        } catch (_) {}
+      }
+
+      final targetFile = type == StemType.vocals ? vocalsFile : instFile;
+      if (await targetFile.exists() && (await targetFile.length()) > 10000) {
         return StemResult.aiSeparated(type: type, localFilePath: targetFile.path);
       }
     } catch (e) {

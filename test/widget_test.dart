@@ -392,5 +392,40 @@ void main() {
       expect(items[0], 'yt_track1*Artist One*Song One');
       expect(items[1], 'yt_track2*Artist Two*Song Two');
     });
+
+    test('StemResult correctly initializes AI separated stems and reports status', () {
+      final vocalsResult = StemResult.aiSeparated(
+        type: StemType.vocals,
+        localFilePath: '/storage/emulated/0/Sine/stems/yt_test_vocals.wav',
+      );
+      expect(vocalsResult.type, StemType.vocals);
+      expect(vocalsResult.source, StemSource.aiSeparation);
+      expect(vocalsResult.isSuccess, isTrue);
+      expect(vocalsResult.isLocal, isTrue);
+      expect(vocalsResult.isStudioStem, isTrue);
+      expect(vocalsResult.fallbackToDsp, isFalse);
+      expect(vocalsResult.streamUrl, '/storage/emulated/0/Sine/stems/yt_test_vocals.wav');
+
+      final instResult = StemResult.aiSeparated(
+        type: StemType.instrumental,
+        localFilePath: '/storage/emulated/0/Sine/stems/yt_test_instrumental.wav',
+      );
+      expect(instResult.type, StemType.instrumental);
+      expect(instResult.source, StemSource.aiSeparation);
+      expect(instResult.isSuccess, isTrue);
+      expect(instResult.isLocal, isTrue);
+      expect(instResult.isStudioStem, isTrue);
+      expect(instResult.fallbackToDsp, isFalse);
+      expect(instResult.streamUrl, '/storage/emulated/0/Sine/stems/yt_test_instrumental.wav');
+
+      final dspResult = StemResult.dspFallback(
+        type: StemType.instrumental,
+        reason: 'Demucs AI offline',
+      );
+      expect(dspResult.source, StemSource.dspFallback);
+      expect(dspResult.isSuccess, isFalse);
+      expect(dspResult.isStudioStem, isFalse);
+      expect(dspResult.fallbackToDsp, isTrue);
+    });
   });
 }

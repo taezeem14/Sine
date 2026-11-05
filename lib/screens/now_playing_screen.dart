@@ -216,8 +216,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                             Text(
                               stemBadge ??
                                   (isolationMode == IsolationMode.instrumentsOnly
-                                      ? 'Karaoke Active'
-                                      : 'Acapella Active'),
+                                      ? 'Demucs Karaoke Active'
+                                      : 'Demucs Acapella Active'),
                               style: const TextStyle(
                                 color: EmberColors.primaryBlue,
                                 fontSize: 11,
@@ -570,44 +570,49 @@ class _TransportControlsSection extends StatelessWidget {
             },
           ),
           // Hero 68px circular play/pause button with glowing blue shadow
-          Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [EmberColors.primaryBlueHi, EmberColors.primaryBlue],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: EmberColors.primaryBlue.withValues(alpha: 0.45),
-                  blurRadius: 22,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 6),
+          AnimatedScale(
+            scale: player.isLoadingStream ? 0.93 : 1.0,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutBack,
+            child: Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [EmberColors.primaryBlueHi, EmberColors.primaryBlue],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ],
-            ),
-            child: IconButton(
-              icon: player.isLoadingStream
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                boxShadow: [
+                  BoxShadow(
+                    color: EmberColors.primaryBlue.withValues(alpha: 0.45),
+                    blurRadius: 22,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: player.isLoadingStream
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : FaIcon(
+                        player.isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
+                        color: Colors.white,
+                        size: 24,
                       ),
-                    )
-                  : FaIcon(
-                      player.isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-              onPressed: () {
-                HapticFeedback.selectionClick();
-                player.togglePlay();
-              },
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  player.togglePlay();
+                },
+              ),
             ),
           ),
           IconButton(

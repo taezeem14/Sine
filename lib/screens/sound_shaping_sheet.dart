@@ -128,13 +128,13 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
               ),
               const SizedBox(height: 20),
 
-              // Studio Stem Isolation (YouTube Smart Stems + AI Demucs + DSP Fallback)
+              // Hugging Face Demucs AI & Studio Stem Isolation
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Expanded(
                     child: Text(
-                      'STUDIO STEM ISOLATION & KARAOKE',
+                      'HUGGINGFACE DEMUCS AI & ISOLATION',
                       style: TextStyle(
                         color: EmberColors.textMuted,
                         fontSize: 11,
@@ -146,29 +146,36 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                     ),
                   ),
                   if (player.stemStatusBadgeText != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
                       decoration: BoxDecoration(
-                        color: EmberColors.primaryAmber.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: EmberColors.primaryAmber.withValues(alpha: 0.4), width: 1),
+                        color: EmberColors.primaryBlue.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: EmberColors.primaryBlue.withValues(alpha: 0.5), width: 1.2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: EmberColors.primaryBlue.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                          ),
+                        ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (player.isLoadingStem) ...[
                             const SizedBox(
-                              width: 9,
-                              height: 9,
-                              child: CircularProgressIndicator(strokeWidth: 1.5, color: EmberColors.primaryAmber),
+                              width: 10,
+                              height: 10,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: EmberColors.primaryBlue),
                             ),
-                            const SizedBox(width: 5),
+                            const SizedBox(width: 6),
                           ],
                           Text(
                             player.stemStatusBadgeText!,
                             style: const TextStyle(
-                              color: EmberColors.primaryAmber,
-                              fontSize: 10,
+                              color: EmberColors.primaryBlueHi,
+                              fontSize: 10.5,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -183,7 +190,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                   Expanded(
                     child: _IsolationCard(
                       title: 'Vocals Only',
-                      subtitle: 'Isolate voice (acapella)',
+                      subtitle: 'Demucs AI acapella',
                       icon: Icons.mic_rounded,
                       isActive: player.isolationMode == IsolationMode.vocalsOnly,
                       isLoading: player.isLoadingStem && player.isolationMode == IsolationMode.vocalsOnly,
@@ -194,7 +201,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                   Expanded(
                     child: _IsolationCard(
                       title: 'Instruments Only',
-                      subtitle: 'Remove voice (karaoke)',
+                      subtitle: 'Demucs AI karaoke',
                       icon: Icons.music_note_rounded,
                       isActive: player.isolationMode == IsolationMode.instrumentsOnly,
                       isLoading: player.isLoadingStem && player.isolationMode == IsolationMode.instrumentsOnly,
@@ -382,19 +389,37 @@ class _IsolationCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: isActive
-                ? EmberColors.primaryAmber.withValues(alpha: 0.14)
-                : EmberColors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(14),
+            gradient: isActive
+                ? const LinearGradient(
+                    colors: [
+                      Color(0x3300D4FF),
+                      Color(0x1A2979FF),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: isActive ? null : EmberColors.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isActive
-                  ? EmberColors.primaryAmber
+                  ? EmberColors.primaryBlue
                   : EmberColors.outlineVariant.withValues(alpha: 0.6),
-              width: isActive ? 1.5 : 1.0,
+              width: isActive ? 1.6 : 1.0,
             ),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: EmberColors.primaryBlue.withValues(alpha: 0.22),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -406,33 +431,33 @@ class _IsolationCard extends StatelessWidget {
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
                       color: isActive
-                          ? EmberColors.primaryAmber.withValues(alpha: 0.25)
+                          ? EmberColors.primaryBlue.withValues(alpha: 0.25)
                           : EmberColors.surfaceContainerHigh,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       icon,
                       size: 15,
-                      color: isActive ? EmberColors.primaryAmber : EmberColors.textSecondary,
+                      color: isActive ? EmberColors.primaryBlue : EmberColors.textSecondary,
                     ),
                   ),
                   if (isLoading)
                     const SizedBox(
                       width: 14,
                       height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: EmberColors.primaryAmber),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: EmberColors.primaryBlue),
                     )
                   else if (isActive)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                       decoration: BoxDecoration(
-                        color: EmberColors.primaryAmber,
+                        color: EmberColors.primaryBlue,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text(
-                        'ACTIVE',
+                        'AI ACTIVE',
                         style: TextStyle(
-                          color: EmberColors.obsidianBase,
+                          color: Colors.black,
                           fontSize: 9.0,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
@@ -445,7 +470,7 @@ class _IsolationCard extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  color: isActive ? EmberColors.primaryAmber : EmberColors.textPrimary,
+                  color: isActive ? EmberColors.primaryBlueHi : EmberColors.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
@@ -456,7 +481,7 @@ class _IsolationCard extends StatelessWidget {
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: isActive ? EmberColors.primaryAmberHi.withValues(alpha: 0.8) : EmberColors.textMuted,
+                  color: isActive ? EmberColors.primaryBlue.withValues(alpha: 0.85) : EmberColors.textMuted,
                   fontSize: 10.5,
                   fontWeight: FontWeight.w500,
                 ),

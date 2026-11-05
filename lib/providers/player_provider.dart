@@ -1446,8 +1446,8 @@ class PlayerProvider extends ChangeNotifier {
     _isolationMode = mode;
     _isLoadingStem = true;
     _stemStatusBadgeText = mode == IsolationMode.instrumentsOnly
-        ? 'Resolving Studio Karaoke...'
-        : 'Resolving Studio Acapella...';
+        ? 'Demucs AI Separating...'
+        : 'Demucs AI Isolating...';
     notifyListeners();
 
     final song = currentSong;
@@ -1482,8 +1482,12 @@ class PlayerProvider extends ChangeNotifier {
       if (stemResult.isStudioStem && stemResult.streamUrl != null) {
         _isStudioStemActive = true;
         _stemStatusBadgeText = mode == IsolationMode.instrumentsOnly
-            ? (stemResult.isLocal ? 'Offline Studio Karaoke' : 'Studio Karaoke (Synced)')
-            : (stemResult.isLocal ? 'Offline Studio Acapella' : 'Studio Acapella (Synced)');
+            ? (stemResult.source == StemSource.aiSeparation
+                ? 'Demucs AI Karaoke'
+                : (stemResult.isLocal ? 'Offline Studio Karaoke' : 'Studio Karaoke (Synced)'))
+            : (stemResult.source == StemSource.aiSeparation
+                ? 'Demucs AI Acapella'
+                : (stemResult.isLocal ? 'Offline Studio Acapella' : 'Studio Acapella (Synced)'));
 
         // Clear heavy EQ notch since we now have dedicated studio stem audio
         await _audioHandler.applyEqualizerPreset('Flat');
