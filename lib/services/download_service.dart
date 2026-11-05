@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -322,6 +322,14 @@ class DownloadService {
     if (active != null && active.isCompleted && active.localFilePath != null) {
       final f = File(active.localFilePath!);
       if (await f.exists() && await f.length() > 0) {
+        final downloadedSong = song.copyWith(
+          streamUrl: f.path,
+          source: 'download',
+        );
+        final currentDownloads = storageService.loadDownloads();
+        currentDownloads.removeWhere((s) => s.id == song.id);
+        currentDownloads.add(downloadedSong);
+        await storageService.saveDownloads(currentDownloads);
         return active.localFilePath;
       }
     }
@@ -347,6 +355,14 @@ class DownloadService {
           localFilePath: f.path,
         );
         _progressController.add(_activeDownloads[songId]!);
+        final downloadedSong = song.copyWith(
+          streamUrl: f.path,
+          source: 'download',
+        );
+        final currentDownloads = storageService.loadDownloads();
+        currentDownloads.removeWhere((s) => s.id == song.id);
+        currentDownloads.add(downloadedSong);
+        await storageService.saveDownloads(currentDownloads);
         return f.path;
       }
     }
@@ -668,6 +684,75 @@ class DownloadService {
       return null;
     } finally {
       yt.close();
+    }
+  }
+
+  /// Scans the local audio storage directory and registers any existing
+  /// offline files into StorageService so they reliably show in the Downloads library.
+  static Future<void> syncDownloadsFromDisk(StorageService storageService) async {
+    try {
+      final dir = await _getMediaDirectory(isVideo: false);
+      if (!await dir.exists()) return;
+
+      final existingDownloads = storageService.loadDownloads();
+      final existingPaths = existingDownloads.map((s) => s.streamUrl).toSet();
+      final existingIds = existingDownloads.map((s) => s.id).toSet();
+      bool modified = false;
+
+      final entities = dir.listSync();
+      for (final entity in entities) {
+        if (entity is File) {
+          final path = entity.path;
+          if (path.endsWith('.m4a') || path.endsWith('.webm') || path.endsWith('.mp3')) {
+            if (await entity.length() > 0 && !existingPaths.contains(path)) {
+              final rawName = entity.uri.pathSegments.last;
+              final dotIdx = rawName.lastIndexOf('.');
+              final fileName = dotIdx > 0 ? rawName.substring(0, dotIdx) : rawName;
+              String title = fileName;
+              String artist = 'Offline Audio';
+              String id = 'offline_${entity.lengthSync()}_${fileName.hashCode.abs()}';
+
+              final lastUnderscore = fileName.lastIndexOf('_');
+              String basePart = fileName;
+              if (lastUnderscore > 0 && lastUnderscore < fileName.length - 1) {
+                final extractedId = fileName.substring(lastUnderscore + 1);
+                if (extractedId.length >= 6) {
+                  id = extractedId;
+                  basePart = fileName.substring(0, lastUnderscore);
+                }
+              }
+
+              final dashIdx = basePart.indexOf(' - ');
+              if (dashIdx > 0) {
+                title = basePart.substring(0, dashIdx).trim();
+                artist = basePart.substring(dashIdx + 3).trim();
+              }
+
+              if (!existingIds.contains(id)) {
+                final recoveredSong = Song(
+                  id: id,
+                  title: title.isEmpty ? 'Offline Track' : title,
+                  artist: artist.isEmpty ? 'Offline Audio' : artist,
+                  duration: const Duration(minutes: 3, seconds: 30),
+                  artworkUrl: '',
+                  streamUrl: path,
+                  source: 'download',
+                );
+                existingDownloads.add(recoveredSong);
+                existingIds.add(id);
+                existingPaths.add(path);
+                modified = true;
+              }
+            }
+          }
+        }
+      }
+
+      if (modified) {
+        await storageService.saveDownloads(existingDownloads);
+      }
+    } catch (e) {
+      debugPrint('[DownloadService] syncDownloadsFromDisk error: $e');
     }
   }
 }

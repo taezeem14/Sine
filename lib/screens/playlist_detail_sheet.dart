@@ -170,35 +170,36 @@ class PlaylistDetailSheet extends StatelessWidget {
                       );
                     },
                   ),
-                  IconButton(
-                    icon: const FaIcon(FontAwesomeIcons.trashCan, size: 16, color: EmberColors.textMuted),
-                    tooltip: 'Delete Playlist',
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (dCtx) => AlertDialog(
-                          backgroundColor: EmberColors.surfaceContainerHigh,
-                          title: const Text('Delete Playlist?', style: TextStyle(color: EmberColors.textPrimary)),
-                          content: Text('Are you sure you want to delete "${currentPl.title}"?', style: const TextStyle(color: EmberColors.textSecondary)),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(dCtx),
-                              child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(backgroundColor: EmberColors.error),
-                              onPressed: () {
-                                player.deletePlaylist(currentPl.id);
-                                Navigator.pop(dCtx);
-                                Navigator.pop(context);
-                              },
-                              child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                  if (currentPl.id != 'downloaded_songs')
+                    IconButton(
+                      icon: const FaIcon(FontAwesomeIcons.trashCan, size: 16, color: EmberColors.textMuted),
+                      tooltip: 'Delete Playlist',
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (dCtx) => AlertDialog(
+                            backgroundColor: EmberColors.surfaceContainerHigh,
+                            title: const Text('Delete Playlist?', style: TextStyle(color: EmberColors.textPrimary)),
+                            content: Text('Are you sure you want to delete "${currentPl.title}"?', style: const TextStyle(color: EmberColors.textSecondary)),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dCtx),
+                                child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: EmberColors.error),
+                                onPressed: () {
+                                  player.deletePlaylist(currentPl.id);
+                                  Navigator.pop(dCtx);
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
@@ -254,20 +255,29 @@ class PlaylistDetailSheet extends StatelessWidget {
               child: currentPl.songs.isEmpty
                   ? SingleChildScrollView(
                       controller: scrollController,
-                      child: const Center(
+                      child: Center(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 60.0),
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 60.0),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              FaIcon(FontAwesomeIcons.music, size: 36, color: EmberColors.textMuted),
-                              SizedBox(height: 12),
-                              Text('No songs in this playlist yet', style: TextStyle(color: EmberColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
-                              SizedBox(height: 6),
+                              FaIcon(
+                                currentPl.id == 'downloaded_songs' ? FontAwesomeIcons.circleArrowDown : FontAwesomeIcons.music,
+                                size: 36,
+                                color: EmberColors.textMuted,
+                              ),
+                              const SizedBox(height: 12),
                               Text(
-                                'Tap the three dots on any song and select "Add to Playlist".',
+                                currentPl.id == 'downloaded_songs' ? 'No downloaded songs yet' : 'No songs in this playlist yet',
+                                style: const TextStyle(color: EmberColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                currentPl.id == 'downloaded_songs'
+                                    ? 'Tap the three dots on any song and select "Download Audio" to listen offline.'
+                                    : 'Tap the three dots on any song and select "Add to Playlist".',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                                style: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
                               ),
                             ],
                           ),

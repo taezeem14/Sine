@@ -169,13 +169,19 @@ class YouTubeImporterService {
       final segments = t.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
       for (int i = 1; i < segments.length; i++) {
         final seg = segments[i];
-        final singerMatch = RegExp(r'^(?:singers?|artist|vocals?|feat\.?|ft\.?)\s*:\s*(.+)$', caseSensitive: false).firstMatch(seg);
+        final singerMatch = RegExp(r'^(?:singers?|artist|vocals?|performed\s+by|sung\s+by|music|feat\.?|ft\.?)\s*[:\-]?\s*(.+)$', caseSensitive: false).firstMatch(seg);
         if (singerMatch != null) {
           pipeArtist = singerMatch.group(1)?.trim();
           break;
         } else if (cleanAuthor.isNotEmpty && !isPublisherOrCurator && seg.toLowerCase().contains(cleanAuthor.toLowerCase())) {
           pipeArtist = cleanAuthor;
           break;
+        }
+      }
+      if (pipeArtist == null && isPublisherOrCurator && segments.length >= 2) {
+        final lastSeg = segments.last;
+        if (!lastSeg.toLowerCase().contains('official') && !lastSeg.toLowerCase().contains('video')) {
+          pipeArtist = lastSeg;
         }
       }
       t = segments.isNotEmpty ? segments.first : t;
@@ -235,18 +241,29 @@ class YouTubeImporterService {
             candidateArtist = partA;
             candidateTitle = partB;
           } else {
-            // Neither or both match cleanAuthor.
-            // Check if one part has explicit title keywords like "Song", "Audio", "Official"
-            final aHasTitleKeywords = RegExp(r'\b(song|track|audio|theme|remix|acoustic|live|cover|version|slowed|reverb)\b', caseSensitive: false).hasMatch(partA);
-            final bHasTitleKeywords = RegExp(r'\b(song|track|audio|theme|remix|acoustic|live|cover|version|slowed|reverb)\b', caseSensitive: false).hasMatch(partB);
+            // Check if one part has movie/soundtrack indicators
+            final bHasMovieIndicators = RegExp(r'\b(from\s+["“\x27]?|movie|film|soundtrack|ost|brahm[aā]stra|aashiqui|jawan|animal|pathaan|kabir\s+singh|pushpa)\b', caseSensitive: false).hasMatch(partB);
+            final aHasMovieIndicators = RegExp(r'\b(from\s+["“\x27]?|movie|film|soundtrack|ost|brahm[aā]stra|aashiqui|jawan|animal|pathaan|kabir\s+singh|pushpa)\b', caseSensitive: false).hasMatch(partA);
 
-            if (aHasTitleKeywords && !bHasTitleKeywords) {
+            if (bHasMovieIndicators && !aHasMovieIndicators) {
               candidateTitle = partA;
-              candidateArtist = partB;
-            } else {
-              // Default to standard "Artist - Title"
-              candidateArtist = partA;
+              candidateArtist = pipeArtist ?? (cleanAuthor.isNotEmpty && !isPublisherOrCurator ? cleanAuthor : '');
+            } else if (aHasMovieIndicators && !bHasMovieIndicators) {
               candidateTitle = partB;
+              candidateArtist = pipeArtist ?? (cleanAuthor.isNotEmpty && !isPublisherOrCurator ? cleanAuthor : '');
+            } else {
+              // Check if one part has explicit title keywords like "Song", "Audio", "Official"
+              final aHasTitleKeywords = RegExp(r'\b(song|track|audio|theme|remix|acoustic|live|cover|version|slowed|reverb)\b', caseSensitive: false).hasMatch(partA);
+              final bHasTitleKeywords = RegExp(r'\b(song|track|audio|theme|remix|acoustic|live|cover|version|slowed|reverb)\b', caseSensitive: false).hasMatch(partB);
+
+              if (aHasTitleKeywords && !bHasTitleKeywords) {
+                candidateTitle = partA;
+                candidateArtist = partB;
+              } else {
+                // Default to standard "Artist - Title"
+                candidateArtist = partA;
+                candidateTitle = partB;
+              }
             }
           }
         }

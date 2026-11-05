@@ -15,11 +15,8 @@ class TrackOptionsSheet extends StatelessWidget {
   static void show(BuildContext context, Song song) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: EmberColors.surface,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
       builder: (_) => TrackOptionsSheet(song: song),
     );
   }
@@ -202,28 +199,34 @@ class TrackOptionsSheet extends StatelessWidget {
     final player = context.watch<PlayerProvider>();
     final isDownloaded = player.isDownloaded(song.id);
 
-    return SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-        ),
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: EmberColors.textMuted.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.45,
+      maxChildSize: 0.90,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: EmberColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            child: ListView(
+              controller: scrollController,
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: EmberColors.textMuted.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-              ),
-            ),
             // Song Summary Header
             Row(
               children: [
@@ -460,8 +463,9 @@ class TrackOptionsSheet extends StatelessWidget {
           ],
         ),
       ),
-    ),
-  );
+    );
+      },
+    );
   }
 }
 

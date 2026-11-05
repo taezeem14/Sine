@@ -236,6 +236,18 @@ class PlayerProvider extends ChangeNotifier {
     _crossfadeSeconds = _storageService.loadCrossfadeSeconds();
     _gaplessPlayback = _storageService.loadGaplessPlayback();
 
+    // Re-sync downloads on completion or cold start
+    DownloadService.progressStream.listen((p) {
+      if (p.isCompleted) {
+        _downloads = _storageService.loadDownloads();
+        notifyListeners();
+      }
+    });
+    DownloadService.syncDownloadsFromDisk(_storageService).then((_) {
+      _downloads = _storageService.loadDownloads();
+      notifyListeners();
+    });
+
     // Wire up hardware / notification / completion navigation callbacks
     _audioHandler.setNavigationCallbacks(
       onSkipNext: () => skipNext(),
@@ -320,7 +332,7 @@ class PlayerProvider extends ChangeNotifier {
     });
 
     _durSub = _audioHandler.player.durationStream.listen((dur) {
-      if (dur != null) {
+      if (dur != null && (_duration - dur).abs() > const Duration(milliseconds: 500)) {
         _duration = dur;
         notifyListeners();
       }
@@ -548,6 +560,9 @@ class PlayerProvider extends ChangeNotifier {
     _isPlaying = true;
     _isLoadingStream = true;
     _isLoadingStem = false;
+    _lyrics = LyricsResult.empty;
+    _isLoadingLyrics = true;
+    activeLyricIndexNotifier.value = -1;
     _isStudioStemActive = false;
     _stemStatusBadgeText = null;
     _isolationMode = IsolationMode.none;
@@ -558,7 +573,10 @@ class PlayerProvider extends ChangeNotifier {
 
     // Offline interception: if this song was downloaded to disk, play offline seamlessly
     Song resolvedSong = song;
-    final sPath = song.streamUrl.replaceFirst('file://', '');
+    var sPath = song.streamUrl.replaceFirst('file://', '');
+    if (Platform.isWindows && sPath.startsWith('/') && sPath.length > 2 && sPath[2] == ':') {
+      sPath = sPath.substring(1);
+    }
     if ((song.source == 'download' || sPath.startsWith('/') || RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(sPath)) && File(sPath).existsSync()) {
       resolvedSong = song;
     } else {
@@ -609,16 +627,27 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
+  /// On-demand lyrics loader triggered immediately when lyrics view is expanded
+  Future<void> loadLyricsForCurrentSong({bool force = false}) async {
+    final s = currentSong;
+    if (s == null) return;
+    if (!force && _lyrics.isNotEmpty) return;
+    if (!force && _isLoadingLyrics) return;
+    await _loadLyrics(s);
+  }
+
   Future<void> _loadLyrics(Song song) async {
     if (LyricsService.isTempoModified(song.title, song.artist)) {
       _isLoadingLyrics = false;
       _lyrics = LyricsResult.empty;
+      activeLyricIndexNotifier.value = -1;
       notifyListeners();
       return;
     }
 
     _isLoadingLyrics = true;
     _lyrics = LyricsResult.empty;
+    activeLyricIndexNotifier.value = -1;
     notifyListeners();
 
     try {
@@ -626,6 +655,7 @@ class PlayerProvider extends ChangeNotifier {
       if (currentSong?.id == song.id) {
         _lyrics = res;
         _isLoadingLyrics = false;
+        activeLyricIndexNotifier.value = _findLyricIndex(_position);
         notifyListeners();
       }
     } catch (_) {
@@ -1076,6 +1106,12 @@ class PlayerProvider extends ChangeNotifier {
 
   // Queue manipulation
   void playNext(Song song) {
+    if (currentSong == null && _queue.isEmpty) {
+      _queue.add(song);
+      _currentIndex = 0;
+      playSong(song);
+      return;
+    }
     final existingIdx = _queue.indexWhere((s) => s.id == song.id);
     if (existingIdx == _currentIndex) return; // Don't re-insert the currently playing song
     if (existingIdx != -1) {
@@ -1152,6 +1188,14 @@ class PlayerProvider extends ChangeNotifier {
     _unshuffledQueue.clear();
     _isShuffle = false;
     _storageService.saveShuffle(false);
+    _isMixActive = false;
+    _isRadioActive = false;
+    _activeMixPlaylistId = null;
+    _radioSeedSong = null;
+    _mixContinuationToken = null;
+    _mixLastVideoId = null;
+    _mixLastParams = null;
+    _mixSeenVideoIds.clear();
     if (cur != null) {
       _queue.add(cur);
       _unshuffledQueue.add(cur);
@@ -1250,7 +1294,7 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> playPlaylist(Playlist playlist, {int startIndex = 0}) async {
+  Future<void> playPlaylist(Playlist playlist, {int startIndex = 0, bool shuffle = false}) async {
     if (playlist.songs.isNotEmpty) {
       _consecutiveStreamFailures = 0;
       final isMix = playlist.id.startsWith('yt_mix_');
@@ -1267,6 +1311,14 @@ class PlayerProvider extends ChangeNotifier {
         _isMixActive = false;
         _activeMixPlaylistId = null;
         _playingFrom = 'Playlist: ${playlist.title}';
+      }
+      if (shuffle) {
+        _isShuffle = true;
+        _storageService.saveShuffle(true);
+        _unshuffledQueue = List.from(playlist.songs);
+        final shuffled = List<Song>.from(playlist.songs)..shuffle();
+        await playSong(shuffled[0], contextQueue: shuffled, playingFrom: _playingFrom);
+        return;
       }
       final idx = startIndex.clamp(0, playlist.songs.length - 1);
       await playSong(playlist.songs[idx], contextQueue: playlist.songs, playingFrom: _playingFrom);
@@ -1643,14 +1695,17 @@ class PlayerProvider extends ChangeNotifier {
     sleepSecondsNotifier.value = _sleepSecondsRemaining;
     notifyListeners();
 
+    final targetTime = DateTime.now().add(Duration(minutes: minutes));
+
     _sleepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_isDisposed) {
         timer.cancel();
         return;
       }
-      if (_sleepSecondsRemaining > 0) {
-        _sleepSecondsRemaining--;
-        sleepSecondsNotifier.value = _sleepSecondsRemaining;
+      final remaining = targetTime.difference(DateTime.now()).inSeconds;
+      if (remaining > 0) {
+        _sleepSecondsRemaining = remaining;
+        sleepSecondsNotifier.value = remaining;
       } else {
         cancelSleepTimer();
         _audioHandler.pause();

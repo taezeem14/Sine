@@ -24,7 +24,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.1.3)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.3.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.1.4)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.4.apk) 👈
 
 *Tap above to download the APK, install on Android, and elevate your earholes immediately.*
 
@@ -56,6 +56,18 @@ Look, Spotify got greedy with \$11+/month subscription prices and YouTube Music 
 - Just pure, uninterrupted, audiophile-grade music streamed straight from YouTube & YouTube Music's global catalog.
 
 We cooked so you can vibe. Fr fr. 👨‍🍳🔥
+
+---
+
+## 🚀 What's New in v1.1.4 (Lyrics Streaming Reactivity & Offline Download Vault Engine)
+- 🎤 **Real-Time 120 FPS Synchronized Lyrics Pipeline**: Direct connection of `SynchronizedLyricsView` and `_SpotifyLyricsPreviewCard` to `activeLyricIndexNotifier` via `ValueListenableBuilder<int>`. Automatically centers active lyrics during playback without stalling or freezing. Negative caching for tracks without lyrics eliminates repeated network timeouts.
+- 💾 **Downloaded Songs Vault Fix**: Resolved offline library invisibility by ensuring existing disk cache hits immediately save to `StorageService.saveDownloads`. Added `syncDownloadsFromDisk` to scan and register offline `.m4a` / `.webm` files directly into your library. Selecting the **Downloads** filter chip now renders a direct playable song list with "Play All" and "Shuffle".
+- 🎚️ **Fluid Spotify Graph Equalizer Tuning**: Fixed ease-out cubic animation math by establishing a baseline `_startGains` snapshot for preset transitions. Locked `_activeDragBand` on pan start to prevent horizontal finger drift from jumping frequency bands. Fixed `_SpotifyEqPainter.shouldRepaint` using `listEquals` for crisp 120 FPS canvas repaints in Spotify obsidian electric blue (`#00D4FF` / `#2979FF`).
+- 📜 **Draggable Scrollable Sheets for Sleep Timer & Settings**: Converted both the Sleep Timer sheet and Track Options sheet to `DraggableScrollableSheet` with dedicated scroll controllers, eliminating gesture contention with modal sheet dismiss gestures. Added wall-clock `targetTime` countdown logic to prevent sleep timer drift in Android Doze mode.
+- 🔀 **Queue Drag-Handle Correction**: Resolved hardcoded drag index in `QueueDiscoveryScreen` (`ReorderableDragStartListener(index: index)`), restoring instant reordering to all upcoming queue tracks. Dynamically resolved song IDs in dismiss actions to prevent deleting incorrect songs after queue reordering.
+- 🏷️ **Smart YouTube Title / Artist Parsing**: Upgraded `parseYouTubeMetadata` with multi-segment pipe (`|`) artist extraction, movie/soundtrack detection, and collaborating artist parsing (`feat.`, `ft.`, `&`, `x`), eliminating inverted artist/title labels.
+- 🔒 **App Lock Security Reinforcement**: Enforced `popUntil((route) => route.isFirst)` when re-locking from background pause so `AppLockScreen` cannot be bypassed by child route stacks.
+- 💖 **Settings UI Clean-up**: Centered the UPI support button text and eliminated container overflow.
 
 ---
 

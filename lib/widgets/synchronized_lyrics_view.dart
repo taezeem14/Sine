@@ -24,6 +24,19 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
   String? _currentSongId;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final player = context.read<PlayerProvider>();
+        if (player.currentSong != null && player.lyrics.syncedLyrics.isEmpty && !player.isLoadingLyrics) {
+          player.loadLyricsForCurrentSong();
+        }
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _userScrollTimer?.cancel();
     _scrollController.dispose();
@@ -161,131 +174,134 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
     final plain = player.plainLyrics;
 
     if (hasSynced && synced.isNotEmpty) {
-      final activeIdx = player.currentLyricIndex;
-
-      if (activeIdx != _lastIndex && activeIdx >= 0) {
-        _lastIndex = activeIdx;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _scrollToIndex(activeIdx, synced.length);
+      return ValueListenableBuilder<int>(
+        valueListenable: player.activeLyricIndexNotifier,
+        builder: (context, activeIdx, _) {
+          if (activeIdx != _lastIndex && activeIdx >= 0) {
+            _lastIndex = activeIdx;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _scrollToIndex(activeIdx, synced.length);
+              }
+            });
           }
-        });
-      }
 
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final topPadding = (constraints.maxHeight * 0.45).clamp(40.0, 400.0);
-          final bottomPadding = (constraints.maxHeight * 0.72).clamp(120.0, 800.0);
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final topPadding = (constraints.maxHeight * 0.45).clamp(40.0, 400.0);
+              final bottomPadding = (constraints.maxHeight * 0.72).clamp(120.0, 800.0);
 
-          return Stack(
-            alignment: Alignment.topCenter,
-            children: [
-              NotificationListener<UserScrollNotification>(
-                onNotification: (notif) {
-                  if (notif.direction != ScrollDirection.idle) {
-                    _userScrolling = true;
-                    _userScrollTimer?.cancel();
-                  } else {
-                    _userScrollTimer?.cancel();
-                    _userScrollTimer = Timer(const Duration(seconds: 3), () {
-                      if (mounted) _userScrolling = false;
-                    });
-                  }
-                  return false;
-                },
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: EdgeInsets.only(
-                    left: 20,
-                    right: 20,
-                    top: topPadding,
-                    bottom: bottomPadding,
-                  ),
-                  itemCount: synced.length,
-                  itemBuilder: (context, index) {
-                    final line = synced[index];
-                    final isActive = index == activeIdx;
-
-                    if (line.text.trim().isEmpty) {
-                      return const SizedBox(height: 16);
-                    }
-
-                    return Center(
-                      child: GestureDetector(
-                        onTap: () {
-                          player.seek(line.timestamp);
-                          _userScrolling = false;
-                          _scrollToIndex(index, synced.length);
-                        },
-                        child: AnimatedContainer(
-                          key: _lineKeys.putIfAbsent(index, () => GlobalKey()),
-                          duration: const Duration(milliseconds: 250),
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? EmberColors.primaryAmber.withValues(alpha: 0.16)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(14),
-                        border: isActive
-                            ? Border.all(color: EmberColors.primaryAmber.withValues(alpha: 0.35), width: 1.2)
-                            : null,
+              return Stack(
+                alignment: Alignment.topCenter,
+                children: [
+                  NotificationListener<UserScrollNotification>(
+                    onNotification: (notif) {
+                      if (notif.direction != ScrollDirection.idle) {
+                        _userScrolling = true;
+                        _userScrollTimer?.cancel();
+                      } else {
+                        _userScrollTimer?.cancel();
+                        _userScrollTimer = Timer(const Duration(seconds: 3), () {
+                          if (mounted) _userScrolling = false;
+                        });
+                      }
+                      return false;
+                    },
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      padding: EdgeInsets.only(
+                        left: 20,
+                        right: 20,
+                        top: topPadding,
+                        bottom: bottomPadding,
                       ),
-                      child: Text(
-                        line.text,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: isActive
-                              ? EmberColors.primaryAmberHi
-                              : EmberColors.textPrimary.withValues(alpha: 0.4),
-                          fontSize: isActive ? 18 : 15,
-                          fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                          height: 1.5,
-                          letterSpacing: isActive ? 0.3 : 0.0,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-                ),
-              ),
-              if (player.isolationMode == IsolationMode.instrumentsOnly)
-                Positioned(
-                  top: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: EmberColors.obsidianBase.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: EmberColors.primaryAmber.withValues(alpha: 0.6), width: 1.2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: EmberColors.primaryAmber.withValues(alpha: 0.25),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.mic_external_on_rounded, size: 13, color: EmberColors.primaryAmber),
-                        SizedBox(width: 6),
-                        Text(
-                          'KARAOKE STAGE • SING ALONG',
-                          style: TextStyle(
-                            color: EmberColors.primaryAmber,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.0,
+                      itemCount: synced.length,
+                      itemBuilder: (context, index) {
+                        final line = synced[index];
+                        final isActive = index == activeIdx;
+
+                        if (line.text.trim().isEmpty) {
+                          return const SizedBox(height: 16);
+                        }
+
+                        return Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              player.seek(line.timestamp);
+                              _userScrolling = false;
+                              _scrollToIndex(index, synced.length);
+                            },
+                            child: AnimatedContainer(
+                              key: _lineKeys.putIfAbsent(index, () => GlobalKey()),
+                              duration: const Duration(milliseconds: 250),
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? EmberColors.primaryAmber.withValues(alpha: 0.16)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(14),
+                                border: isActive
+                                    ? Border.all(color: EmberColors.primaryAmber.withValues(alpha: 0.35), width: 1.2)
+                                    : null,
+                              ),
+                              child: Text(
+                                line.text,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: isActive
+                                      ? EmberColors.primaryAmberHi
+                                      : EmberColors.textPrimary.withValues(alpha: 0.4),
+                                  fontSize: isActive ? 18 : 15,
+                                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                                  height: 1.5,
+                                  letterSpacing: isActive ? 0.3 : 0.0,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
-                ),
-            ],
+                  if (player.isolationMode == IsolationMode.instrumentsOnly)
+                    Positioned(
+                      top: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: EmberColors.obsidianBase.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: EmberColors.primaryAmber.withValues(alpha: 0.6), width: 1.2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: EmberColors.primaryAmber.withValues(alpha: 0.25),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.mic_external_on_rounded, size: 13, color: EmberColors.primaryAmber),
+                            SizedBox(width: 6),
+                            Text(
+                              'KARAOKE STAGE • SING ALONG',
+                              style: TextStyle(
+                                color: EmberColors.primaryAmber,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           );
         },
       );

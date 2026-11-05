@@ -357,6 +357,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 _isSkippingSponsor = false;
                 _currentTrackActive = false;
                 _completionHandled = true;
+                _lastKnownPosition = _player.duration ?? Duration(seconds: totalSec.toInt());
                 _player.stop().catchError((_) {});
                 _onCompleted?.call();
                 return;
@@ -443,8 +444,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             preload: false,
           ).timeout(const Duration(seconds: 12));
 
-          await _player.play();
           await _restorePlaybackParameters();
+          await _player.play();
           reconnected = true;
           _isReconnecting = false;
           _consecutiveReconnectAttempts = 0;
@@ -585,8 +586,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             try { await _player.stop(); } catch (_) {}
             return;
           }
-          await _player.play();
           await _restorePlaybackParameters();
+          await _player.play();
           return;
         } else {
           // File does not exist locally anymore; fall through to online stream resolver

@@ -386,24 +386,17 @@ class _SettingsContentState extends State<SettingsContent> {
                       ),
                     ],
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FaIcon(FontAwesomeIcons.heart, size: 14, color: EmberColors.obsidianBase),
-                      SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'Support Taezeem via UPI (7006616470@fam)',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: EmberColors.obsidianBase,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
+                  child: const Center(
+                    child: Text(
+                      'Support Taezeem via UPI (7006616470@fam)',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: EmberColors.obsidianBase,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),

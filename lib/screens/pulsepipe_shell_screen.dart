@@ -36,6 +36,9 @@ class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> with Widget
   Future<void> _checkAppLock() async {
     final enabled = await AppLockService.isLockEnabled();
     if (enabled && !AppLockService.isUnlockedThisSession && mounted) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
       setState(() => _isLocked = true);
     }
   }

@@ -253,7 +253,15 @@ class StorageService {
     if (_prefs == null) {
       return List<Song>.from(_memDownloads.where((s) => !Song.isPlaceholder(s)));
     }
-    final raw = _prefs.getStringList(_downloadsKey) ?? _prefs.getStringList(_downloadsLegacyKey) ?? [];
+    var raw = _prefs.getStringList(_downloadsKey);
+    if (raw == null || raw.isEmpty) {
+      final legacy = _prefs.getStringList(_downloadsLegacyKey);
+      if (legacy != null && legacy.isNotEmpty) {
+        raw = legacy;
+      } else {
+        raw = [];
+      }
+    }
     final cleaned = <Song>[];
     bool hadPlaceholders = false;
 
@@ -262,10 +270,10 @@ class StorageService {
         final decoded = jsonDecode(s);
         if (decoded is! Map) continue;
         final song = Song.fromMap(Map<String, dynamic>.from(decoded));
-        if (Song.isPlaceholder(song)) {
-          hadPlaceholders = true;
-        } else {
+        if (song.source == 'download' || !Song.isPlaceholder(song)) {
           cleaned.add(song);
+        } else {
+          hadPlaceholders = true;
         }
       } catch (e) {
         debugPrint('[StorageService] Skipped corrupt download entry: $e');

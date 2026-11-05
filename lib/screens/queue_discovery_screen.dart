@@ -324,7 +324,12 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                       ),
                       onDismissed: (_) {
                         HapticFeedback.mediumImpact();
-                        player.removeTrackAt(globalIdx);
+                        final targetIdx = player.queue.indexWhere((s) => s.id == song.id);
+                        if (targetIdx != -1) {
+                          player.removeTrackAt(targetIdx);
+                        } else if (globalIdx < player.queue.length) {
+                          player.removeTrackAt(globalIdx);
+                        }
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             backgroundColor: EmberColors.surfaceContainerHigh,
@@ -389,9 +394,9 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                                 icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
                                 onPressed: () => TrackOptionsSheet.show(context, song),
                               ),
-                              const ReorderableDragStartListener(
-                                index: 0,
-                                child: Icon(Icons.drag_handle_rounded, color: EmberColors.textMuted, size: 22),
+                              ReorderableDragStartListener(
+                                index: index,
+                                child: const Icon(Icons.drag_handle_rounded, color: EmberColors.textMuted, size: 22),
                               ),
                             ],
                           ),

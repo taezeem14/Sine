@@ -326,8 +326,8 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                 ),
               ),
 
-            // 4. "Downloaded" Row (shown when filter is All or Downloads)
-            if (_selectedFilter == 'All' || _selectedFilter == 'Downloads')
+            // 4. "Downloaded" Row (shown when filter is All)
+            if (_selectedFilter == 'All')
               SliverToBoxAdapter(
                 child: _LibraryRowItem(
                   iconGradient: const [Color(0xFF00C853), Color(0xFF69F0AE)],
@@ -338,6 +338,148 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                   onTap: () => _openDownloads(context, player),
                 ),
               ),
+
+            // 4B. Direct Downloaded Songs List (shown when filter is Downloads)
+            if (_selectedFilter == 'Downloads') ...[
+              if (player.downloads.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      children: [
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: EmberColors.primaryBlue,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                          onPressed: () {
+                            final pl = Playlist(
+                              id: 'downloaded_songs',
+                              title: 'Downloaded Songs',
+                              songs: player.downloads,
+                              createdAt: DateTime.now(),
+                            );
+                            player.playPlaylist(pl, startIndex: 0);
+                          },
+                          icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                          label: const Text('Play All', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                        const SizedBox(width: 10),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: EmberColors.textPrimary,
+                            side: BorderSide(color: EmberColors.outlineVariant.withValues(alpha: 0.6)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                          onPressed: () {
+                            final pl = Playlist(
+                              id: 'downloaded_songs',
+                              title: 'Downloaded Songs',
+                              songs: player.downloads,
+                              createdAt: DateTime.now(),
+                            );
+                            player.playPlaylist(pl, startIndex: 0, shuffle: true);
+                          },
+                          icon: const FaIcon(FontAwesomeIcons.shuffle, size: 13),
+                          label: const Text('Shuffle', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final song = player.downloads[index];
+                      final isCurrent = player.currentSong?.id == song.id;
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: song.artworkUrl.isNotEmpty
+                              ? CachedNetworkImage(
+                                  imageUrl: song.artworkUrl,
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, _, _) => Container(
+                                    width: 48,
+                                    height: 48,
+                                    color: EmberColors.surfaceContainerHigh,
+                                    child: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                                  ),
+                                )
+                              : Container(
+                                  width: 48,
+                                  height: 48,
+                                  color: EmberColors.surfaceContainerHigh,
+                                  child: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                                ),
+                        ),
+                        title: Text(
+                          song.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isCurrent ? EmberColors.primaryBlue : EmberColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${song.artist} • Offline',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                        ),
+                        trailing: IconButton(
+                          icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
+                          onPressed: () => TrackOptionsSheet.show(context, song),
+                        ),
+                        onTap: () {
+                          final pl = Playlist(
+                            id: 'downloaded_songs',
+                            title: 'Downloaded Songs',
+                            songs: player.downloads,
+                            createdAt: DateTime.now(),
+                          );
+                          player.playPlaylist(pl, startIndex: index);
+                        },
+                      );
+                    },
+                    childCount: player.downloads.length,
+                  ),
+                ),
+              ] else
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FaIcon(FontAwesomeIcons.circleArrowDown, size: 42, color: EmberColors.textMuted),
+                          SizedBox(height: 12),
+                          Text(
+                            'No downloaded songs yet',
+                            style: TextStyle(color: EmberColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            'Tap the three dots on any song and select "Download Audio" to listen offline without internet.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: EmberColors.textMuted, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
 
             // 5. Custom Playlists (shown when filter is All or Playlists)
             if (_selectedFilter == 'All' || _selectedFilter == 'Playlists') ...[
@@ -572,7 +714,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                 ),
             ],
 
-            const SliverToBoxAdapter(child: SizedBox(height: 150)),
+            const SliverToBoxAdapter(child: SizedBox(height: 170)),
           ],
         ),
       ),

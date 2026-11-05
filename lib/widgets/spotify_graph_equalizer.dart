@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -52,6 +53,7 @@ class SpotifyGraphEqualizer extends StatefulWidget {
 
 class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with SingleTickerProviderStateMixin {
   late List<double> _currentGains;
+  late List<double> _startGains;
   late List<double> _targetGains;
   late AnimationController _animController;
   int? _activeDragBand;
@@ -64,6 +66,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
   void initState() {
     super.initState();
     _currentGains = List.filled(6, 0.0);
+    _startGains = List.filled(6, 0.0);
     _targetGains = List.filled(6, 0.0);
 
     _animController = AnimationController(
@@ -73,7 +76,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
         final t = Curves.easeOutCubic.transform(_animController.value);
         setState(() {
           for (int i = 0; i < 6; i++) {
-            _currentGains[i] = _currentGains[i] + (_targetGains[i] - _currentGains[i]) * t;
+            _currentGains[i] = _startGains[i] + (_targetGains[i] - _startGains[i]) * t;
           }
         });
       });
@@ -105,6 +108,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
 
     setState(() {
       _currentGains = List.from(gains);
+      _startGains = List.from(gains);
       _targetGains = List.from(gains);
     });
   }
@@ -113,6 +117,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
     HapticFeedback.selectionClick();
     final player = context.read<PlayerProvider>();
 
+    _startGains = List.from(_currentGains);
     _targetGains = List.from(preset.gains);
     _animController.forward(from: 0.0);
 
@@ -122,27 +127,35 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
     }
   }
 
-  void _handlePan(Offset localPos, Size size) {
+  void _onPanStart(Offset localPos, Size size) {
     const horizontalPadding = 24.0;
     final usableWidth = size.width - (horizontalPadding * 2);
     final colWidth = usableWidth / 5.0;
 
     final touchX = (localPos.dx - horizontalPadding).clamp(0.0, usableWidth);
     final bandIndex = (touchX / colWidth).round().clamp(0, 5);
+    _activeDragBand = bandIndex;
+    _updateGainFromY(bandIndex, localPos.dy, size);
+  }
 
-    // Calculate gain from vertical position (-12 dB to +12 dB)
+  void _onPanUpdate(Offset localPos, Size size) {
+    final bandIndex = _activeDragBand;
+    if (bandIndex == null) return;
+    _updateGainFromY(bandIndex, localPos.dy, size);
+  }
+
+  void _updateGainFromY(int bandIndex, double dy, Size size) {
     const verticalPadding = 28.0;
     final usableHeight = size.height - (verticalPadding * 2);
-    final clampedY = (localPos.dy - verticalPadding).clamp(0.0, usableHeight);
-    final normalized = 1.0 - (clampedY / usableHeight); // 0.0 at bottom, 1.0 at top
+    final clampedY = (dy - verticalPadding).clamp(0.0, usableHeight);
+    final normalized = 1.0 - (clampedY / usableHeight);
     final gain = ((normalized * 24.0) - 12.0).clamp(-12.0, 12.0);
-
     final roundedGain = (gain * 10).round() / 10.0;
 
     setState(() {
-      _activeDragBand = bandIndex;
       _currentGains[bandIndex] = roundedGain;
       _targetGains[bandIndex] = roundedGain;
+      _startGains[bandIndex] = roundedGain;
     });
 
     final now = DateTime.now();
@@ -183,8 +196,8 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
                     final size = Size(constraints.maxWidth, constraints.maxHeight);
                     return GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onPanDown: (d) => _handlePan(d.localPosition, size),
-                      onPanUpdate: (d) => _handlePan(d.localPosition, size),
+                      onPanStart: (d) => _onPanStart(d.localPosition, size),
+                      onPanUpdate: (d) => _onPanUpdate(d.localPosition, size),
                       onPanEnd: (_) => setState(() => _activeDragBand = null),
                       onPanCancel: () => setState(() => _activeDragBand = null),
                       child: CustomPaint(
@@ -449,6 +462,9 @@ class _SpotifyEqPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SpotifyEqPainter oldDelegate) {
-    return oldDelegate.gains != gains || oldDelegate.activeBand != activeBand;
+    return !listEquals(oldDelegate.gains, gains) ||
+        oldDelegate.activeBand != activeBand ||
+        oldDelegate.strokeColor != strokeColor ||
+        oldDelegate.gradientDark != gradientDark;
   }
 }

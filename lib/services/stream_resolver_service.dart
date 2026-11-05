@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/song.dart';
 import 'youtube_importer_service.dart';
@@ -19,6 +19,7 @@ class StreamResolverService {
   /// Invalidate cached stream candidates for a song if playback fails
   static void invalidateCache(String key) {
     _resolvedCache.remove(key);
+    _inFlightResolutions.remove(key);
   }
 
   /// Manually cache a verified working stream (e.g. from fallback proxy)
@@ -167,6 +168,8 @@ class StreamResolverService {
       videoId = song.id.replaceFirst('yt_', '').trim();
     } else if (s.contains('youtube.com') || s.contains('youtu.be')) {
       videoId = YouTubeImporterService.extractVideoId(s);
+    } else if (RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(song.id)) {
+      videoId = song.id;
     }
 
     // 4. If videoId found, extract direct YouTube audio streams
