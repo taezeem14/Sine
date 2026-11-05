@@ -287,7 +287,7 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
                             Icon(Icons.mic_external_on_rounded, size: 13, color: EmberColors.primaryBlueHi),
                             SizedBox(width: 6),
                             Text(
-                              'DEMUCS KARAOKE • SING ALONG',
+                              'KARAOKE • SING ALONG',
                               style: TextStyle(
                                 color: EmberColors.primaryAmber,
                                 fontSize: 10,

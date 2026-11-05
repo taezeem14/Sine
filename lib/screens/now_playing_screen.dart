@@ -216,8 +216,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                             Text(
                               stemBadge ??
                                   (isolationMode == IsolationMode.instrumentsOnly
-                                      ? 'Demucs Karaoke Active'
-                                      : 'Demucs Acapella Active'),
+                                      ? 'AI Karaoke Active'
+                                      : 'AI Acapella Active'),
                               style: const TextStyle(
                                 color: EmberColors.primaryBlue,
                                 fontSize: 11,

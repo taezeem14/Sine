@@ -1446,8 +1446,8 @@ class PlayerProvider extends ChangeNotifier {
     _isolationMode = mode;
     _isLoadingStem = true;
     _stemStatusBadgeText = mode == IsolationMode.instrumentsOnly
-        ? 'Demucs AI Separating...'
-        : 'Demucs AI Isolating...';
+        ? 'Isolating Karaoke...'
+        : 'Isolating Vocals...';
     notifyListeners();
 
     final song = currentSong;
@@ -1483,10 +1483,10 @@ class PlayerProvider extends ChangeNotifier {
         _isStudioStemActive = true;
         _stemStatusBadgeText = mode == IsolationMode.instrumentsOnly
             ? (stemResult.source == StemSource.aiSeparation
-                ? 'Demucs AI Karaoke'
+                ? 'BS-RoFormer AI Karaoke'
                 : (stemResult.isLocal ? 'Offline Studio Karaoke' : 'Studio Karaoke (Synced)'))
             : (stemResult.source == StemSource.aiSeparation
-                ? 'Demucs AI Acapella'
+                ? 'BS-RoFormer AI Acapella'
                 : (stemResult.isLocal ? 'Offline Studio Acapella' : 'Studio Acapella (Synced)'));
 
         // Clear heavy EQ notch since we now have dedicated studio stem audio

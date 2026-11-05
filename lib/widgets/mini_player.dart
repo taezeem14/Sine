@@ -159,7 +159,7 @@ class MiniPlayer extends StatelessWidget {
                                   border: Border.all(color: EmberColors.primaryBlue.withValues(alpha: 0.3), width: 0.8),
                                 ),
                                 child: Text(
-                                  player.isolationMode == IsolationMode.instrumentsOnly ? 'DEMUCS KARAOKE' : 'DEMUCS VOCALS',
+                                  player.isolationMode == IsolationMode.instrumentsOnly ? 'AI KARAOKE' : 'AI VOCALS',
                                   style: const TextStyle(
                                     color: EmberColors.primaryBlueHi,
                                     fontSize: 8.5,

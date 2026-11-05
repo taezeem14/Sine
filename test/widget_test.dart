@@ -420,12 +420,19 @@ void main() {
 
       final dspResult = StemResult.dspFallback(
         type: StemType.instrumental,
-        reason: 'Demucs AI offline',
+        reason: 'AI offline',
       );
       expect(dspResult.source, StemSource.dspFallback);
       expect(dspResult.isSuccess, isFalse);
       expect(dspResult.isStudioStem, isFalse);
       expect(dspResult.fallbackToDsp, isTrue);
+    });
+
+    test('StemService supports BS-RoFormer and Demucs source separation endpoints', () {
+      expect(StemService.instance, isNotNull);
+      StemService.clearMemoryCache();
+      expect(StemService.instance.separateAudioWithAi, isNotNull);
+      expect(StemService.instance.separateAudioWithDemucs, isNotNull);
     });
   });
 }

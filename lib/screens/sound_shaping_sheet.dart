@@ -134,7 +134,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                 children: [
                   const Expanded(
                     child: Text(
-                      'HUGGINGFACE DEMUCS AI & ISOLATION',
+                      'AI SOTA & STUDIO STEM ISOLATION',
                       style: TextStyle(
                         color: EmberColors.textMuted,
                         fontSize: 11,
@@ -190,7 +190,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                   Expanded(
                     child: _IsolationCard(
                       title: 'Vocals Only',
-                      subtitle: 'Demucs AI acapella',
+                      subtitle: 'AI acapella & studio vocals',
                       icon: Icons.mic_rounded,
                       isActive: player.isolationMode == IsolationMode.vocalsOnly,
                       isLoading: player.isLoadingStem && player.isolationMode == IsolationMode.vocalsOnly,
@@ -201,7 +201,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                   Expanded(
                     child: _IsolationCard(
                       title: 'Instruments Only',
-                      subtitle: 'Demucs AI karaoke',
+                      subtitle: 'AI karaoke & backing tracks',
                       icon: Icons.music_note_rounded,
                       isActive: player.isolationMode == IsolationMode.instrumentsOnly,
                       isLoading: player.isLoadingStem && player.isolationMode == IsolationMode.instrumentsOnly,
