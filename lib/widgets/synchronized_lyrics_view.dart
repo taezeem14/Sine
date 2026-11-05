@@ -174,8 +174,8 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
 
       return LayoutBuilder(
         builder: (context, constraints) {
-          final topPadding = (constraints.maxHeight * 0.42).clamp(40.0, 400.0);
-          final bottomPadding = (constraints.maxHeight * 0.60).clamp(60.0, 600.0);
+          final topPadding = (constraints.maxHeight * 0.45).clamp(40.0, 400.0);
+          final bottomPadding = (constraints.maxHeight * 0.72).clamp(120.0, 800.0);
 
           return Stack(
             alignment: Alignment.topCenter,

@@ -24,7 +24,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.1.2)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.2.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.1.3)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.3.apk) 👈
 
 *Tap above to download the APK, install on Android, and elevate your earholes immediately.*
 
@@ -56,6 +56,17 @@ Look, Spotify got greedy with \$11+/month subscription prices and YouTube Music 
 - Just pure, uninterrupted, audiophile-grade music streamed straight from YouTube & YouTube Music's global catalog.
 
 We cooked so you can vibe. Fr fr. 👨‍🍳🔥
+
+---
+
+## 🚀 What's New in v1.1.3 (Spotify 2026 Polish & 120 FPS Fluidity)
+- 🎚️ **Standalone Spotify-Grade Equalizer Screen**: Exact Spotify 2026 UI layout featuring a vibrant **Electric Blue Bezier spline curve** with 6 draggable frequency nodes (`60 Hz`, `150 Hz`, `400 Hz`, `1 kHz`, `2.4 kHz`, `15 kHz`), live ON/OFF toggle switch, and 20 calibrated Spotify presets with instant visual checkmark selection.
+- ⚡ **120 FPS Fluidity Engine**: Eliminated high-frequency 300ms/1s full-app widget tree rebuilds during playback by moving progress scrubbing, lyric tracking, and timer countdowns to scoped `ValueNotifier` pipelines (`positionNotifier`, `activeLyricIndexNotifier`, `sleepSecondsNotifier`).
+- 📱 **Android Home Widget Loop Throttle**: Decoupled widget updates from `playbackEventStream` network buffer packets (which were firing every 1–2s) and added strict dual-layer deduplication in Dart and Kotlin, preventing background IPC thrashing.
+- 🏷️ **Artist / Title Swap Reversal**: Re-engineered metadata extraction with deep multi-part pipe (`|`) handling and artist match scoring, ensuring song names and singers never swap places.
+- 💾 **Downloaded Songs Offline Fix**: Repaired ID prefix matching (`yt_` stripping) and cross-platform Windows path normalizer, guaranteeing offline downloaded tracks play reliably in airplane mode.
+- 🎤 **True Centered Synced Lyrics**: Expanded dynamic viewport bottom padding to 72% so end-of-track lines stay centered on screen instead of scrolling to the top.
+- 🛡️ **Double-Tap Route Protection**: Added navigation guards on MiniPlayer, Queue, and options sheets to prevent duplicate overlay routes from stacking on rapid taps.
 
 ---
 
@@ -137,7 +148,7 @@ sequenceDiagram
 ```mermaid
 xychart-beta
     title "Cold-Start Track Playback Latency in Seconds (Lower is Better)"
-    x-axis ["Sine v1.1.2", "Spotify Free", "YouTube Music", "Generic YT Scrapers"]
+    x-axis ["Sine v1.1.3", "Spotify Free", "YouTube Music", "Generic YT Scrapers"]
     y-axis "Startup Latency (Seconds)" 0 --> 35
     bar [1.2, 8.5, 6.2, 28.0]
 ```
@@ -145,7 +156,7 @@ xychart-beta
 ```
 Playback Latency Comparison:
 ========================================================================
-Sine v1.1.2          [██] 1.2s (Hardware AAC DSP + itag 140 Prioritization)
+Sine v1.1.3          [██] 1.2s (Hardware AAC DSP + itag 140 Prioritization)
 Spotify Free         [████████] 8.5s (Audio Ad Insertion + DRM Handshake)
 YouTube Music        [██████] 6.2s (Video Ad Ingestion + Player Handshake)
 Generic Scrapers     [████████████████████████████] 28.0s (DASH 403 Retries)
@@ -192,7 +203,7 @@ stateDiagram-v2
 
 ## 🥊 Sine vs. The Competition
 
-| Feature | ⚡ **Sine v1.1.2** | 🟢 **Spotify Free** | 🔴 **YouTube Music** | 📺 **NewPipe** |
+| Feature | ⚡ **Sine v1.1.3** | 🟢 **Spotify Free** | 🔴 **YouTube Music** | 📺 **NewPipe** |
 | :--- | :---: | :---: | :---: | :---: |
 | **Monthly Cost** | **\$0 / Free Forever** | \$11.99/mo (Premium) | \$13.99/mo (Premium) | \$0 / Free |
 | **Audio Ads** | 🚫 **ZERO ADS** | 🔊 Unskippable 30s Ads | 🔊 Unskippable Video Ads | 🚫 ZERO ADS |
@@ -308,14 +319,14 @@ stateDiagram-v2
 ## ⚡ Installation (Super Easy)
 
 1. Head over to the **[Latest Releases](https://github.com/taezeem14/Sine/releases/latest)**.
-2. Download **`Sine-v1.1.2.apk`**.
+2. Download **`Sine-v1.1.3.apk`**.
 3. On your Android device, tap the downloaded APK.
 4. If prompted, toggle *"Allow install from unknown sources"* (it's open-source, safe, and completely transparent).
 5. Open Sine and start streaming! 🚀
 
 ### Or Install via ADB:
 ```bash
-adb install -r Sine-v1.1.2.apk
+adb install -r Sine-v1.1.3.apk
 ```
 
 ---
@@ -380,7 +391,7 @@ flutter build apk --release --no-tree-shake-icons
 ```
 
 Your compiled APK will be located at:
-`build/app/outputs/flutter-apk/app-release.apk` (or `Sine-v1.1.2.apk`)
+`build/app/outputs/flutter-apk/app-release.apk` (or `Sine-v1.1.3.apk`)
 
 ---
 

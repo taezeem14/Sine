@@ -64,7 +64,7 @@ class LyricsService {
   static bool isTempoModified(String title, [String? artist]) {
     final combined = '$title ${artist ?? ''}'.toLowerCase();
     final regex = RegExp(
-      r'\b(slowed(\s*[\+\&]\s*reverb)?|reverb|sped\s*up|speed\s*up|speedup|nightcore|daycore|pitched(\s*up|\s*down)?|fast\s*version|chopped(\s*[\+\&]\s*screwed)?)\b',
+      r'\b(slowed(\s*down)?(\s*[\+\&]\s*reverb)?|reverb|sped\s*up|speed\s*up|speedup|nightcore|daycore|pitched(\s*up|\s*down)?|fast\s*version|slow\s*version|chopped(\s*[\+\&]\s*screwed)?)\b',
       caseSensitive: false,
     );
     return regex.hasMatch(combined);

@@ -9,7 +9,6 @@ import 'sponsorblock_service.dart';
 import 'youtube_importer_service.dart';
 import 'piped_service.dart';
 import 'log_service.dart';
-import 'widget_service.dart';
 
 
 Future<AudioHandler> initAudioHandler() async {
@@ -267,12 +266,6 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             speed: _player.speed,
             queueIndex: event.currentIndex,
           ),
-        );
-
-        SineWidgetService.updateWidget(
-          title: _currentSong?.title,
-          artist: _currentSong?.artist,
-          isPlaying: playing,
         );
       },
       onError: (Object e, StackTrace st) {

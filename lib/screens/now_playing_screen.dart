@@ -12,7 +12,7 @@ import '../widgets/synchronized_lyrics_view.dart';
 import '../widgets/sine_qr_code_sheet.dart';
 import '../services/smart_radio_service.dart';
 import '../services/lyrics_service.dart';
-import 'sound_shaping_sheet.dart';
+import 'equalizer_screen.dart';
 import 'playback_speed_sheet.dart';
 import 'track_options_sheet.dart';
 import 'queue_discovery_screen.dart';
@@ -452,75 +452,81 @@ class _ScrubberSectionState extends State<_ScrubberSection> {
 
   @override
   Widget build(BuildContext context) {
-    final position = context.select<PlayerProvider, Duration>((p) => p.position);
+    final player = context.read<PlayerProvider>();
     final duration = context.select<PlayerProvider, Duration>((p) => p.duration);
     final totalMs = duration.inMilliseconds > 0 ? duration.inMilliseconds.toDouble() : 1.0;
-    final currentMs = _isDragging ? _dragValue : position.inMilliseconds.clamp(0, duration.inMilliseconds).toDouble();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: [
-          RepaintBoundary(
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 4,
-                activeTrackColor: EmberColors.primaryBlue,
-                inactiveTrackColor: EmberColors.outlineVariant.withValues(alpha: 0.6),
-                thumbColor: Colors.white,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                overlayColor: EmberColors.primaryBlue.withValues(alpha: 0.2),
-              ),
-              child: Slider(
-                value: currentMs.clamp(0.0, totalMs),
-                max: totalMs,
-                onChangeStart: (val) {
-                  setState(() {
-                    _isDragging = true;
-                    _dragValue = val;
-                  });
-                  context.read<PlayerProvider>().setScrubbing(true);
-                },
-                onChanged: (val) {
-                  setState(() {
-                    _dragValue = val;
-                  });
-                },
-                onChangeEnd: (val) {
-                  setState(() {
-                    _isDragging = false;
-                  });
-                  final player = context.read<PlayerProvider>();
-                  player.setScrubbing(false);
-                  player.seek(Duration(milliseconds: val.toInt()));
-                },
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _format(Duration(milliseconds: currentMs.toInt())),
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: EmberColors.textMuted,
-                        fontWeight: FontWeight.w600,
-                      ),
+      child: ValueListenableBuilder<Duration>(
+        valueListenable: player.positionNotifier,
+        builder: (context, position, _) {
+          final currentMs = _isDragging ? _dragValue : position.inMilliseconds.clamp(0, duration.inMilliseconds).toDouble();
+
+          return Column(
+            children: [
+              RepaintBoundary(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 4,
+                    activeTrackColor: EmberColors.primaryBlue,
+                    inactiveTrackColor: EmberColors.outlineVariant.withValues(alpha: 0.6),
+                    thumbColor: Colors.white,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                    overlayColor: EmberColors.primaryBlue.withValues(alpha: 0.2),
+                  ),
+                  child: Slider(
+                    value: currentMs.clamp(0.0, totalMs),
+                    max: totalMs,
+                    onChangeStart: (val) {
+                      setState(() {
+                        _isDragging = true;
+                        _dragValue = val;
+                      });
+                      context.read<PlayerProvider>().setScrubbing(true);
+                    },
+                    onChanged: (val) {
+                      setState(() {
+                        _dragValue = val;
+                      });
+                    },
+                    onChangeEnd: (val) {
+                      setState(() {
+                        _isDragging = false;
+                      });
+                      final p = context.read<PlayerProvider>();
+                      p.setScrubbing(false);
+                      p.seek(Duration(milliseconds: val.toInt()));
+                    },
+                  ),
                 ),
-                Text(
-                  '-${_format(duration > Duration(milliseconds: currentMs.toInt()) ? duration - Duration(milliseconds: currentMs.toInt()) : Duration.zero)}',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: EmberColors.textMuted,
-                        fontWeight: FontWeight.w600,
-                      ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _format(Duration(milliseconds: currentMs.toInt())),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: EmberColors.textMuted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    Text(
+                      '-${_format(duration > Duration(milliseconds: currentMs.toInt()) ? duration - Duration(milliseconds: currentMs.toInt()) : Duration.zero)}',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: EmberColors.textMuted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -732,6 +738,8 @@ class _UtilityPillsRow extends StatelessWidget {
   final bool showLyrics;
   final VoidCallback onToggleLyrics;
 
+  static bool _isQueueNavigating = false;
+
   const _UtilityPillsRow({
     required this.showLyrics,
     required this.onToggleLyrics,
@@ -870,7 +878,7 @@ class _UtilityPillsRow extends StatelessWidget {
               icon: FontAwesomeIcons.sliders,
               label: player.eqPreset.split(' ').first,
               active: player.eqEnabled,
-              onTap: () => SoundShapingSheet.show(context),
+              onTap: () => EqualizerScreen.open(context),
             ),
             const SizedBox(width: 8),
             _PillAction(
@@ -897,9 +905,13 @@ class _UtilityPillsRow extends StatelessWidget {
                   ? 'Queue (${player.currentIndex + 1}/${player.queue.length})'
                   : 'Queue',
               active: player.queue.length > 1,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const QueueDiscoveryScreen()),
-              ),
+              onTap: () {
+                if (_isQueueNavigating) return;
+                _isQueueNavigating = true;
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const QueueDiscoveryScreen()),
+                ).then((_) => _isQueueNavigating = false);
+              },
             ),
           ],
         ),
@@ -1306,9 +1318,13 @@ class _SpotifyNextUpCard extends StatelessWidget {
           style: const TextStyle(color: EmberColors.textSecondary, fontSize: 12),
         ),
         trailing: const Icon(Icons.chevron_right_rounded, color: EmberColors.textMuted),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const QueueDiscoveryScreen()),
-        ),
+        onTap: () {
+          if (_UtilityPillsRow._isQueueNavigating) return;
+          _UtilityPillsRow._isQueueNavigating = true;
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const QueueDiscoveryScreen()),
+          ).then((_) => _UtilityPillsRow._isQueueNavigating = false);
+        },
       ),
     );
   }

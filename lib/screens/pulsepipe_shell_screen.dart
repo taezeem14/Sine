@@ -73,11 +73,13 @@ class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> with Widget
     final failedSong = _errorNotifier?.value;
     if (failedSong == null) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(
         backgroundColor: EmberColors.surfaceContainerHigh,
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 8),
+        duration: const Duration(seconds: 4),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Row(
           children: [

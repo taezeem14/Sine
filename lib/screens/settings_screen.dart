@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../theme/ember_theme.dart';
 import '../widgets/upi_donation_view.dart';
-import 'sound_shaping_sheet.dart';
+import 'equalizer_screen.dart';
 import 'diagnostics_log_screen.dart';
 import 'app_lock_screen.dart';
 import '../services/app_lock_service.dart';
@@ -479,7 +479,7 @@ class _SettingsContentState extends State<SettingsContent> {
           title: 'Equalizer & Audio Shaping',
           subtitle: 'Preset: ${player.eqPreset} • Bass Boost: ${(player.bassBoost * 100).round()}%',
           trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
-          onTap: () => SoundShapingSheet.show(context),
+          onTap: () => EqualizerScreen.open(context),
         ),
         _SettingsTile(
           icon: FontAwesomeIcons.shuffle,

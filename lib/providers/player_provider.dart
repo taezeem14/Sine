@@ -106,6 +106,9 @@ class PlayerProvider extends ChangeNotifier {
   Song? _lastFailedSong;
   Song? get lastFailedSong => _lastFailedSong;
   final ValueNotifier<Song?> playbackErrorNotifier = ValueNotifier<Song?>(null);
+  final ValueNotifier<Duration> positionNotifier = ValueNotifier<Duration>(Duration.zero);
+  final ValueNotifier<int> activeLyricIndexNotifier = ValueNotifier<int>(-1);
+  final ValueNotifier<int> sleepSecondsNotifier = ValueNotifier<int>(0);
 
   Timer? _sleepTimer;
   int _sleepSecondsRemaining = 0;
@@ -198,15 +201,23 @@ class PlayerProvider extends ChangeNotifier {
   bool get hasSyncedLyrics => _lyrics.hasSynced;
   bool get isLoadingLyrics => _isLoadingLyrics;
 
-  int get currentLyricIndex {
+  int _findLyricIndex(Duration pos) {
     if (_lyrics.syncedLyrics.isEmpty) return -1;
-    final pos = _position;
     for (int i = _lyrics.syncedLyrics.length - 1; i >= 0; i--) {
       if (pos >= _lyrics.syncedLyrics[i].timestamp) {
         return i;
       }
     }
     return -1;
+  }
+
+  int get currentLyricIndex {
+    if (_lyrics.syncedLyrics.isEmpty) return -1;
+    final cached = activeLyricIndexNotifier.value;
+    if (cached >= 0 && cached < _lyrics.syncedLyrics.length) {
+      return cached;
+    }
+    return _findLyricIndex(_position);
   }
 
   void _init() {
@@ -296,17 +307,15 @@ class PlayerProvider extends ChangeNotifier {
     // Load initial trending discovery tracks
     _loadInitialDiscoveryTracks();
 
-    // Listen to player streams with throttled position notifications to prevent UI jank
-    int lastNotifiedSec = -1;
-    DateTime lastNotifyTime = DateTime.fromMillisecondsSinceEpoch(0);
+    // Listen to player streams: positionNotifier delivers 120 FPS buttery updates
+    // directly to scrubbers and lyric tickers without thrashing the main widget tree
     _posSub = _audioHandler.player.positionStream.listen((pos) {
       if (_isScrubbing) return;
       _position = pos;
-      final now = DateTime.now();
-      if (pos.inSeconds != lastNotifiedSec || now.difference(lastNotifyTime).inMilliseconds >= 300) {
-        lastNotifiedSec = pos.inSeconds;
-        lastNotifyTime = now;
-        notifyListeners();
+      positionNotifier.value = pos;
+      final lyricIdx = _findLyricIndex(pos);
+      if (lyricIdx != activeLyricIndexNotifier.value) {
+        activeLyricIndexNotifier.value = lyricIdx;
       }
     });
 
@@ -881,6 +890,7 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> seek(Duration position) async {
     _position = position;
+    positionNotifier.value = position;
     notifyListeners();
     await _audioHandler.seek(position);
   }
@@ -1283,7 +1293,8 @@ class PlayerProvider extends ChangeNotifier {
 
   // Offline Downloads
   bool isDownloaded(String songId) {
-    return _downloads.any((s) => s.id == songId);
+    final cleanId = songId.replaceFirst('yt_', '');
+    return _downloads.any((s) => s.id == songId || s.id.replaceFirst('yt_', '') == cleanId);
   }
 
   Future<String?> downloadAudio(Song song) async {
@@ -1300,10 +1311,11 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> deleteDownload(String songId) async {
-    final idx = _downloads.indexWhere((s) => s.id == songId);
+    final cleanId = songId.replaceFirst('yt_', '');
+    final idx = _downloads.indexWhere((s) => s.id == songId || s.id.replaceFirst('yt_', '') == cleanId);
     if (idx != -1) {
       final songToRemove = _downloads[idx];
-      if (currentSong?.id == songId) {
+      if (currentSong?.id == songId || currentSong?.id.replaceFirst('yt_', '') == cleanId) {
         try {
           await _audioHandler.stop();
         } catch (_) {}
@@ -1628,6 +1640,7 @@ class PlayerProvider extends ChangeNotifier {
     _sleepTimer?.cancel();
     _sleepAtTrackEnd = false;
     _sleepSecondsRemaining = minutes * 60;
+    sleepSecondsNotifier.value = _sleepSecondsRemaining;
     notifyListeners();
 
     _sleepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -1637,7 +1650,7 @@ class PlayerProvider extends ChangeNotifier {
       }
       if (_sleepSecondsRemaining > 0) {
         _sleepSecondsRemaining--;
-        if (!_isDisposed) notifyListeners();
+        sleepSecondsNotifier.value = _sleepSecondsRemaining;
       } else {
         cancelSleepTimer();
         _audioHandler.pause();
@@ -1649,6 +1662,7 @@ class PlayerProvider extends ChangeNotifier {
     _sleepTimer?.cancel();
     _sleepTimer = null;
     _sleepSecondsRemaining = 0;
+    sleepSecondsNotifier.value = 0;
     _sleepAtTrackEnd = enable;
     notifyListeners();
   }
@@ -1657,6 +1671,7 @@ class PlayerProvider extends ChangeNotifier {
     _sleepTimer?.cancel();
     _sleepTimer = null;
     _sleepSecondsRemaining = 0;
+    sleepSecondsNotifier.value = 0;
     _sleepAtTrackEnd = false;
     notifyListeners();
   }
@@ -1678,6 +1693,9 @@ class PlayerProvider extends ChangeNotifier {
     _isDisposed = true;
     _audioHandler.setNavigationCallbacks();
     playbackErrorNotifier.dispose();
+    positionNotifier.dispose();
+    activeLyricIndexNotifier.dispose();
+    sleepSecondsNotifier.dispose();
     _posSub?.cancel();
     _durSub?.cancel();
     _stateSub?.cancel();

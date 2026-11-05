@@ -35,17 +35,22 @@ class TrackOptionsSheet extends StatelessWidget {
       ),
       builder: (ctx) {
         return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-              left: 20,
-              right: 20,
-              top: 16,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.75,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+                left: 20,
+                right: 20,
+                top: 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -147,7 +152,8 @@ class TrackOptionsSheet extends StatelessWidget {
               ],
             ),
           ),
-        );
+        ),
+      );
       },
     ).then((_) => titleController.dispose());
   }
@@ -165,18 +171,21 @@ class TrackOptionsSheet extends StatelessWidget {
             Text('Track Tech Specs', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.bold)),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SpecRow(label: 'Track Title', value: song.title),
-            _SpecRow(label: 'Artist', value: song.artist),
-            const _SpecRow(label: 'Audio Stream Bitrate', value: '160 kbps (High Bitrate Opus / AAC)'),
-            const _SpecRow(label: 'Audio Codec', value: 'Opus / MPEG-4 AAC'),
-            const _SpecRow(label: 'Sample Rate', value: '44.1 kHz / 16-bit Stereo'),
-            _SpecRow(label: 'Duration', value: '${song.duration.inMinutes}:${(song.duration.inSeconds % 60).toString().padLeft(2, '0')}'),
-            const _SpecRow(label: 'Source', value: 'YouTube Music (NewPipe Extractor)'),
-          ],
+        content: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SpecRow(label: 'Track Title', value: song.title),
+              _SpecRow(label: 'Artist', value: song.artist),
+              const _SpecRow(label: 'Audio Stream Bitrate', value: '160 kbps (High Bitrate Opus / AAC)'),
+              const _SpecRow(label: 'Audio Codec', value: 'Opus / MPEG-4 AAC'),
+              const _SpecRow(label: 'Sample Rate', value: '44.1 kHz / 16-bit Stereo'),
+              _SpecRow(label: 'Duration', value: '${song.duration.inMinutes}:${(song.duration.inSeconds % 60).toString().padLeft(2, '0')}'),
+              const _SpecRow(label: 'Source', value: 'YouTube Music (NewPipe Extractor)'),
+            ],
+          ),
         ),
         actions: [
           TextButton(

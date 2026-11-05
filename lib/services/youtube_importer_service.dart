@@ -164,11 +164,24 @@ class YouTubeImporterService {
         .replaceAll(RegExp(r'\[(?:official\s*(?:music\s*)?video|official\s*audio|lyrics?|hd|4k|visualizer|remastered|prod\.|video|audio).*?\]', caseSensitive: false), '')
         .trim();
 
+    String? pipeArtist;
     if (t.contains('|')) {
-      t = t.split('|').first.trim();
+      final segments = t.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+      for (int i = 1; i < segments.length; i++) {
+        final seg = segments[i];
+        final singerMatch = RegExp(r'^(?:singers?|artist|vocals?|feat\.?|ft\.?)\s*:\s*(.+)$', caseSensitive: false).firstMatch(seg);
+        if (singerMatch != null) {
+          pipeArtist = singerMatch.group(1)?.trim();
+          break;
+        } else if (cleanAuthor.isNotEmpty && !isPublisherOrCurator && seg.toLowerCase().contains(cleanAuthor.toLowerCase())) {
+          pipeArtist = cleanAuthor;
+          break;
+        }
+      }
+      t = segments.isNotEmpty ? segments.first : t;
     }
 
-    String candidateArtist = '';
+    String candidateArtist = pipeArtist ?? '';
     String candidateTitle = t;
 
     // Check for "Title" by Artist pattern
@@ -210,8 +223,8 @@ class YouTubeImporterService {
           final normA = partA.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
           final normB = partB.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
 
-          final matchA = normAuthor.isNotEmpty && (normA == normAuthor || normA.contains(normAuthor) || normAuthor.contains(normA));
-          final matchB = normAuthor.isNotEmpty && (normB == normAuthor || normB.contains(normAuthor) || normAuthor.contains(normB));
+          final matchA = normAuthor.length >= 3 && (normA == normAuthor || normA.contains(normAuthor) || normAuthor.contains(normA));
+          final matchB = normAuthor.length >= 3 && (normB == normAuthor || normB.contains(normAuthor) || normAuthor.contains(normB));
 
           if (matchB && !matchA) {
             // "Song Title - Artist" format! e.g. "Blinding Lights - The Weeknd"
@@ -223,11 +236,11 @@ class YouTubeImporterService {
             candidateTitle = partB;
           } else {
             // Neither or both match cleanAuthor.
-            // Check if partA has remix/acoustic/live markers: that means partA is the title!
-            final aHasMusicKeywords = RegExp(r'\b(remix|acoustic|live|cover|version|slowed|reverb)\b', caseSensitive: false).hasMatch(partA);
-            final bHasMusicKeywords = RegExp(r'\b(remix|acoustic|live|cover|version|slowed|reverb)\b', caseSensitive: false).hasMatch(partB);
+            // Check if one part has explicit title keywords like "Song", "Audio", "Official"
+            final aHasTitleKeywords = RegExp(r'\b(song|track|audio|theme|remix|acoustic|live|cover|version|slowed|reverb)\b', caseSensitive: false).hasMatch(partA);
+            final bHasTitleKeywords = RegExp(r'\b(song|track|audio|theme|remix|acoustic|live|cover|version|slowed|reverb)\b', caseSensitive: false).hasMatch(partB);
 
-            if (aHasMusicKeywords && !bHasMusicKeywords) {
+            if (aHasTitleKeywords && !bHasTitleKeywords) {
               candidateTitle = partA;
               candidateArtist = partB;
             } else {
@@ -257,8 +270,11 @@ class YouTubeImporterService {
       finalTitle = t.isNotEmpty ? t : (rawTitle.trim().isNotEmpty ? rawTitle.trim() : 'YouTube Song');
     }
 
-    // Strip outer quotes on artist as well
-    finalArtist = finalArtist.replaceAll(RegExp(r'^["“\x27]|["”\x27]$'), '').trim();
+    // Strip outer quotes and prefixes on artist as well
+    finalArtist = finalArtist
+        .replaceFirst(RegExp(r'^(?:singers?|artists?)\s*:\s*', caseSensitive: false), '')
+        .replaceAll(RegExp(r'^["“\x27]|["”\x27]$'), '')
+        .trim();
 
     final searchQuery = finalArtist.isNotEmpty ? '$finalTitle $finalArtist' : finalTitle;
     return (

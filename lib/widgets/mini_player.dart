@@ -11,6 +11,8 @@ import 'vinyl_disc.dart';
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
 
+  static bool _isNavigating = false;
+
   @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerProvider>();
@@ -20,12 +22,9 @@ class MiniPlayer extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final double progress = player.duration.inMilliseconds > 0
-        ? (player.position.inMilliseconds / player.duration.inMilliseconds).clamp(0.0, 1.0)
-        : 0.0;
-
     return GestureDetector(
       onLongPress: () {
+        HapticFeedback.mediumImpact();
         player.stopPlayback();
       },
       onHorizontalDragEnd: (details) {
@@ -37,19 +36,26 @@ class MiniPlayer extends StatelessWidget {
           }
         }
       },
-      onTap: () {
-        Navigator.of(context).push(
-          PageRouteBuilder(
-            pageBuilder: (context, anim, secAnim) => const NowPlayingScreen(),
-            transitionsBuilder: (context, anim, secAnim, child) {
-              const begin = Offset(0.0, 1.0);
-              const end = Offset.zero;
-              const curve = Curves.easeOutCubic;
-              final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-              return SlideTransition(position: anim.drive(tween), child: child);
-            },
-          ),
-        );
+      onTap: () async {
+        if (_isNavigating) return;
+        _isNavigating = true;
+        HapticFeedback.lightImpact();
+        try {
+          await Navigator.of(context).push(
+            PageRouteBuilder(
+              pageBuilder: (context, anim, secAnim) => const NowPlayingScreen(),
+              transitionsBuilder: (context, anim, secAnim, child) {
+                const begin = Offset(0.0, 1.0);
+                const end = Offset.zero;
+                const curve = Curves.easeOutCubic;
+                final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                return SlideTransition(position: anim.drive(tween), child: child);
+              },
+            ),
+          );
+        } finally {
+          _isNavigating = false;
+        }
       },
       child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -70,13 +76,20 @@ class MiniPlayer extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 2px top progress bar (RepaintBoundary for 120 FPS)
+            // 2px top progress bar (RepaintBoundary for 120 FPS buttery rendering)
             RepaintBoundary(
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 2,
-                backgroundColor: Colors.white.withValues(alpha: 0.05),
-                valueColor: const AlwaysStoppedAnimation<Color>(EmberColors.primaryBlue),
+              child: ValueListenableBuilder<Duration>(
+                valueListenable: player.positionNotifier,
+                builder: (context, pos, _) {
+                  final totalMs = player.duration.inMilliseconds;
+                  final double progress = totalMs > 0 ? (pos.inMilliseconds / totalMs).clamp(0.0, 1.0) : 0.0;
+                  return LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 2.5,
+                    backgroundColor: Colors.white.withValues(alpha: 0.06),
+                    valueColor: const AlwaysStoppedAnimation<Color>(EmberColors.primaryBlue),
+                  );
+                },
               ),
             ),
             Padding(

@@ -27,19 +27,36 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
         private const val KEY_PLAYING = "widget_playing"
 
         fun updateAllWidgets(context: Context, title: String?, artist: String?, isPlaying: Boolean) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit()
-                .putString(KEY_TITLE, title ?: "No Song Playing")
-                .putString(KEY_ARTIST, artist ?: "Tap to open Sine")
-                .putBoolean(KEY_PLAYING, isPlaying)
-                .apply()
-
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val thisWidget = ComponentName(context, SineMusicWidgetProvider::class.java)
             val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
 
+            // If user hasn't added any widget to home screen, skip view building and SharedPreferences
+            if (allWidgetIds.isEmpty()) {
+                return
+            }
+
+            val safeTitle = title ?: "No Song Playing"
+            val safeArtist = artist ?: "Tap to open Sine"
+
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prevTitle = prefs.getString(KEY_TITLE, null)
+            val prevArtist = prefs.getString(KEY_ARTIST, null)
+            val prevPlaying = prefs.getBoolean(KEY_PLAYING, false)
+
+            // Deduplicate: avoid thrashing Android AppWidgetManager IPC if values are identical
+            if (prevTitle == safeTitle && prevArtist == safeArtist && prevPlaying == isPlaying) {
+                return
+            }
+
+            prefs.edit()
+                .putString(KEY_TITLE, safeTitle)
+                .putString(KEY_ARTIST, safeArtist)
+                .putBoolean(KEY_PLAYING, isPlaying)
+                .apply()
+
             for (widgetId in allWidgetIds) {
-                val views = buildRemoteViews(context, title, artist, isPlaying)
+                val views = buildRemoteViews(context, safeTitle, safeArtist, isPlaying)
                 appWidgetManager.updateAppWidget(widgetId, views)
             }
         }
