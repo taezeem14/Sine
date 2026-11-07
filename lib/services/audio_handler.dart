@@ -965,68 +965,73 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       if (vocalsOnly) {
         await setBassBoost(0.0);
         // Acapella / Vocals Only:
-        // Aggressively mute kick, 808s, bass guitar, and cymbals; isolate voice resonance
+        // Deeply attenuate rhythm guitars, 808s, bass drums, and high percussions;
+        // Sharply boost human speech/vocal resonance formants (700Hz to 3400Hz)
         for (int i = 0; i < n; i++) {
           final freq = bands[i].centerFrequency;
           double target;
           if (freq > 0) {
-            if (freq < 280) {
+            if (freq < 250) {
               target = minDb; // Extreme cut on sub & bass (-15dB to -20dB)
-            } else if (freq < 600) {
-              target = -2.0;
-            } else if (freq >= 600 && freq <= 3800) {
-              target = 9.5; // Maximum boost on speech formants and lead articulation
-            } else if (freq > 3800 && freq <= 6500) {
-              target = 2.0; // Vocal breath and air
+            } else if (freq < 650) {
+              target = -8.5; // Deep cut on bass guitar, rhythm strumming, low piano
+            } else if (freq >= 650 && freq <= 3400) {
+              target = 13.5; // Maximum vocal resonance boost!
+            } else if (freq > 3400 && freq <= 5500) {
+              target = -6.0; // Cut aggressive snare hits and electric guitar fuzz
             } else {
-              target = -12.0; // Cut extreme hi-hats, percussions, and synth noise
+              target = minDb; // Cut extreme hi-hats, percussions, and synth noise
             }
           } else {
             // Index-based fallback for standard 5-band EQ
             if (i == 0) {
               target = minDb;
             } else if (i == 1) {
-              target = -3.0;
+              target = -8.0;
             } else if (i == 2) {
-              target = 9.5;
+              target = 13.5;
             } else if (i == 3) {
-              target = 3.0;
+              target = 1.0;
             } else {
-              target = -12.0;
+              target = minDb;
             }
           }
           await bands[i].setGain(clampGain(target));
         }
+        try {
+          await _loudnessEnhancer.setEnabled(true);
+          await _loudnessEnhancer.setTargetGain(0.40); // Bring isolated vocals forward
+        } catch (_) {}
       } else {
         await setBassBoost(0.85); // High-impact low-end masking for vocal cancellation
         // Karaoke / Instruments Only:
-        // Deep parametric notch carving out vocal formants (1kHz-3.5kHz);
+        // Deep parametric notch carving out vocal formants (700Hz - 3400Hz);
         // Boost low-end bass and high-end air to psychoacoustically mask any vocal residual bleed
         for (int i = 0; i < n; i++) {
           final freq = bands[i].centerFrequency;
           double target;
           if (freq > 0) {
             if (freq < 300) {
-              target = 6.0; // Heavy kick and bassline to overpower vocal bleed
-            } else if (freq >= 650 && freq <= 3600) {
+              target = 7.5; // Heavy kick and bassline to overpower vocal bleed
+            } else if (freq >= 650 && freq <= 3500) {
               target = minDb; // Deepest possible hardware notch attenuation (-15dB to -20dB)
-            } else if (freq > 3600 && freq <= 8000) {
-              target = 4.5; // Preserve guitars, synthesizers, brass
+            } else if (freq > 3500 && freq <= 8000) {
+              target = 5.0; // Preserve guitars, synthesizers, brass
             } else {
-              target = 5.5; // Sparkle, hi-hats, drum cymbals
+              target = 6.0; // Sparkle, hi-hats, drum cymbals
             }
           } else {
             // Index-based fallback for standard 5-band EQ
             if (i == 0) {
-              target = 6.0;
+              target = 7.5;
             } else if (i == 1) {
-              target = 1.5;
+              target = 2.0;
             } else if (i == 2) {
               target = minDb;
             } else if (i == 3) {
-              target = 4.0;
+              target = 5.0;
             } else {
-              target = 5.5;
+              target = 6.0;
             }
           }
           await bands[i].setGain(clampGain(target));

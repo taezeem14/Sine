@@ -186,22 +186,10 @@ class StemService {
       }
     } catch (_) {}
 
-    // 2. High-Speed Studio Master Matcher (Sing King, KaraFun, Official Topic Instrumental releases)
-    // Resolves in ~300ms with 100% studio master audio (no AI distortion or bleed)
+    // 2. PRIORITY #1: SOTA AI Neural Engine (BS-RoFormer 12.97 dB SDR & Demucs v4)
+    // Runs on-device audio upload to extract true uncompromised vocals & accompaniment
     try {
-      final ytResult = await _resolveYouTubeSmartStem(song, type, targetDuration: targetDuration);
-      if (ytResult != null && ytResult.isSuccess) {
-        LogService.stream('StemService', 'Studio Master matched for "${song.title}" (${type.name})');
-        _cacheResult(cacheKey, ytResult);
-        return ytResult;
-      }
-    } catch (e) {
-      LogService.w('StemService', 'Tier 1 Studio stem matching error: $e');
-    }
-
-    // 3. SOTA AI Neural Engine: BS-RoFormer (12.97 dB SDR) & Demucs v4
-    try {
-      LogService.stream('StemService', 'Attempting SOTA BS-RoFormer AI separation for "${song.title}" (${type.name})...');
+      LogService.stream('StemService', 'Prioritizing SOTA AI Neural separation for "${song.title}" (${type.name})...');
       final aiResult = await separateAudioWithAi(song: song, type: type);
       if (aiResult != null && aiResult.isSuccess) {
         LogService.stream('StemService', 'AI source separation successful for "${song.title}" (${type.name})');
@@ -210,6 +198,19 @@ class StemService {
       }
     } catch (e) {
       LogService.w('StemService', 'AI separation error: $e');
+    }
+
+    // 3. SECONDARY: High-Speed Studio Master Matcher (Sing King, KaraFun, Official Topic Instrumental releases)
+    try {
+      LogService.stream('StemService', 'Searching verified studio backing stems for "${song.title}" (${type.name})...');
+      final ytResult = await _resolveYouTubeSmartStem(song, type, targetDuration: targetDuration);
+      if (ytResult != null && ytResult.isSuccess) {
+        LogService.stream('StemService', 'Studio Master matched for "${song.title}" (${type.name})');
+        _cacheResult(cacheKey, ytResult);
+        return ytResult;
+      }
+    } catch (e) {
+      LogService.w('StemService', 'Tier 2 Studio stem matching error: $e');
     }
 
     // 4. Fallback: Tier 3 Hardware DSP Vocal Shaper
@@ -249,14 +250,19 @@ class StemService {
       queries.add('$cleanT off vocal');
     } else {
       if (cleanA.isNotEmpty) {
+        queries.add('$cleanT $cleanA studio acapella');
         queries.add('$cleanT $cleanA acapella');
         queries.add('$cleanT $cleanA vocals only');
+        queries.add('$cleanT $cleanA isolated vocals');
       }
-      queries.add('$cleanT isolated vocals');
+      queries.add('$cleanT official acapella');
       queries.add('$cleanT studio acapella');
-      queries.add('$cleanT vocal stem');
-      queries.add('$cleanT a cappella');
+      queries.add('$cleanT isolated vocals');
       queries.add('$cleanT acapella');
+      queries.add('$cleanT vocals only');
+      queries.add('$cleanT vocal stem');
+      queries.add('$cleanT vocal track');
+      queries.add('$cleanT a cappella');
     }
 
     final effectiveDuration = (targetDuration != null && targetDuration > Duration.zero)
@@ -367,10 +373,21 @@ class StemService {
       }
     }
 
+    // Strict Cross-Stem Exclusion Filters (Guarantees no accidental cross-contamination)
+    if (type == StemType.vocals) {
+      if (candTitle.contains('instrumental') || candTitle.contains('karaoke') || candTitle.contains('backing track') || candTitle.contains('off vocal') || candTitle.contains('no vocal')) {
+        return -9999; // Never pick an instrumental when the user asked for Acapella!
+      }
+    } else {
+      if (candTitle.contains('acapella') || candTitle.contains('a cappella') || candTitle.contains('vocals only') || candTitle.contains('isolated vocal') || candTitle.contains('vocal only')) {
+        return -9999; // Never pick an acapella when the user asked for Karaoke!
+      }
+    }
+
     // 4. Positive Keyword Matching
     if (type == StemType.instrumental) {
       if (candTitle.contains('official instrumental') || candTitle.contains('original instrumental')) {
-        score += 55;
+        score += 60;
       } else if (candTitle.contains('instrumental version')) {
         score += 45;
       } else if (candTitle.contains('instrumental')) {
@@ -381,14 +398,16 @@ class StemService {
       if (candTitle.contains('off vocal') || candTitle.contains('no vocals')) score += 30;
     } else {
       if (candTitle.contains('studio acapella') || candTitle.contains('official acapella')) {
-        score += 60;
+        score += 70;
       } else if (candTitle.contains('acapella') || candTitle.contains('a cappella')) {
+        score += 55;
+      }
+      if (candTitle.contains('vocals only') || candTitle.contains('isolated vocals') || candTitle.contains('isolated vocal')) {
+        score += 50;
+      }
+      if (candTitle.contains('vocal stem') || candTitle.contains('vocal track')) {
         score += 45;
       }
-      if (candTitle.contains('vocals only') || candTitle.contains('isolated vocals')) {
-        score += 40;
-      }
-      if (candTitle.contains('vocal stem')) score += 35;
     }
 
     // 5. Channel and Artist Credibility
@@ -425,6 +444,56 @@ class StemService {
     return null;
   }
 
+  /// Prepares a valid local audio file from song (either from disk or downloading direct stream on-device)
+  Future<File?> _prepareLocalAudioForSong(Song song, Directory stemsDir, String cleanId) async {
+    try {
+      // 1. Check if song already has a local file on device (e.g. downloaded track)
+      if (song.streamUrl.isNotEmpty && !song.streamUrl.startsWith('http')) {
+        final f = File(song.streamUrl);
+        if (await f.exists() && (await f.length()) > 30000) {
+          return f;
+        }
+      }
+
+      // 2. Check if previously saved temp audio exists
+      final tempFile = File('${stemsDir.path}/raw_$cleanId.m4a');
+      if (await tempFile.exists() && (await tempFile.length()) > 30000) {
+        return tempFile;
+      }
+
+      // 3. Download the audio stream directly on the client device (bypasses YouTube 403 IP block on remote servers)
+      final ytId = song.id.replaceFirst('yt_', '').trim();
+      List<String> streamUrls = [];
+      if (ytId.isNotEmpty && ytId.length >= 10 && ytId.length <= 15) {
+        streamUrls = await YouTubeImporterService.getAudioStreamUrls(ytId);
+      }
+      
+      final downloadUrl = streamUrls.isNotEmpty
+          ? streamUrls.first
+          : (song.streamUrl.startsWith('http') ? song.streamUrl : null);
+
+      if (downloadUrl != null) {
+        LogService.stream('StemService', 'Downloading audio buffer for AI stem separation: "${song.title}"...');
+        final client = http.Client();
+        final req = http.Request('GET', Uri.parse(downloadUrl));
+        req.headers['User-Agent'] = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36';
+        req.headers['Range'] = 'bytes=0-8388608'; // First 8MB (covers up to ~7 mins of audio)
+        
+        final streamed = await client.send(req).timeout(const Duration(seconds: 15));
+        if (streamed.statusCode == 200 || streamed.statusCode == 206) {
+          final bytes = await streamed.stream.toBytes().timeout(const Duration(seconds: 20));
+          if (bytes.length > 20000) {
+            await tempFile.writeAsBytes(bytes);
+            return tempFile;
+          }
+        }
+      }
+    } catch (e) {
+      LogService.w('StemService', 'Failed to prepare audio buffer for AI: $e');
+    }
+    return null;
+  }
+
   /// Primary AI Engine: BS-RoFormer (World SOTA 12.97 dB SDR) & Demucs v4
   Future<StemResult?> separateAudioWithAi({
     required Song song,
@@ -440,13 +509,16 @@ class StemService {
 
       final cleanId = song.id.replaceAll(RegExp(r'[^\w\-_]'), '_');
 
+      // Prepare local audio buffer on-device to avoid YouTube 403 Forbidden errors on remote servers
+      final localAudio = inputFile ?? await _prepareLocalAudioForSong(song, stemsDir, cleanId);
+
       // 1. First attempt: BS-RoFormer (Highest fidelity vocal separation)
       final bsResult = await _tryBsRoformerSeparation(
         song: song,
         type: type,
         cleanId: cleanId,
         stemsDir: stemsDir,
-        inputFile: inputFile,
+        inputFile: localAudio,
       );
       if (bsResult != null && bsResult.isSuccess) {
         return bsResult;
@@ -458,7 +530,7 @@ class StemService {
         type: type,
         cleanId: cleanId,
         stemsDir: stemsDir,
-        inputFile: inputFile,
+        inputFile: localAudio,
       );
       if (demucsResult != null && demucsResult.isSuccess) {
         return demucsResult;
@@ -486,30 +558,20 @@ class StemService {
   }) async {
     const spaceBase = 'https://hugging-apps-bs-roformer-leap-audio-separator.hf.space';
     try {
-      String? audioPathOrUrl;
-      if (inputFile != null && await inputFile.exists()) {
-        final uploadUri = Uri.parse('$spaceBase/gradio_api/upload');
-        final request = http.MultipartRequest('POST', uploadUri)
-          ..files.add(await http.MultipartFile.fromPath('files', inputFile.path));
-        final streamed = await request.send().timeout(const Duration(seconds: 25));
-        if (streamed.statusCode == 200) {
-          final resBody = await streamed.stream.bytesToString();
-          final parsed = jsonDecode(resBody) as List?;
-          if (parsed != null && parsed.isNotEmpty) audioPathOrUrl = parsed.first as String;
-        }
+      if (inputFile == null || !await inputFile.exists() || (await inputFile.length()) < 10000) {
+        return null;
       }
 
-      if (audioPathOrUrl == null) {
-        final ytId = song.id.replaceFirst('yt_', '').trim();
-        final streamUrls = await YouTubeImporterService.getAudioStreamUrls(ytId);
-        if (streamUrls.isNotEmpty) {
-          audioPathOrUrl = streamUrls.first;
-        } else if (song.streamUrl.startsWith('http')) {
-          audioPathOrUrl = song.streamUrl;
-        }
-      }
+      final uploadUri = Uri.parse('$spaceBase/gradio_api/upload');
+      final request = http.MultipartRequest('POST', uploadUri)
+        ..files.add(await http.MultipartFile.fromPath('files', inputFile.path));
+      final streamed = await request.send().timeout(const Duration(seconds: 25));
+      if (streamed.statusCode != 200) return null;
 
-      if (audioPathOrUrl == null) return null;
+      final resBody = await streamed.stream.bytesToString();
+      final parsed = jsonDecode(resBody) as List?;
+      if (parsed == null || parsed.isEmpty) return null;
+      final serverAudioPath = parsed.first as String;
 
       // Model choice uses Unicode em-dash \u2014 as required by Gradio dropdown
       final modelChoice = type == StemType.vocals ? 'Standard \u2014 Vocals' : 'Standard \u2014 Instruments';
@@ -520,7 +582,7 @@ class StemService {
         body: jsonEncode({
           'data': [
             {
-              'path': audioPathOrUrl,
+              'path': serverAudioPath,
               'meta': {'_type': 'gradio.FileData'}
             },
             modelChoice
@@ -544,10 +606,10 @@ class StemService {
         if (line.startsWith('data:')) {
           final dataStr = line.replaceFirst('data:', '').trim();
           try {
-            final parsed = jsonDecode(dataStr);
-            if (parsed is List && parsed.length >= 2) {
-              final pObj = parsed[0];
-              final sObj = parsed[1];
+            final parsedData = jsonDecode(dataStr);
+            if (parsedData is List && parsedData.length >= 2) {
+              final pObj = parsedData[0];
+              final sObj = parsedData[1];
               primaryUrl = pObj['url'] as String? ?? '$spaceBase/gradio_api/file=${pObj['path']}';
               secondaryUrl = sObj['url'] as String? ?? '$spaceBase/gradio_api/file=${sObj['path']}';
               break;
@@ -566,6 +628,19 @@ class StemService {
       final resp = await http.get(Uri.parse(targetUrl)).timeout(const Duration(seconds: 30));
       if (resp.statusCode == 200 && resp.bodyBytes.length > 10000) {
         await targetFile.writeAsBytes(resp.bodyBytes);
+
+        // Also save complementary stem in background for 0ms subsequent toggle
+        final otherType = type == StemType.vocals ? StemType.instrumental : StemType.vocals;
+        final otherUrl = type == StemType.vocals ? instrumentalUrl : vocalsUrl;
+        if (otherUrl != null) {
+          final otherFile = File('${stemsDir.path}/${cleanId}_${otherType.name}.wav');
+          http.get(Uri.parse(otherUrl)).then((r) {
+            if (r.statusCode == 200 && r.bodyBytes.length > 10000) {
+              otherFile.writeAsBytes(r.bodyBytes);
+            }
+          }).catchError((_) {});
+        }
+
         return StemResult.aiSeparated(type: type, localFilePath: targetFile.path);
       }
     } catch (e) {
@@ -584,30 +659,20 @@ class StemService {
   }) async {
     const spaceBase = 'https://abidlabs-music-separation.hf.space';
     try {
-      String? audioPathOrUrl;
-      if (inputFile != null && await inputFile.exists()) {
-        final uploadUri = Uri.parse('$spaceBase/gradio_api/upload');
-        final request = http.MultipartRequest('POST', uploadUri)
-          ..files.add(await http.MultipartFile.fromPath('files', inputFile.path));
-        final streamed = await request.send().timeout(const Duration(seconds: 25));
-        if (streamed.statusCode == 200) {
-          final resBody = await streamed.stream.bytesToString();
-          final parsed = jsonDecode(resBody) as List?;
-          if (parsed != null && parsed.isNotEmpty) audioPathOrUrl = parsed.first as String;
-        }
+      if (inputFile == null || !await inputFile.exists() || (await inputFile.length()) < 10000) {
+        return null;
       }
 
-      if (audioPathOrUrl == null) {
-        final ytId = song.id.replaceFirst('yt_', '').trim();
-        final streamUrls = await YouTubeImporterService.getAudioStreamUrls(ytId);
-        if (streamUrls.isNotEmpty) {
-          audioPathOrUrl = streamUrls.first;
-        } else if (song.streamUrl.startsWith('http')) {
-          audioPathOrUrl = song.streamUrl;
-        }
-      }
+      final uploadUri = Uri.parse('$spaceBase/gradio_api/upload');
+      final request = http.MultipartRequest('POST', uploadUri)
+        ..files.add(await http.MultipartFile.fromPath('files', inputFile.path));
+      final streamed = await request.send().timeout(const Duration(seconds: 25));
+      if (streamed.statusCode != 200) return null;
 
-      if (audioPathOrUrl == null) return null;
+      final resBody = await streamed.stream.bytesToString();
+      final parsed = jsonDecode(resBody) as List?;
+      if (parsed == null || parsed.isEmpty) return null;
+      final serverAudioPath = parsed.first as String;
 
       final callUri = Uri.parse('$spaceBase/gradio_api/call/inference');
       final callResp = await http.post(
@@ -616,7 +681,7 @@ class StemService {
         body: jsonEncode({
           'data': [
             {
-              'path': audioPathOrUrl,
+              'path': serverAudioPath,
               'meta': {'_type': 'gradio.FileData'}
             }
           ]
@@ -639,10 +704,10 @@ class StemService {
         if (line.startsWith('data:')) {
           final dataStr = line.replaceFirst('data:', '').trim();
           try {
-            final parsed = jsonDecode(dataStr);
-            if (parsed is List && parsed.length >= 2) {
-              final vObj = parsed[0];
-              final iObj = parsed[1];
+            final parsedData = jsonDecode(dataStr);
+            if (parsedData is List && parsedData.length >= 2) {
+              final vObj = parsedData[0];
+              final iObj = parsedData[1];
               vocalsUrl = vObj['url'] as String? ?? '$spaceBase/gradio_api/file=${vObj['path']}';
               instrumentalUrl = iObj['url'] as String? ?? '$spaceBase/gradio_api/file=${iObj['path']}';
               break;
@@ -658,6 +723,19 @@ class StemService {
       final resp = await http.get(Uri.parse(targetUrl)).timeout(const Duration(seconds: 30));
       if (resp.statusCode == 200 && resp.bodyBytes.length > 10000) {
         await targetFile.writeAsBytes(resp.bodyBytes);
+
+        // Also save complementary stem in background
+        final otherType = type == StemType.vocals ? StemType.instrumental : StemType.vocals;
+        final otherUrl = type == StemType.vocals ? instrumentalUrl : vocalsUrl;
+        if (otherUrl != null) {
+          final otherFile = File('${stemsDir.path}/${cleanId}_${otherType.name}.wav');
+          http.get(Uri.parse(otherUrl)).then((r) {
+            if (r.statusCode == 200 && r.bodyBytes.length > 10000) {
+              otherFile.writeAsBytes(r.bodyBytes);
+            }
+          }).catchError((_) {});
+        }
+
         return StemResult.aiSeparated(type: type, localFilePath: targetFile.path);
       }
     } catch (e) {
