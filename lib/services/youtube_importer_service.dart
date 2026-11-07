@@ -106,6 +106,7 @@ class YouTubeImporterService {
   static void invalidateCache(String videoId) {
     final cleanId = videoId.replaceFirst('yt_', '').trim();
     _streamCache.remove(cleanId);
+    _streamCache.remove('${cleanId}_mp4');
   }
 
   /// Clears all stream caches across the application
@@ -316,7 +317,7 @@ class YouTubeImporterService {
     final cleanId = videoId.replaceFirst('yt_', '').trim();
     if (cleanId.isEmpty) return [];
 
-    final cacheKey = preferProgressiveMp4 ? '_mp4' : cleanId;
+    final cacheKey = preferProgressiveMp4 ? '${cleanId}_mp4' : cleanId;
     final cached = _streamCache[cacheKey];
     if (cached != null && cached.urls.isNotEmpty && DateTime.now().difference(cached.cachedAt) < _streamCacheTtl) {
       return List.from(cached.urls);

@@ -813,11 +813,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       if (gain > maxBoost) maxBoost = gain;
     }
 
-    if (_currentPreset == 'Vocals Only') {
-      maxBoost = 13.5;
-    } else if (_currentPreset == 'Instruments Only') {
-      maxBoost = 7.5;
-    } else if (_spotifyPresetMap.containsKey(_currentPreset.toLowerCase())) {
+    if (_spotifyPresetMap.containsKey(_currentPreset.toLowerCase())) {
       final curve = _spotifyPresetMap[_currentPreset.toLowerCase()]!;
       for (final g in curve) {
         if (g > maxBoost) maxBoost = g;
@@ -836,8 +832,10 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     }
 
     if (!_isDucked) {
-      final targetVol = (_masterVolume * _headroomAttenuation).clamp(0.01, 1.0);
-      await _player.setVolume(targetVol);
+      try {
+        final targetVol = (_masterVolume * _headroomAttenuation).clamp(0.01, 1.0);
+        await _player.setVolume(targetVol).catchError((_) {});
+      } catch (_) {}
     }
   }
 
@@ -988,12 +986,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             }
           }
           break;
-        case 'Vocals Only':
-          await applyIsolationFilter(vocalsOnly: true);
-          return;
-        case 'Instruments Only':
-          await applyIsolationFilter(vocalsOnly: false);
-          return;
+
         case 'Flat':
         default:
           for (int i = 0; i < n; i++) {
@@ -1012,100 +1005,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     }
   }
 
-  /// Hardware DSP Isolation Filter (Acapella / Vocals Only vs Karaoke / Instruments Only)
+  /// Legacy stub: removed DSP filter hack
   Future<void> applyIsolationFilter({required bool vocalsOnly}) async {
-    _currentPreset = vocalsOnly ? 'Vocals Only' : 'Instruments Only';
-    try {
-      final params = await _equalizer.parameters;
-      final bands = params.bands;
-      final n = bands.length;
-      if (n == 0) return;
-
-      final minDb = params.minDecibels;
-      final maxDb = params.maxDecibels;
-      double clampGain(double g) => g.clamp(minDb, maxDb);
-
-      if (vocalsOnly) {
-        await setBassBoost(0.0);
-        // Acapella / Vocals Only:
-        // Deeply attenuate rhythm guitars, 808s, bass drums, and high percussions;
-        // Sharply boost human speech/vocal resonance formants (700Hz to 3400Hz)
-        for (int i = 0; i < n; i++) {
-          final freq = bands[i].centerFrequency;
-          double target;
-          if (freq > 0) {
-            if (freq < 250) {
-              target = minDb; // Extreme cut on sub & bass (-15dB to -20dB)
-            } else if (freq < 650) {
-              target = -8.5; // Deep cut on bass guitar, rhythm strumming, low piano
-            } else if (freq >= 650 && freq <= 3400) {
-              target = 13.5; // Maximum vocal resonance boost!
-            } else if (freq > 3400 && freq <= 5500) {
-              target = -6.0; // Cut aggressive snare hits and electric guitar fuzz
-            } else {
-              target = minDb; // Cut extreme hi-hats, percussions, and synth noise
-            }
-          } else {
-            // Index-based fallback for standard 5-band EQ
-            if (i == 0) {
-              target = minDb;
-            } else if (i == 1) {
-              target = -8.0;
-            } else if (i == 2) {
-              target = 13.5;
-            } else if (i == 3) {
-              target = 1.0;
-            } else {
-              target = minDb;
-            }
-          }
-          await bands[i].setGain(clampGain(target));
-        }
-        try {
-          await _loudnessEnhancer.setEnabled(true);
-          final target = _clippingProtectionEnabled ? 0.22 : 0.40;
-          await _loudnessEnhancer.setTargetGain(target); // Bring isolated vocals forward safely
-        } catch (_) {}
-      } else {
-        final boost = _clippingProtectionEnabled ? 0.65 : 0.85;
-        await setBassBoost(boost); // Controlled low-end masking for vocal cancellation
-        // Karaoke / Instruments Only:
-        // Deep parametric notch carving out vocal formants (700Hz - 3400Hz);
-        // Boost low-end bass and high-end air to psychoacoustically mask any vocal residual bleed
-        for (int i = 0; i < n; i++) {
-          final freq = bands[i].centerFrequency;
-          double target;
-          if (freq > 0) {
-            if (freq < 300) {
-              target = 7.5; // Heavy kick and bassline to overpower vocal bleed
-            } else if (freq >= 650 && freq <= 3500) {
-              target = minDb; // Deepest possible hardware notch attenuation (-15dB to -20dB)
-            } else if (freq > 3500 && freq <= 8000) {
-              target = 5.0; // Preserve guitars, synthesizers, brass
-            } else {
-              target = 6.0; // Sparkle, hi-hats, drum cymbals
-            }
-          } else {
-            // Index-based fallback for standard 5-band EQ
-            if (i == 0) {
-              target = 7.5;
-            } else if (i == 1) {
-              target = 2.0;
-            } else if (i == 2) {
-              target = minDb;
-            } else if (i == 3) {
-              target = 5.0;
-            } else {
-              target = 6.0;
-            }
-          }
-          await bands[i].setGain(clampGain(target));
-        }
-      }
-    } catch (e) {
-      debugPrint('Apply isolation filter error: $e');
-    }
-    await _updateHeadroomGain();
+    // No-op: Removed DSP filter manipulation
   }
 
   /// Seamlessly swaps the active audio stream to [newStreamUrl] (e.g. between Original,
@@ -1394,17 +1296,23 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> _restorePlaybackParameters() async {
     try {
       if (_activeSpeed != 1.0) {
-        await _player.setSpeed(_activeSpeed);
+        await _player.setSpeed(_activeSpeed).catchError((_) {});
       }
+    } catch (_) {}
+    try {
       if (_activeRepeatMode == 'one') {
-        await _player.setLoopMode(LoopMode.one);
+        await _player.setLoopMode(LoopMode.one).catchError((_) {});
       } else {
-        await _player.setLoopMode(LoopMode.off);
+        await _player.setLoopMode(LoopMode.off).catchError((_) {});
       }
-      if (_eqEnabled) {
-        await applyEqualizerPreset(_currentPreset);
+    } catch (_) {}
+    try {
+      if (_eqEnabled && _currentPreset != 'Vocals Only' && _currentPreset != 'Instruments Only') {
+        await applyEqualizerPreset(_currentPreset).catchError((_) {});
       }
-      await _updateHeadroomGain();
+    } catch (_) {}
+    try {
+      await _updateHeadroomGain().catchError((_) {});
     } catch (_) {}
   }
 

@@ -334,7 +334,11 @@ class StorageService {
   }
 
   String loadEqualizerPreset() {
-    return _prefs?.getString(_eqPresetKey) ?? _prefs?.getString(_eqPresetLegacyKey) ?? 'Flat';
+    final p = _prefs?.getString(_eqPresetKey) ?? _prefs?.getString(_eqPresetLegacyKey) ?? 'Flat';
+    if (p == 'Vocals Only' || p == 'Instruments Only') {
+      return 'Flat';
+    }
+    return p;
   }
 
   Future<void> saveEqualizerPreset(String preset) async {

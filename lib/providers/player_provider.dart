@@ -369,17 +369,22 @@ class PlayerProvider extends ChangeNotifier {
       },
     );
 
+    // Never persist isolation mode across app restarts
+    if (_eqPreset == 'Vocals Only' || _eqPreset == 'Instruments Only') {
+      _eqPreset = 'Flat';
+      _storageService.saveEqualizerPreset('Flat');
+    }
+    _isolationMode = IsolationMode.none;
+    _isStudioStemActive = false;
+    _stemStatusBadgeText = null;
+    _isLoadingStem = false;
+
     // Apply saved EQ preset & settings
     _audioHandler.setEqualizerEnabled(_eqEnabled);
     _audioHandler.setBassBoost(_bassBoost);
     _audioHandler.applyEqualizerPreset(_eqPreset);
     _audioHandler.setSpeed(_speed);
     _audioHandler.setPlayerRepeatMode(_repeatMode);
-    if (_eqPreset == 'Vocals Only') {
-      _isolationMode = IsolationMode.vocalsOnly;
-    } else if (_eqPreset == 'Instruments Only') {
-      _isolationMode = IsolationMode.instrumentsOnly;
-    }
     if (_eqPreset == 'Custom' && _bandGains.isNotEmpty) {
       for (final entry in _bandGains.entries) {
         _audioHandler.setBandGain(entry.key, entry.value);
@@ -698,9 +703,17 @@ class PlayerProvider extends ChangeNotifier {
       }
     });
 
-        await _audioHandler.playSong(resolvedSong);
-    if (initialPosition != null && initialPosition > Duration.zero) {
-      await _audioHandler.seek(initialPosition);
+    try {
+      await _audioHandler.playSong(resolvedSong);
+      if (initialPosition != null && initialPosition > Duration.zero) {
+        await _audioHandler.seek(initialPosition);
+      }
+    } catch (e, st) {
+      debugPrint('[PlayerProvider] playSong execution error: $e\n$st');
+      _isPlaying = false;
+      _isLoadingStream = false;
+      notifyListeners();
+      return;
     }
     if (_playSessionId != thisSession) {
       // Newer song selection superseded this one; discard outdated state updates
@@ -1638,94 +1651,72 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
 
-    // Cache current original stream URL before any potential studio stem swap
+    // Cache current original stream URL before swapping
     if (!_originalStreamCache.containsKey(song.id) && _audioHandler.activeStreamUrl != null) {
       _originalStreamCache[song.id] = _audioHandler.activeStreamUrl!;
     }
 
-    // PHASE 1: INSTANT 0ms HARDWARE DSP ISOLATION
-    // Apply isolation filter immediately in <2ms so playback NEVER pauses, stutters or lags!
     _isolationMode = mode;
-    _isStudioStemActive = false;
-    _isLoadingStem = false;
-    _eqEnabled = true;
-    _eqPreset = mode == IsolationMode.vocalsOnly ? 'Vocals Only' : 'Instruments Only';
+    _isLoadingStem = true;
     _stemStatusBadgeText = mode == IsolationMode.instrumentsOnly
-        ? 'Karaoke (DSP Filter)'
-        : 'Vocals (DSP Boost)';
-
-    await _storageService.saveEqualizerEnabled(true);
-    await _storageService.saveEqualizerPreset(_eqPreset);
-    await _audioHandler.setEqualizerEnabled(true);
-    await _audioHandler.applyIsolationFilter(vocalsOnly: mode == IsolationMode.vocalsOnly);
-
-    try {
-      final params = await _audioHandler.equalizer.parameters;
-      for (int i = 0; i < params.bands.length; i++) {
-        _bandGains[i] = params.bands[i].gain;
-      }
-      await _storageService.saveBandGains(_bandGains);
-    } catch (_) {}
-
+        ? 'Searching Karaoke...'
+        : 'Searching Acapella...';
     notifyListeners();
 
-    // PHASE 2: ASYNCHRONOUS BACKGROUND UPGRADE
-    // Search studio stems or cached AI stems non-blockingly without starving ExoPlayer or freezing UI
-    _upgradeToStudioStemInBackground(song, mode);
-  }
+    try {
+      final stemType = mode == IsolationMode.instrumentsOnly
+          ? StemType.instrumental
+          : StemType.vocals;
 
-  void _upgradeToStudioStemInBackground(Song song, IsolationMode mode) {
-    unawaited(() async {
-      try {
-        final stemType = mode == IsolationMode.instrumentsOnly
-            ? StemType.instrumental
-            : StemType.vocals;
+      final stemResult = await StemService.instance.resolveStem(
+        song: song,
+        type: stemType,
+        targetDuration: _duration > Duration.zero ? _duration : song.duration,
+      );
 
-        // Resolve studio stem candidate with MP4 seek-safe streams
-        final stemResult = await StemService.instance.resolveStem(
-          song: song,
-          type: stemType,
-          targetDuration: _duration > Duration.zero ? _duration : song.duration,
+      if (currentSong?.id != song.id || _isolationMode != mode) {
+        return;
+      }
+
+      if (stemResult.isStudioStem && stemResult.streamUrl != null) {
+        final originalUrl = _originalStreamCache[song.id] ?? _audioHandler.activeStreamUrl;
+        final bool swapped = await _audioHandler.swapAudioStream(
+          stemResult.streamUrl!,
+          currentPosition: _position,
+          playImmediately: _isPlaying,
+          isLocal: stemResult.isLocal,
+          fallbackUrls: stemResult.fallbackUrls,
+          originalStreamUrl: originalUrl,
         );
 
-        // Verify that the user has not switched tracks or toggled off isolation
-        if (currentSong?.id != song.id || _isolationMode != mode) {
-          return;
+        if (swapped && currentSong?.id == song.id && _isolationMode == mode) {
+          _isStudioStemActive = true;
+          _stemStatusBadgeText = mode == IsolationMode.instrumentsOnly
+              ? (stemResult.source == StemSource.aiSeparation
+                  ? 'Demucs AI Karaoke'
+                  : (stemResult.isLocal ? 'Offline Karaoke' : 'Studio Karaoke'))
+              : (stemResult.source == StemSource.aiSeparation
+                  ? 'Demucs AI Acapella'
+                  : (stemResult.isLocal ? 'Offline Acapella' : 'Studio Acapella'));
+        } else {
+          _isStudioStemActive = false;
+          _isolationMode = IsolationMode.none;
+          _stemStatusBadgeText = null;
         }
-
-        if (stemResult.isStudioStem && stemResult.streamUrl != null) {
-          final originalUrl = _originalStreamCache[song.id] ?? _audioHandler.activeStreamUrl;
-
-          // Swap audio stream to progressive studio stem with full auto-recovery
-          final bool swapped = await _audioHandler.swapAudioStream(
-            stemResult.streamUrl!,
-            currentPosition: _position,
-            playImmediately: _isPlaying,
-            isLocal: stemResult.isLocal,
-            fallbackUrls: stemResult.fallbackUrls,
-            originalStreamUrl: originalUrl,
-          );
-
-          if (swapped && currentSong?.id == song.id && _isolationMode == mode) {
-            _isStudioStemActive = true;
-            // Clear notch filter since dedicated studio stem is now active
-            await _audioHandler.applyEqualizerPreset('Flat');
-            await _audioHandler.setEqualizerEnabled(false);
-
-            _stemStatusBadgeText = mode == IsolationMode.instrumentsOnly
-                ? (stemResult.source == StemSource.aiSeparation
-                    ? 'AI Karaoke (HD)'
-                    : (stemResult.isLocal ? 'Offline Karaoke' : 'Studio Karaoke (Lossless)'))
-                : (stemResult.source == StemSource.aiSeparation
-                    ? 'AI Acapella (HD)'
-                    : (stemResult.isLocal ? 'Offline Acapella' : 'Studio Acapella (Synced)'));
-            notifyListeners();
-          }
-        }
-      } catch (e) {
-        debugPrint('[PlayerProvider] Background stem upgrade notice: $e');
+      } else {
+        _isStudioStemActive = false;
+        _isolationMode = IsolationMode.none;
+        _stemStatusBadgeText = null;
       }
-    }());
+    } catch (e) {
+      debugPrint('[PlayerProvider] Stem toggle error: $e');
+      _isStudioStemActive = false;
+      _isolationMode = IsolationMode.none;
+      _stemStatusBadgeText = null;
+    } finally {
+      _isLoadingStem = false;
+      notifyListeners();
+    }
   }
 
   Future<void> revertToOriginalTrack() async {
@@ -1735,11 +1726,6 @@ class PlayerProvider extends ChangeNotifier {
     _stemStatusBadgeText = null;
     _isLoadingStem = false;
 
-    // Reset equalizer preset to Flat and disable in 0ms
-    await setEqualizerPreset('Flat');
-    await setEqualizerEnabled(false);
-
-    // If a studio stem audio stream was swapped in, swap back to the original track stream
     if (wasStudioStem) {
       final song = currentSong;
       if (song != null) {
