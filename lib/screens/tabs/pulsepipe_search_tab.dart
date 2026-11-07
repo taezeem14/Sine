@@ -27,7 +27,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
   final List<GenreBrowseCardData> _browseCategories = const [
     GenreBrowseCardData(
       title: 'Electric & Dance',
-      gradient: [Color(0xFF2979FF), Color(0xFF00D4FF)],
+      gradient: [Color(0xFF1565C0), Color(0xFF2979FF)],
       icon: FontAwesomeIcons.bolt,
       query: 'Dance Electronic',
     ),
@@ -219,22 +219,22 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
+                        color: EmberColors.primaryBlue.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+                          color: EmberColors.primaryBlue.withValues(alpha: 0.4),
                           width: 1,
                         ),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const FaIcon(FontAwesomeIcons.bolt, size: 11, color: Color(0xFF00E5FF)),
+                          const FaIcon(FontAwesomeIcons.bolt, size: 11, color: EmberColors.primaryBlue),
                           const SizedBox(width: 5),
                           const Text(
                             'Opus HD',
                             style: TextStyle(
-                              color: Color(0xFF00E5FF),
+                              color: EmberColors.primaryBlue,
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
@@ -773,13 +773,13 @@ class _SearchResultRow extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00E5FF).withValues(alpha: 0.18),
+                          color: EmberColors.primaryBlue.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(3),
                         ),
                         child: const Text(
                           'Opus HQ',
                           style: TextStyle(
-                            color: Color(0xFF00E5FF),
+                            color: EmberColors.primaryBlue,
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                           ),

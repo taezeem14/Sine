@@ -1089,7 +1089,7 @@ class _SpotifyLyricsPreviewCard extends StatelessWidget {
                     return Text(
                       activeText,
                       style: const TextStyle(
-                        color: Color(0xFF00E5FF),
+                        color: EmberColors.primaryBlue,
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                         height: 1.4,

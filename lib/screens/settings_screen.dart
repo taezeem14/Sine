@@ -643,7 +643,7 @@ class _SettingsContentState extends State<SettingsContent> {
         ),
         _SettingsTile(
           icon: FontAwesomeIcons.brain,
-          iconColor: const Color(0xFF00E5FF),
+          iconColor: EmberColors.primaryBlue,
           title: 'Neural Stem Engine Preference',
           subtitle: 'AI Model: ${player.stemEnginePreference.toUpperCase()} • SOTA Vocal & Backing Separation',
           trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
@@ -812,7 +812,7 @@ class _SettingsContentState extends State<SettingsContent> {
         ),
         _SettingsTile(
           icon: FontAwesomeIcons.terminal,
-          iconColor: const Color(0xFF00E5FF),
+          iconColor: EmberColors.primaryBlue,
           title: 'Diagnostics & Log Extractor',
           subtitle: 'Live ExoPlayer telemetry, candidate stream inspector & bug reporter',
           trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),

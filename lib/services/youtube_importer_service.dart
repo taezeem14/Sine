@@ -309,11 +309,15 @@ class YouTubeImporterService {
   static String preferredQuality = 'high'; // 'high', 'medium', 'dataSaver'
 
   /// Multi-client InnerTube stream extractor: cascades through client profiles to bypass 403 Forbidden
-  static Future<List<String>> getAudioStreamUrls(String videoId) async {
+  static Future<List<String>> getAudioStreamUrls(
+    String videoId, {
+    bool preferProgressiveMp4 = false,
+  }) async {
     final cleanId = videoId.replaceFirst('yt_', '').trim();
     if (cleanId.isEmpty) return [];
 
-    final cached = _streamCache[cleanId];
+    final cacheKey = preferProgressiveMp4 ? '_mp4' : cleanId;
+    final cached = _streamCache[cacheKey];
     if (cached != null && cached.urls.isNotEmpty && DateTime.now().difference(cached.cachedAt) < _streamCacheTtl) {
       return List.from(cached.urls);
     }
@@ -347,7 +351,18 @@ class YouTubeImporterService {
         final mp4Audio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'mp4').toList();
         final webmAudio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'webm').toList();
 
-        if (preferredQuality == 'high') {
+        if (preferProgressiveMp4) {
+          // Hardware-accelerated Progressive MP4 (AAC itag 140 & itag 18) prioritized for ExoPlayer seek-safety
+          if (mp4Audio.isNotEmpty) {
+            candidates.add(mp4Audio.withHighestBitrate().url.toString());
+          }
+          if (muxedMp4.isNotEmpty) {
+            candidates.add(muxedMp4.withHighestBitrate().url.toString());
+          }
+          if (webmAudio.isNotEmpty) {
+            candidates.add(webmAudio.withHighestBitrate().url.toString());
+          }
+        } else if (preferredQuality == 'high') {
           // Audiophile High Bitrate: 160+ kbps WebM Opus first, then highest MP4 AAC
           if (webmAudio.isNotEmpty) {
             candidates.add(webmAudio.withHighestBitrate().url.toString());
@@ -383,7 +398,7 @@ class YouTubeImporterService {
 
         if (candidates.isNotEmpty) {
           LogService.stream('YouTubeEngine', 'InnerTube resolved ${candidates.length} candidate(s) via $clientName for $cleanId');
-          _cacheStreams(cleanId, candidates);
+          _cacheStreams(cacheKey, candidates);
           return candidates;
         }
       } catch (e) {
@@ -398,7 +413,7 @@ class YouTubeImporterService {
       final pipedUrl = await PipedService.getAudioStream(cleanId);
       if (pipedUrl != null && pipedUrl.isNotEmpty) {
         LogService.stream('YouTubeEngine', 'Piped proxy succeeded for $cleanId');
-        _cacheStreams(cleanId, [pipedUrl]);
+        _cacheStreams(cacheKey, [pipedUrl]);
         return [pipedUrl];
       }
     } catch (e) {

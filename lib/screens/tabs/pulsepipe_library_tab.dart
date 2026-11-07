@@ -318,7 +318,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
             if (_selectedFilter == 'All' || _selectedFilter == 'Liked Songs')
               SliverToBoxAdapter(
                 child: _LibraryRowItem(
-                  iconGradient: const [Color(0xFF2979FF), Color(0xFF00D4FF)],
+                  iconGradient: const [Color(0xFF1565C0), Color(0xFF2979FF)],
                   icon: FontAwesomeIcons.solidHeart,
                   title: 'Liked Songs',
                   subtitle: 'Playlist • ${player.favorites.length} songs',

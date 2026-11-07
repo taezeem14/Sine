@@ -485,7 +485,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                 height: double.infinity,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF0D47A1), Color(0xFF2979FF), Color(0xFF00D4FF)],
+                    colors: [Color(0xFF1565C0), Color(0xFF2979FF)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),

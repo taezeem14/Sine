@@ -135,7 +135,7 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
       case LogLevel.warning:
         return EmberColors.primaryAmber;
       case LogLevel.stream:
-        return const Color(0xFF00E5FF);
+        return EmberColors.primaryBlue;
       case LogLevel.exoplayer:
         return const Color(0xFFB388FF);
       case LogLevel.info:

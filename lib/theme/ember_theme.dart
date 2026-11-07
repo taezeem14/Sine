@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 typedef SineColors = EmberColors;
@@ -16,27 +16,27 @@ class EmberColors {
   static const Color surfaceContainerHigh = Color(0xFF282828);
   static const Color surfaceContainerHighest = Color(0xFF333333);
 
-  // Sine Electric Blue & Luminous Cyan Accents
+  // Sine Electric Blue — ONE Unified Signature Shade: Color(0xFF2979FF)
   static const Color primaryBlue = Color(0xFF2979FF);
-  static const Color primaryBlueHi = Color(0xFF82B1FF);
-  static const Color secondaryCyan = Color(0xFF00D4FF);
-  static const Color secondaryAzure = Color(0xFF1E88E5);
-  static const Color tertiaryBlue = Color(0xFF448AFF);
+  static const Color primaryBlueHi = primaryBlue;
+  static const Color secondaryCyan = primaryBlue;
+  static const Color secondaryAzure = primaryBlue;
+  static const Color tertiaryBlue = primaryBlue;
 
   // Convenience aliases for Electric Blue Sine theme
   static const Color electricBlue = primaryBlue;
-  static const Color electricBlueHi = primaryBlueHi;
+  static const Color electricBlueHi = primaryBlue;
   static const Color charcoalCard = surfaceContainerLow;
   static const Color surfaceDark = surfaceContainer;
   static const Color glassBorder = outlineVariant;
   static const Color youtubeRed = Color(0xFFFF0000);
 
-  // Backward-compatible aliases for existing widgets
+  // Backward-compatible aliases for existing widgets — all unified to ONE shade of blue
   static const Color primaryAmber = primaryBlue;
-  static const Color primaryAmberHi = primaryBlueHi;
-  static const Color secondaryHoney = secondaryCyan;
-  static const Color secondaryOrange = secondaryAzure;
-  static const Color tertiaryGold = tertiaryBlue;
+  static const Color primaryAmberHi = primaryBlue;
+  static const Color secondaryHoney = primaryBlue;
+  static const Color secondaryOrange = primaryBlue;
+  static const Color tertiaryGold = primaryBlue;
 
   // Text & Content Hierarchy (Pure Contrast)
   static const Color textPrimary = Color(0xFFFFFFFF);

@@ -141,6 +141,7 @@ class StemResult {
   final StemType type;
   final StemSource source;
   final String? streamUrl;
+  final List<String> fallbackUrls;
   final String? candidateVideoId;
   final String? candidateTitle;
   final Duration? candidateDuration;
@@ -157,6 +158,7 @@ class StemResult {
     required this.type,
     required this.source,
     this.streamUrl,
+    this.fallbackUrls = const [],
     this.candidateVideoId,
     this.candidateTitle,
     this.candidateDuration,
@@ -170,6 +172,7 @@ class StemResult {
   factory StemResult.youtubeMatch({
     required StemType type,
     required String streamUrl,
+    List<String> fallbackUrls = const [],
     required String videoId,
     required String title,
     required Duration duration,
@@ -180,6 +183,7 @@ class StemResult {
       type: type,
       source: StemSource.youtubeSmartMatch,
       streamUrl: streamUrl,
+      fallbackUrls: fallbackUrls,
       candidateVideoId: videoId,
       candidateTitle: title,
       candidateDuration: duration,
@@ -423,54 +427,9 @@ class StemService {
       );
     }
 
-    // 2. PRIORITY #1: SOTA AI Neural Engine (BS-RoFormer 12.97 dB SDR & Demucs v4)
-    if (_enginePreference != 'youtube' && _enginePreference != 'dsp') {
-      final aiSw = Stopwatch()..start();
-      try {
-        LogService.stream('StemService', 'Prioritizing SOTA AI Neural separation for "${song.title}" (${type.name})...');
-        final aiResult = await separateAudioWithAi(song: song, type: type, diagnostic: diag);
-        aiSw.stop();
-        if (aiResult != null && aiResult.isSuccess) {
-          LogService.stream('StemService', 'AI source separation successful for "${song.title}" (${type.name})');
-          diag.addStep(
-            stage: 'Tier 2: SOTA AI Neural Engine',
-            latency: aiSw.elapsed,
-            isSuccess: true,
-            details: 'Separation complete: ${aiResult.streamUrl}',
-          );
-          diag.complete(source: StemSource.aiSeparation, success: true, resolvedTarget: aiResult.streamUrl);
-          _recordDiagnostic(diag);
-          _cacheResult(cacheKey, aiResult);
-          return aiResult;
-        } else {
-          diag.addStep(
-            stage: 'Tier 2: SOTA AI Neural Engine',
-            latency: aiSw.elapsed,
-            isSuccess: false,
-            details: 'AI Neural spaces unavailable or timed out.',
-          );
-        }
-      } catch (e) {
-        aiSw.stop();
-        LogService.w('StemService', 'AI separation error: $e');
-        diag.addStep(
-          stage: 'Tier 2: SOTA AI Neural Engine',
-          latency: aiSw.elapsed,
-          isSuccess: false,
-          details: 'AI error: $e',
-        );
-      }
-    } else {
-      diag.addStep(
-        stage: 'Tier 2: SOTA AI Neural Engine',
-        latency: Duration.zero,
-        isSuccess: false,
-        details: 'Skipped by engine preference ($_enginePreference)',
-      );
-    }
-
-    // 3. SECONDARY: High-Speed Studio Master Matcher (Sing King, KaraFun, Official Topic Instrumental releases)
-    if (_enginePreference != 'dsp') {
+    // 2. High-Speed Studio Master Matcher (Sing King, KaraFun, Official Topic Instrumental/Acapella releases)
+    // Runs first for 'auto' & 'youtube' preferences to resolve in ~1s without downloading 8MB buffer
+    if (_enginePreference == 'auto' || _enginePreference == 'youtube') {
       final ytSw = Stopwatch()..start();
       try {
         LogService.stream('StemService', 'Searching verified studio backing stems for "${song.title}" (${type.name})...');
@@ -479,7 +438,7 @@ class StemService {
         if (ytResult != null && ytResult.isSuccess) {
           LogService.stream('StemService', 'Studio Master matched for "${song.title}" (${type.name})');
           diag.addStep(
-            stage: 'Tier 3: YouTube Studio Matcher',
+            stage: 'Tier 2: YouTube Studio Matcher',
             latency: ytSw.elapsed,
             isSuccess: true,
             details: 'Matched "${ytResult.candidateTitle}" (Score: ${ytResult.confidenceScore})',
@@ -490,7 +449,7 @@ class StemService {
           return ytResult;
         } else {
           diag.addStep(
-            stage: 'Tier 3: YouTube Studio Matcher',
+            stage: 'Tier 2: YouTube Studio Matcher',
             latency: ytSw.elapsed,
             isSuccess: false,
             details: 'No candidate satisfied duration/confidence criteria.',
@@ -498,21 +457,55 @@ class StemService {
         }
       } catch (e) {
         ytSw.stop();
-        LogService.w('StemService', 'Tier 2 Studio stem matching error: $e');
+        LogService.w('StemService', 'Studio stem matching error: $e');
         diag.addStep(
-          stage: 'Tier 3: YouTube Studio Matcher',
+          stage: 'Tier 2: YouTube Studio Matcher',
           latency: ytSw.elapsed,
           isSuccess: false,
           details: 'Search error: $e',
         );
       }
-    } else {
-      diag.addStep(
-        stage: 'Tier 3: YouTube Studio Matcher',
-        latency: Duration.zero,
-        isSuccess: false,
-        details: 'Skipped by engine preference ($_enginePreference)',
-      );
+    }
+
+    // 3. SOTA AI Neural Engine (BS-RoFormer 12.97 dB SDR & Demucs v4)
+    // Run if user explicitly selected neural AI or if song already has a local file ready
+    final bool hasLocalFile = song.streamUrl.isNotEmpty && !song.streamUrl.startsWith('http');
+    if (_enginePreference == 'bsRoformer' || _enginePreference == 'demucs' || (_enginePreference == 'auto' && hasLocalFile)) {
+      final aiSw = Stopwatch()..start();
+      try {
+        LogService.stream('StemService', 'Attempting SOTA AI Neural separation for "${song.title}" (${type.name})...');
+        final aiResult = await separateAudioWithAi(song: song, type: type, diagnostic: diag);
+        aiSw.stop();
+        if (aiResult != null && aiResult.isSuccess) {
+          LogService.stream('StemService', 'AI source separation successful for "${song.title}" (${type.name})');
+          diag.addStep(
+            stage: 'Tier 3: SOTA AI Neural Engine',
+            latency: aiSw.elapsed,
+            isSuccess: true,
+            details: 'Separation complete: ${aiResult.streamUrl}',
+          );
+          diag.complete(source: StemSource.aiSeparation, success: true, resolvedTarget: aiResult.streamUrl);
+          _recordDiagnostic(diag);
+          _cacheResult(cacheKey, aiResult);
+          return aiResult;
+        } else {
+          diag.addStep(
+            stage: 'Tier 3: SOTA AI Neural Engine',
+            latency: aiSw.elapsed,
+            isSuccess: false,
+            details: 'AI Neural spaces unavailable or timed out.',
+          );
+        }
+      } catch (e) {
+        aiSw.stop();
+        LogService.w('StemService', 'AI separation error: $e');
+        diag.addStep(
+          stage: 'Tier 3: SOTA AI Neural Engine',
+          latency: aiSw.elapsed,
+          isSuccess: false,
+          details: 'AI error: $e',
+        );
+      }
     }
 
     // 4. Fallback: Tier 3 Hardware DSP Vocal Shaper
@@ -626,12 +619,16 @@ class StemService {
           'Matched stem candidate: "${bestCandidate.title}" (Score: $highestScore, Delta: ${bestDelta.inSeconds}s)',
         );
 
-        // Extract direct playable Opus / AAC audio stream
-        final streamUrls = await YouTubeImporterService.getAudioStreamUrls(videoId);
+        // Extract direct playable progressive MP4 (AAC) audio streams for seek safety in ExoPlayer
+        final streamUrls = await YouTubeImporterService.getAudioStreamUrls(
+          videoId,
+          preferProgressiveMp4: true,
+        );
         if (streamUrls.isNotEmpty) {
           return StemResult.youtubeMatch(
             type: type,
             streamUrl: streamUrls.first,
+            fallbackUrls: streamUrls.length > 1 ? streamUrls.sublist(1) : const [],
             videoId: videoId,
             title: bestCandidate.title,
             duration: bestCandidate.duration,

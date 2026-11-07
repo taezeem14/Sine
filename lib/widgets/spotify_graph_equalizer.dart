@@ -59,8 +59,8 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
   int? _activeDragBand;
   DateTime _lastHaptic = DateTime.fromMillisecondsSinceEpoch(0);
 
-  static const Color sineBlue = Color(0xFF00D4FF);
-  static const Color sineBlueDark = Color(0xFF2979FF);
+  static const Color sineBlue = EmberColors.primaryBlue;
+  static const Color sineBlueDark = EmberColors.primaryBlue;
 
   @override
   void initState() {

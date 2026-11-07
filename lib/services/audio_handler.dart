@@ -1116,14 +1116,20 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     required Duration currentPosition,
     required bool playImmediately,
     bool isLocal = false,
+    List<String> fallbackUrls = const [],
+    String? originalStreamUrl,
   }) async {
-    if (newStreamUrl.isEmpty) {
-      LogService.w('AudioHandler', 'swapAudioStream: received empty newStreamUrl');
+    final candidateUrls = <String>[newStreamUrl, ...fallbackUrls]
+        .where((u) => u.trim().isNotEmpty)
+        .toList();
+
+    if (candidateUrls.isEmpty) {
+      LogService.w('AudioHandler', 'swapAudioStream: received empty newStreamUrl and fallbacks');
       return false;
     }
 
     // If already playing this exact stream, maintain continuity
-    if (_activeStreamUrl == newStreamUrl) {
+    if (_activeStreamUrl == candidateUrls.first) {
       if (playImmediately && !_player.playing) {
         await _player.play();
       }
@@ -1136,10 +1142,29 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     final bool wasPlaying = _player.playing;
     final bool shouldPlay = playImmediately || wasPlaying;
     final Duration targetPosition = currentPosition;
+    final String previousActiveStreamUrl = _activeStreamUrl ?? '';
+
+    // If seeking mid-stream (targetPosition > 0), prioritize progressive MP4 streams
+    // over WebM streams (which lack front-loaded Cues and crash ExoPlayer with Source error)
+    if (targetPosition > Duration.zero) {
+      candidateUrls.sort((a, b) {
+        final aIsMp4 = a.contains('mime=audio%2Fmp4') ||
+            a.contains('itag=140') ||
+            a.contains('itag=18') ||
+            a.endsWith('.mp4');
+        final bIsMp4 = b.contains('mime=audio%2Fmp4') ||
+            b.contains('itag=140') ||
+            b.contains('itag=18') ||
+            b.endsWith('.mp4');
+        if (aIsMp4 && !bIsMp4) return -1;
+        if (!aIsMp4 && bIsMp4) return 1;
+        return 0;
+      });
+    }
 
     LogService.stream(
       'AudioHandler',
-      'Seamlessly swapping audio stream to "$newStreamUrl" at ${targetPosition.inSeconds}s (playImmediately: $shouldPlay)...',
+      'Seamlessly swapping audio stream to "${candidateUrls.first}" at ${targetPosition.inSeconds}s (playImmediately: $shouldPlay, candidates: ${candidateUrls.length})...',
     );
 
     // 1. Arm completion and auto-advance guards
@@ -1170,33 +1195,54 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       ),
     );
 
-    try {
-      final isLocalFile = isLocal ||
-          newStreamUrl.startsWith('/') ||
-          newStreamUrl.startsWith('file://') ||
-          RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(newStreamUrl);
+    String? successfulUrl;
+    dynamic lastError;
+    StackTrace? lastStackTrace;
 
-      final isYouTubeStream = newStreamUrl.contains('googlevideo.com') ||
-          newStreamUrl.contains('youtube.com');
-      final headers = isYouTubeStream ? _youtubeHeaders : _proxyHeaders;
-
-      // 3. Switch audio source directly without calling _player.stop()
-      if (isLocalFile) {
-        final localPath = _resolveFilePath(newStreamUrl);
-        await _player.setFilePath(
-          localPath,
-          initialPosition: targetPosition,
-          preload: false,
-        ).timeout(const Duration(seconds: 12));
-      } else {
-        await _player.setUrl(
-          newStreamUrl,
-          headers: headers,
-          initialPosition: targetPosition,
-          preload: false,
-        ).timeout(const Duration(seconds: 12));
+    for (final candidateUrl in candidateUrls) {
+      if (currentRequestId != _swapRequestId) {
+        debugPrint('[AudioHandler] swapAudioStream #$currentRequestId superseded by #$_swapRequestId');
+        _isSwappingStream = false;
+        return false;
       }
 
+      try {
+        final isLocalFile = isLocal ||
+            candidateUrl.startsWith('/') ||
+            candidateUrl.startsWith('file://') ||
+            RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(candidateUrl);
+
+        final isYouTubeStream = candidateUrl.contains('googlevideo.com') ||
+            candidateUrl.contains('youtube.com');
+        final headers = isYouTubeStream ? _youtubeHeaders : _proxyHeaders;
+
+        // 3. Switch audio source directly without calling _player.stop()
+        if (isLocalFile) {
+          final localPath = _resolveFilePath(candidateUrl);
+          await _player.setFilePath(
+            localPath,
+            initialPosition: targetPosition,
+            preload: false,
+          ).timeout(const Duration(seconds: 10));
+        } else {
+          await _player.setUrl(
+            candidateUrl,
+            headers: headers,
+            initialPosition: targetPosition,
+            preload: false,
+          ).timeout(const Duration(seconds: 10));
+        }
+
+        successfulUrl = candidateUrl;
+        break; // Successfully loaded candidate!
+      } catch (e, st) {
+        lastError = e;
+        lastStackTrace = st;
+        LogService.w('AudioHandler', 'Candidate stream failed in swapAudioStream: $e');
+      }
+    }
+
+    if (successfulUrl != null) {
       // Check if superseded by rapid subsequent toggles
       if (currentRequestId != _swapRequestId) {
         debugPrint('[AudioHandler] swapAudioStream #$currentRequestId superseded by #$_swapRequestId');
@@ -1212,7 +1258,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       }
 
       // 6. Update tracking state & disarm guards
-      _activeStreamUrl = newStreamUrl;
+      _activeStreamUrl = successfulUrl;
       _lastKnownPosition = targetPosition;
       _currentTrackActive = true;
       _completionHandled = false;
@@ -1224,16 +1270,55 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         'Successfully swapped audio stream! Playing at ${targetPosition.inSeconds}s (speed: ${_activeSpeed}x)',
       );
       return true;
-    } catch (e, st) {
-      if (currentRequestId != _swapRequestId) {
-        // Silently ignore superseded or aborted requests
-        return false;
-      }
-      LogService.w('AudioHandler', 'swapAudioStream failed: $e\n$st');
-      _isSwappingStream = false;
-      _completionHandled = false;
+    }
+
+    // AUTO-RECOVERY: All candidates failed! Restore previous active stream immediately so ExoPlayer doesn't crash or stay silent
+    if (currentRequestId != _swapRequestId) {
       return false;
     }
+    LogService.w('AudioHandler', 'swapAudioStream all candidates failed: $lastError\n$lastStackTrace');
+
+    final recoveryUrl = (originalStreamUrl != null && originalStreamUrl.isNotEmpty)
+        ? originalStreamUrl
+        : (previousActiveStreamUrl.isNotEmpty ? previousActiveStreamUrl : null);
+
+    if (recoveryUrl != null) {
+      try {
+        LogService.stream('AudioHandler', 'Auto-recovering previous audio stream: $recoveryUrl');
+        final isLocalRec = recoveryUrl.startsWith('/') ||
+            recoveryUrl.startsWith('file://') ||
+            RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(recoveryUrl);
+        if (isLocalRec) {
+          await _player.setFilePath(
+            _resolveFilePath(recoveryUrl),
+            initialPosition: targetPosition,
+            preload: false,
+          ).timeout(const Duration(seconds: 8));
+        } else {
+          final recHeaders = (recoveryUrl.contains('googlevideo.com') || recoveryUrl.contains('youtube.com'))
+              ? _youtubeHeaders
+              : _proxyHeaders;
+          await _player.setUrl(
+            recoveryUrl,
+            headers: recHeaders,
+            initialPosition: targetPosition,
+            preload: false,
+          ).timeout(const Duration(seconds: 8));
+        }
+        await _restorePlaybackParameters();
+        if (shouldPlay) {
+          await _player.play();
+        }
+        _activeStreamUrl = recoveryUrl;
+        _currentTrackActive = true;
+      } catch (recErr) {
+        LogService.w('AudioHandler', 'Stream auto-recovery failed: $recErr');
+      }
+    }
+
+    _isSwappingStream = false;
+    _completionHandled = false;
+    return false;
   }
 
   @override

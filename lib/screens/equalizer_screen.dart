@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../theme/ember_theme.dart';
 import '../providers/player_provider.dart';
 import '../widgets/spotify_graph_equalizer.dart';
 import 'sound_shaping_sheet.dart';
@@ -54,8 +55,8 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
             scale: 0.85,
             child: Switch(
               value: player.eqEnabled,
-              activeThumbColor: const Color(0xFF00D4FF),
-              activeTrackColor: const Color(0xFF00D4FF).withValues(alpha: 0.35),
+              activeThumbColor: EmberColors.primaryBlue,
+              activeTrackColor: EmberColors.primaryBlue.withValues(alpha: 0.35),
               inactiveThumbColor: Colors.white.withValues(alpha: 0.6),
               inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
               onChanged: (val) {
@@ -128,10 +129,10 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                       leading: Container(
                         padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00D4FF).withValues(alpha: 0.15),
+                          color: EmberColors.primaryBlue.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: const FaIcon(FontAwesomeIcons.sliders, size: 13, color: Color(0xFF00D4FF)),
+                        child: const FaIcon(FontAwesomeIcons.sliders, size: 13, color: EmberColors.primaryBlue),
                       ),
                       title: const Text(
                         'Hearth Bass & Studio Stems',
@@ -167,14 +168,14 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                                   ),
                                   Text(
                                     '${(player.bassBoost * 100).toInt()}%',
-                                    style: const TextStyle(color: Color(0xFF00D4FF), fontSize: 13, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(color: EmberColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
                               SliderTheme(
                                 data: SliderTheme.of(context).copyWith(
                                   trackHeight: 3.5,
-                                  activeTrackColor: const Color(0xFF00D4FF),
+                                  activeTrackColor: EmberColors.primaryBlue,
                                   thumbColor: Colors.white,
                                   thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                                   inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
@@ -230,10 +231,10 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                                 const SizedBox(height: 8),
                                 Center(
                                   child: TextButton.icon(
-                                    icon: const Icon(Icons.restore_rounded, size: 14, color: Color(0xFF00D4FF)),
+                                    icon: const Icon(Icons.restore_rounded, size: 14, color: EmberColors.primaryBlue),
                                     label: const Text(
                                       'Revert to Original Audio',
-                                      style: TextStyle(color: Color(0xFF00D4FF), fontSize: 12, fontWeight: FontWeight.w600),
+                                      style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.w600),
                                     ),
                                     onPressed: () => player.revertToOriginalTrack(),
                                   ),
@@ -295,12 +296,12 @@ class _StemQuickCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isActive
-              ? const Color(0xFF00D4FF).withValues(alpha: 0.15)
+              ? EmberColors.primaryBlue.withValues(alpha: 0.15)
               : Colors.white.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isActive
-                ? const Color(0xFF00D4FF).withValues(alpha: 0.5)
+                ? EmberColors.primaryBlue.withValues(alpha: 0.5)
                 : Colors.white.withValues(alpha: 0.06),
             width: 1.2,
           ),
@@ -311,13 +312,13 @@ class _StemQuickCard extends StatelessWidget {
               const SizedBox(
                 width: 14,
                 height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00D4FF)),
+                child: CircularProgressIndicator(strokeWidth: 2, color: EmberColors.primaryBlue),
               )
             else
               Icon(
                 icon,
                 size: 16,
-                color: isActive ? const Color(0xFF00D4FF) : Colors.white.withValues(alpha: 0.6),
+                color: isActive ? EmberColors.primaryBlue : Colors.white.withValues(alpha: 0.6),
               ),
             const SizedBox(width: 8),
             Expanded(
@@ -338,7 +339,7 @@ class _StemQuickCard extends StatelessWidget {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: isActive ? const Color(0xFF00D4FF) : Colors.white.withValues(alpha: 0.4),
+                      color: isActive ? EmberColors.primaryBlue : Colors.white.withValues(alpha: 0.4),
                       fontSize: 10,
                     ),
                     maxLines: 1,

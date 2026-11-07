@@ -164,13 +164,13 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF00E5FF).withValues(alpha: 0.18),
+                                      color: EmberColors.primaryBlue.withValues(alpha: 0.18),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: const Text(
                                       'Opus HQ',
                                       style: TextStyle(
-                                        color: Color(0xFF00E5FF),
+                                        color: EmberColors.primaryBlue,
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
                                       ),
