@@ -3,6 +3,10 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../services/log_service.dart';
+import '../services/stem_service.dart';
+import '../services/performance_service.dart';
+import '../models/song.dart';
+
 import '../theme/ember_theme.dart';
 import '../constants/app_constants.dart';
 
@@ -22,15 +26,21 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
   bool _isTestingStream = false;
   StreamTestResult? _testResult;
   bool _autoScroll = true;
+  final TextEditingController _stemSongIdController = TextEditingController();
+  StemType _selectedStemType = StemType.instrumental;
+  bool _isRunningStemTest = false;
+  StemPipelineDiagnostic? _activeStemDiagnostic;
+
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     
     // Pre-populate tester with active track ID or Rick Astley test ID
     final activeId = LogService.instance.activeSongId;
     _testQueryController.text = activeId.isNotEmpty ? activeId : 'dQw4w9WgXcQ';
+    _stemSongIdController.text = activeId.isNotEmpty ? activeId : 'dQw4w9WgXcQ';
 
     LogService.instance.addListener(_handleLogsChanged);
   }
@@ -54,6 +64,7 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
     LogService.instance.removeListener(_handleLogsChanged);
     _tabController.dispose();
     _testQueryController.dispose();
+    _stemSongIdController.dispose();
     _logScrollController.dispose();
     super.dispose();
   }
@@ -187,13 +198,17 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
         ],
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           indicatorColor: EmberColors.primaryAmber,
           labelColor: EmberColors.primaryAmber,
           unselectedLabelColor: EmberColors.textMuted,
           tabs: const [
-            Tab(icon: FaIcon(FontAwesomeIcons.terminal, size: 14), text: 'Logs'),
-            Tab(icon: FaIcon(FontAwesomeIcons.circleInfo, size: 14), text: 'Playback'),
-            Tab(icon: FaIcon(FontAwesomeIcons.vial, size: 14), text: 'Stream Tester'),
+            Tab(icon: FaIcon(FontAwesomeIcons.terminal, size: 13), text: 'Logs'),
+            Tab(icon: FaIcon(FontAwesomeIcons.circleInfo, size: 13), text: 'Playback & Headroom'),
+            Tab(icon: FaIcon(FontAwesomeIcons.sliders, size: 13), text: 'Stem Diagnostics'),
+            Tab(icon: FaIcon(FontAwesomeIcons.vial, size: 13), text: 'Stream Tester'),
+            Tab(icon: FaIcon(FontAwesomeIcons.gaugeHigh, size: 13), text: 'FPS / Jank Monitor'),
           ],
         ),
       ),
@@ -202,7 +217,9 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
         children: [
           _buildLogsTab(),
           _buildPlaybackTab(),
+          _buildStemDiagnosticsTab(),
           _buildTesterTab(),
+          _buildPerformanceTab(),
         ],
       ),
     );
@@ -828,4 +845,333 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
       ),
     );
   }
+
+  // ==========================================
+  // TAB 3: STEM PIPELINE DIAGNOSTICS & BENCHMARK
+  // ==========================================
+  Widget _buildStemDiagnosticsTab() {
+    final diag = _activeStemDiagnostic ?? StemService.instance.lastDiagnostic;
+    final history = StemService.instance.diagnosticHistory;
+
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      children: [
+        // Interactive Stem Tester Card
+        _buildCard(
+          title: 'RUN STEM PIPELINE DIAGNOSTIC',
+          icon: FontAwesomeIcons.flaskVial,
+          children: [
+            const Text(
+              'Execute end-to-end trace across Disk Cache, SOTA AI Neural Spaces (BS-RoFormer & Demucs), YouTube Studio Matcher, and Hardware DSP.',
+              style: TextStyle(color: EmberColors.textMuted, fontSize: 11.5, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _stemSongIdController,
+              style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: EmberColors.surfaceContainerHigh,
+                hintText: 'YouTube Video ID or Title',
+                hintStyle: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: SegmentedButton<StemType>(
+                    segments: const [
+                      ButtonSegment(value: StemType.instrumental, label: Text('Karaoke', style: TextStyle(fontSize: 12))),
+                      ButtonSegment(value: StemType.vocals, label: Text('Acapella', style: TextStyle(fontSize: 12))),
+                    ],
+                    selected: {_selectedStemType},
+                    onSelectionChanged: (set) => setState(() => _selectedStemType = set.first),
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStateProperty.resolveWith(
+                        (states) => states.contains(WidgetState.selected)
+                            ? EmberColors.primaryAmber.withValues(alpha: 0.2)
+                            : EmberColors.surfaceContainerHigh,
+                      ),
+                      foregroundColor: WidgetStateProperty.resolveWith(
+                        (states) => states.contains(WidgetState.selected)
+                            ? EmberColors.primaryAmber
+                            : EmberColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: _isRunningStemTest
+                      ? null
+                      : () async {
+                          final id = _stemSongIdController.text.trim();
+                          if (id.isEmpty) return;
+                          setState(() => _isRunningStemTest = true);
+                          final testSong = Song(
+                            id: id.startsWith('yt_') ? id : 'yt_$id',
+                            title: 'Diagnostic Test ($id)',
+                            artist: 'Sine Benchmark',
+                            artworkUrl: '',
+                            duration: const Duration(minutes: 3, seconds: 30),
+                            streamUrl: '',
+                          );
+                          final result = await StemService.instance.runDiagnosticSeparation(testSong, _selectedStemType);
+                          if (mounted) {
+                            setState(() {
+                              _activeStemDiagnostic = result;
+                              _isRunningStemTest = false;
+                            });
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: EmberColors.primaryAmber,
+                    foregroundColor: EmberColors.obsidianBase,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: _isRunningStemTest
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: EmberColors.obsidianBase))
+                      : const Text('Run Test', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        // Active / Last Diagnostic Execution Trace
+        if (diag != null) ...[
+          _buildCard(
+            title: 'LATEST PIPELINE TRACE (${diag.requestedStem.name.toUpperCase()})',
+            icon: FontAwesomeIcons.timeline,
+            borderColor: diag.isSuccess ? EmberColors.primaryAmber : Colors.orangeAccent,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          diag.songTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13.5, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '${diag.songArtist} • Total Latency: ${diag.totalLatency.inMilliseconds}ms',
+                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: (diag.isSuccess ? EmberColors.primaryAmber : Colors.orangeAccent).withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: diag.isSuccess ? EmberColors.primaryAmber : Colors.orangeAccent),
+                    ),
+                    child: Text(
+                      diag.finalSource.name.toUpperCase(),
+                      style: TextStyle(
+                        color: diag.isSuccess ? EmberColors.primaryAmberHi : Colors.orangeAccent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              const Text('EXECUTION TIMELINE & STAGE RESULTS:', style: TextStyle(color: EmberColors.textMuted, fontSize: 10.5, fontWeight: FontWeight.bold, letterSpacing: 0.6)),
+              const SizedBox(height: 8),
+              ...diag.steps.map((step) {
+                final isOk = step.isSuccess;
+                final color = isOk ? Colors.greenAccent : Colors.orangeAccent;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: EmberColors.surfaceContainerHigh.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: color.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(isOk ? Icons.check_circle_rounded : Icons.info_outline_rounded, color: color, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(step.stage, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+                                Text('${step.latency.inMilliseconds}ms', style: const TextStyle(color: EmberColors.textMuted, fontSize: 10, fontFamily: 'monospace')),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(step.details, style: const TextStyle(color: EmberColors.textSecondary, fontSize: 11, height: 1.3)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // Diagnostic History
+        if (history.isNotEmpty) ...[
+          _buildCard(
+            title: 'RECENT RESOLUTION RUNS (${history.length})',
+            icon: FontAwesomeIcons.clockRotateLeft,
+            children: [
+              ...history.reversed.take(6).map((h) {
+                return ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(h.isSuccess ? Icons.check_circle : Icons.warning_amber_rounded, size: 16, color: h.isSuccess ? EmberColors.primaryAmber : Colors.orangeAccent),
+                  title: Text(h.songTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                  subtitle: Text('${h.requestedStem.name} • ${h.finalSource.name} • ${h.totalLatency.inMilliseconds}ms', style: const TextStyle(color: EmberColors.textMuted, fontSize: 10.5)),
+                  onTap: () => setState(() => _activeStemDiagnostic = h),
+                );
+              }),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ==========================================
+  // TAB 5: FPS & PERFORMANCE MONITOR
+  // ==========================================
+  Widget _buildPerformanceTab() {
+    return ValueListenableBuilder<PerformanceSnapshot>(
+      valueListenable: PerformanceService.instance.snapshotNotifier,
+      builder: (context, snap, _) {
+        final fpsColor = snap.currentFps >= 55.0
+            ? EmberColors.primaryAmber
+            : (snap.currentFps >= 40.0 ? Colors.orangeAccent : EmberColors.error);
+
+        return ListView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          children: [
+            // Master FPS Gauge
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    fpsColor.withValues(alpha: 0.15),
+                    EmberColors.surfaceContainerHigh.withValues(alpha: 0.7),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: fpsColor.withValues(alpha: 0.4)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        snap.currentFps.toStringAsFixed(1),
+                        style: TextStyle(
+                          color: fpsColor,
+                          fontSize: 48,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('FPS', style: TextStyle(color: EmberColors.textMuted, fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Target: ${snap.targetRefreshRate.toInt()} Hz Display Refresh Rate',
+                    style: const TextStyle(color: EmberColors.textSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Performance Metrics Grid
+            _buildCard(
+              title: 'FRAME RENDER METRICS',
+              icon: FontAwesomeIcons.chartLine,
+              children: [
+                _buildInfoRow('Average FPS (120f)', '${snap.averageFps.toStringAsFixed(1)} FPS'),
+                _buildInfoRow('1% Low FPS', '${snap.low1PercentFps.toStringAsFixed(1)} FPS'),
+                _buildInfoRow('Total Frames', '${snap.totalFrames}'),
+                _buildInfoRow('Dropped / Jank Frames', '${snap.droppedFrames} (${snap.jankPercentage.toStringAsFixed(1)}%)'),
+                _buildInfoRow('Last Build Duration', '${snap.lastBuildMs.toStringAsFixed(2)} ms'),
+                _buildInfoRow('Last Raster Duration', '${snap.lastRasterMs.toStringAsFixed(2)} ms'),
+                _buildInfoRow('Total Frame Span', '${snap.lastTotalSpanMs.toStringAsFixed(2)} ms'),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Controls & Floating HUD Toggle
+            _buildCard(
+              title: 'MONITOR CONTROLS',
+              icon: FontAwesomeIcons.sliders,
+              children: [
+                ValueListenableBuilder<bool>(
+                  valueListenable: PerformanceService.instance.isHudVisibleNotifier,
+                  builder: (context, hudVisible, _) {
+                    return SwitchListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Floating Performance HUD', style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                      subtitle: const Text('Display real-time FPS overlay across all app screens', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
+                      value: hudVisible,
+                      activeThumbColor: EmberColors.primaryAmber,
+                      onChanged: (val) {
+                        context.read<PlayerProvider>().setPerformanceHudEnabled(val);
+                      },
+                    );
+                  },
+                ),
+                const Divider(color: EmberColors.outlineVariant, height: 16),
+                Center(
+                  child: TextButton.icon(
+                    icon: const FaIcon(FontAwesomeIcons.rotateRight, size: 12, color: EmberColors.primaryAmber),
+                    label: const Text('Reset Telemetry Data', style: TextStyle(color: EmberColors.primaryAmber, fontSize: 12, fontWeight: FontWeight.bold)),
+                    onPressed: () {
+                      PerformanceService.instance.resetStats();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Performance metrics reset.'), duration: Duration(seconds: 1)),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 }

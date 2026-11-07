@@ -306,6 +306,7 @@ class YouTubeImporterService {
   /// 2. WebM / Opus streams (audiophile audio quality)
   /// 3. Muxed MP4 stream fallback
   static const Duration _streamCacheTtl = Duration(minutes: 30);
+  static String preferredQuality = 'high'; // 'high', 'medium', 'dataSaver'
 
   /// Multi-client InnerTube stream extractor: cascades through client profiles to bypass 403 Forbidden
   static Future<List<String>> getAudioStreamUrls(String videoId) async {
@@ -342,23 +343,42 @@ class YouTubeImporterService {
 
         final candidates = <String>[];
 
-        // 1. Primary (Fastest): Progressive Muxed MP4 (itag 18, 360p progressive container with AAC audio)
-        // Instant hardware decoding on Android ExoPlayer, immune to DASH cipher throttling, starts in ~0.5s - 1.2s
         final muxedMp4 = manifest.muxed.where((s) => s.container.name.toLowerCase() == 'mp4').toList();
-        if (muxedMp4.isNotEmpty) {
-          candidates.add(muxedMp4.withHighestBitrate().url.toString());
-        }
-
-        // 2. Secondary Fallback: Standalone MP4 / M4A AAC (itag 140, ~128kbps) audio stream
         final mp4Audio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'mp4').toList();
-        if (mp4Audio.isNotEmpty) {
-          candidates.add(mp4Audio.withHighestBitrate().url.toString());
-        }
-
-        // 3. Tertiary Fallback: Standalone WebM Opus (itag 251, ~160kbps) audiophile audio stream
         final webmAudio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'webm').toList();
-        if (webmAudio.isNotEmpty) {
-          candidates.add(webmAudio.withHighestBitrate().url.toString());
+
+        if (preferredQuality == 'high') {
+          // Audiophile High Bitrate: 160+ kbps WebM Opus first, then highest MP4 AAC
+          if (webmAudio.isNotEmpty) {
+            candidates.add(webmAudio.withHighestBitrate().url.toString());
+          }
+          if (mp4Audio.isNotEmpty) {
+            candidates.add(mp4Audio.withHighestBitrate().url.toString());
+          }
+          if (muxedMp4.isNotEmpty) {
+            candidates.add(muxedMp4.withHighestBitrate().url.toString());
+          }
+        } else if (preferredQuality == 'dataSaver') {
+          // Data Saver: lowest bandwidth streams first
+          final allAudio = manifest.audioOnly.toList()
+            ..sort((a, b) => a.bitrate.bitsPerSecond.compareTo(b.bitrate.bitsPerSecond));
+          if (allAudio.isNotEmpty) {
+            candidates.add(allAudio.first.url.toString());
+          }
+          if (muxedMp4.isNotEmpty) {
+            candidates.add(muxedMp4.first.url.toString());
+          }
+        } else {
+          // Medium / Balanced: Hardware accelerated Muxed MP4 & 128kbps AAC first
+          if (muxedMp4.isNotEmpty) {
+            candidates.add(muxedMp4.withHighestBitrate().url.toString());
+          }
+          if (mp4Audio.isNotEmpty) {
+            candidates.add(mp4Audio.withHighestBitrate().url.toString());
+          }
+          if (webmAudio.isNotEmpty) {
+            candidates.add(webmAudio.withHighestBitrate().url.toString());
+          }
         }
 
         if (candidates.isNotEmpty) {

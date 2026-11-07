@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/player_provider.dart';
@@ -6,6 +6,7 @@ import 'screens/pulsepipe_shell_screen.dart';
 import 'services/audio_handler.dart';
 import 'services/storage_service.dart';
 import 'theme/ember_theme.dart';
+import 'widgets/performance_hud_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -81,7 +82,7 @@ class SineMobileApp extends StatelessWidget {
         title: 'Sine',
         debugShowCheckedModeBanner: false,
         theme: EmberTheme.darkTheme,
-        home: const PulsePipeShellScreen(),
+        home: const PerformanceHudOverlay(child: PulsePipeShellScreen()),
       ),
     );
   }

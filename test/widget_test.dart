@@ -6,6 +6,7 @@ import 'package:spotify_newpipe/services/lyrics_service.dart';
 import 'package:spotify_newpipe/services/sponsorblock_service.dart';
 import 'package:spotify_newpipe/services/youtube_importer_service.dart';
 import 'package:spotify_newpipe/services/stem_service.dart';
+import 'package:spotify_newpipe/services/performance_service.dart';
 import 'package:spotify_newpipe/services/smart_radio_service.dart';
 import 'package:spotify_newpipe/services/app_lock_service.dart';
 import 'package:spotify_newpipe/widgets/spotify_graph_equalizer.dart';
@@ -433,6 +434,85 @@ void main() {
       StemService.clearMemoryCache();
       expect(StemService.instance.separateAudioWithAi, isNotNull);
       expect(StemService.instance.separateAudioWithDemucs, isNotNull);
+    });
+
+    test('StemPipelineDiagnostic records steps and computes total latency', () {
+      final diag = StemPipelineDiagnostic(
+        id: 'diag_123',
+        songId: 'yt_abc',
+        songTitle: 'Test Song',
+        songArtist: 'Test Artist',
+        requestedStem: StemType.instrumental,
+        startedAt: DateTime.now().subtract(const Duration(milliseconds: 350)),
+      );
+
+      diag.addStep(
+        stage: 'Tier 1: Local Disk Cache',
+        latency: const Duration(milliseconds: 15),
+        isSuccess: false,
+        details: 'Cache miss',
+      );
+
+      diag.addStep(
+        stage: 'Tier 2: SOTA AI Neural Engine',
+        latency: const Duration(milliseconds: 320),
+        isSuccess: true,
+        details: 'Separated via BS-RoFormer',
+      );
+
+      diag.complete(
+        source: StemSource.aiSeparation,
+        success: true,
+        resolvedTarget: '/path/to/stem.wav',
+      );
+
+      expect(diag.steps.length, 2);
+      expect(diag.isSuccess, isTrue);
+      expect(diag.finalSource, StemSource.aiSeparation);
+      expect(diag.resolvedFileOrUrl, '/path/to/stem.wav');
+      expect(diag.totalLatency.inMilliseconds, greaterThanOrEqualTo(300));
+    });
+
+    test('PerformanceService initializes and computes valid performance snapshots', () {
+      final perf = PerformanceService.instance;
+      expect(perf, isNotNull);
+      perf.setTargetRefreshRate(120.0);
+      expect(perf.snapshotNotifier.value.targetRefreshRate, 120.0);
+      perf.resetStats();
+      expect(perf.snapshotNotifier.value.totalFrames, 0);
+    });
+
+    test('SavedPlaybackSession serializes and deserializes accurately', () {
+      const song = Song(
+        id: 'yt_saved123',
+        title: 'Saved Song',
+        artist: 'Saved Artist',
+        duration: Duration(minutes: 3),
+        artworkUrl: '',
+        streamUrl: 'https://example.com/audio.mp3',
+      );
+
+      final session = SavedPlaybackSession(
+        song: song,
+        positionMs: 45000,
+        queue: [song],
+        currentIndex: 0,
+        savedAt: DateTime.now(),
+      );
+
+      final map = {
+        'song': session.song.toMap(),
+        'positionMs': session.positionMs,
+        'queue': session.queue.map((s) => s.toMap()).toList(),
+        'currentIndex': session.currentIndex,
+        'savedAt': session.savedAt.toIso8601String(),
+      };
+
+      final restored = SavedPlaybackSession.fromMap(map);
+      expect(restored.song.id, 'yt_saved123');
+      expect(restored.positionMs, 45000);
+      expect(restored.queue.length, 1);
+      expect(restored.currentIndex, 0);
     });
   });
 }

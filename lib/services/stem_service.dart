@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -16,6 +17,124 @@ enum StemSource {
   youtubeSmartMatch,
   aiSeparation,
   dspFallback,
+}
+
+
+enum BackgroundStemStatus {
+  idle,
+  enqueued,
+  downloadingBuffer,
+  uploadingGradio,
+  separatingNeural,
+  completed,
+  failed,
+}
+
+class BackgroundStemTask {
+  final Song song;
+  final StemType type;
+  final DateTime enqueuedAt;
+  BackgroundStemStatus status;
+  String? resultPath;
+  String? errorMessage;
+
+  BackgroundStemTask({
+    required this.song,
+    required this.type,
+    required this.enqueuedAt,
+    this.status = BackgroundStemStatus.enqueued,
+    this.resultPath,
+    this.errorMessage,
+  });
+}
+
+class StemDiagnosticStep {
+  final String stage;
+  final DateTime timestamp;
+  final Duration latency;
+  final bool isSuccess;
+  final String details;
+  final Map<String, dynamic> metadata;
+
+  const StemDiagnosticStep({
+    required this.stage,
+    required this.timestamp,
+    required this.latency,
+    required this.isSuccess,
+    required this.details,
+    this.metadata = const {},
+  });
+
+  Map<String, dynamic> toMap() => {
+    'stage': stage,
+    'timestamp': timestamp.toIso8601String(),
+    'latencyMs': latency.inMilliseconds,
+    'isSuccess': isSuccess,
+    'details': details,
+    'metadata': metadata,
+  };
+}
+
+class StemPipelineDiagnostic {
+  final String id;
+  final String songId;
+  final String songTitle;
+  final String songArtist;
+  final StemType requestedStem;
+  final DateTime startedAt;
+  DateTime? completedAt;
+  StemSource finalSource;
+  bool isSuccess;
+  String? resolvedFileOrUrl;
+  final List<StemDiagnosticStep> steps;
+  String? failureReason;
+
+  Duration get totalLatency => (completedAt ?? DateTime.now()).difference(startedAt);
+
+  StemPipelineDiagnostic({
+    required this.id,
+    required this.songId,
+    required this.songTitle,
+    required this.songArtist,
+    required this.requestedStem,
+    required this.startedAt,
+    this.completedAt,
+    this.finalSource = StemSource.dspFallback,
+    this.isSuccess = false,
+    this.resolvedFileOrUrl,
+    List<StemDiagnosticStep>? steps,
+    this.failureReason,
+  }) : steps = steps ?? [];
+
+  void addStep({
+    required String stage,
+    required Duration latency,
+    required bool isSuccess,
+    required String details,
+    Map<String, dynamic> metadata = const {},
+  }) {
+    steps.add(StemDiagnosticStep(
+      stage: stage,
+      timestamp: DateTime.now(),
+      latency: latency,
+      isSuccess: isSuccess,
+      details: details,
+      metadata: metadata,
+    ));
+  }
+
+  void complete({
+    required StemSource source,
+    required bool success,
+    String? resolvedTarget,
+    String? reason,
+  }) {
+    completedAt = DateTime.now();
+    finalSource = source;
+    isSuccess = success;
+    resolvedFileOrUrl = resolvedTarget;
+    failureReason = reason;
+  }
 }
 
 class StemResult {
@@ -106,6 +225,84 @@ class StemService {
   final Map<String, StemResult> _stemCache = {};
   final Map<String, Future<StemResult>> _inFlightResolutions = {};
 
+  // Diagnostic history & notification
+  final List<StemPipelineDiagnostic> _diagnosticHistory = [];
+  List<StemPipelineDiagnostic> get diagnosticHistory => List.unmodifiable(_diagnosticHistory);
+  final ValueNotifier<StemPipelineDiagnostic?> lastDiagnosticNotifier = ValueNotifier(null);
+  StemPipelineDiagnostic? get lastDiagnostic => lastDiagnosticNotifier.value;
+
+  // Background queue processing
+  final ValueNotifier<BackgroundStemTask?> activeBackgroundTaskNotifier = ValueNotifier(null);
+  final List<BackgroundStemTask> _backgroundQueue = [];
+  bool _isProcessingBackground = false;
+
+  // Engine preference: 'auto', 'bsRoformer', 'demucs', 'youtube', 'dsp'
+  String _enginePreference = 'auto';
+  String get enginePreference => _enginePreference;
+  void setEnginePreference(String engine) {
+    _enginePreference = engine;
+  }
+
+  /// Enqueue track for background neural stem separation
+  void enqueueBackgroundSeparation(Song song, StemType type) {
+    if (_backgroundQueue.any((t) => t.song.id == song.id && t.type == type)) return;
+    final task = BackgroundStemTask(
+      song: song,
+      type: type,
+      enqueuedAt: DateTime.now(),
+    );
+    _backgroundQueue.add(task);
+    _processBackgroundQueue();
+  }
+
+  Future<void> _processBackgroundQueue() async {
+    if (_isProcessingBackground || _backgroundQueue.isEmpty) return;
+    _isProcessingBackground = true;
+
+    while (_backgroundQueue.isNotEmpty) {
+      final task = _backgroundQueue.first;
+      activeBackgroundTaskNotifier.value = task;
+      task.status = BackgroundStemStatus.downloadingBuffer;
+      activeBackgroundTaskNotifier.value = task;
+
+      try {
+        final result = await resolveStem(song: task.song, type: task.type);
+        if (result.isSuccess && result.streamUrl != null) {
+          task.status = BackgroundStemStatus.completed;
+          task.resultPath = result.streamUrl;
+        } else {
+          task.status = BackgroundStemStatus.failed;
+          task.errorMessage = result.errorMessage ?? 'Separation produced no output';
+        }
+      } catch (e) {
+        task.status = BackgroundStemStatus.failed;
+        task.errorMessage = e.toString();
+      }
+
+      _backgroundQueue.removeAt(0);
+      activeBackgroundTaskNotifier.value = null;
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+
+    _isProcessingBackground = false;
+  }
+
+  /// Interactive benchmark & diagnostic separation tester
+  Future<StemPipelineDiagnostic> runDiagnosticSeparation(Song song, StemType type) async {
+    final cacheKey = '${song.id}_${type.name}';
+    _stemCache.remove(cacheKey);
+    final diagnostic = StemPipelineDiagnostic(
+      id: 'diag_${DateTime.now().millisecondsSinceEpoch}',
+      songId: song.id,
+      songTitle: song.title,
+      songArtist: song.artist,
+      requestedStem: type,
+      startedAt: DateTime.now(),
+    );
+    await _resolveInternal(song, type, cacheKey, diagnostic: diagnostic);
+    return diagnostic;
+  }
+
   /// Known high-fidelity backing track & karaoke channels
   static const Set<String> _proKaraokeChannels = {
     'sing king',
@@ -175,42 +372,147 @@ class StemService {
     });
   }
 
-  Future<StemResult> _resolveInternal(Song song, StemType type, String cacheKey, {Duration? targetDuration}) async {
+  Future<StemResult> _resolveInternal(
+    Song song,
+    StemType type,
+    String cacheKey, {
+    Duration? targetDuration,
+    StemPipelineDiagnostic? diagnostic,
+  }) async {
+    final diag = diagnostic ?? StemPipelineDiagnostic(
+      id: 'diag_${DateTime.now().millisecondsSinceEpoch}',
+      songId: song.id,
+      songTitle: song.title,
+      songArtist: song.artist,
+      requestedStem: type,
+      startedAt: DateTime.now(),
+    );
+
     // 1. Check local persistent AI / studio stem file (0ms hit)
+    final cacheSw = Stopwatch()..start();
     try {
       final localStem = await _checkLocalAiStem(song, type);
+      cacheSw.stop();
       if (localStem != null) {
         LogService.stream('StemService', 'Local disk cache hit for "${song.title}" (${type.name})');
+        diag.addStep(
+          stage: 'Tier 1: Local Disk Cache',
+          latency: cacheSw.elapsed,
+          isSuccess: true,
+          details: '0ms Disk Hit: ${localStem.streamUrl}',
+        );
+        diag.complete(source: StemSource.aiSeparation, success: true, resolvedTarget: localStem.streamUrl);
+        _recordDiagnostic(diag);
         _cacheResult(cacheKey, localStem);
         return localStem;
-      }
-    } catch (_) {}
-
-    // 2. PRIORITY #1: SOTA AI Neural Engine (BS-RoFormer 12.97 dB SDR & Demucs v4)
-    // Runs on-device audio upload to extract true uncompromised vocals & accompaniment
-    try {
-      LogService.stream('StemService', 'Prioritizing SOTA AI Neural separation for "${song.title}" (${type.name})...');
-      final aiResult = await separateAudioWithAi(song: song, type: type);
-      if (aiResult != null && aiResult.isSuccess) {
-        LogService.stream('StemService', 'AI source separation successful for "${song.title}" (${type.name})');
-        _cacheResult(cacheKey, aiResult);
-        return aiResult;
+      } else {
+        diag.addStep(
+          stage: 'Tier 1: Local Disk Cache',
+          latency: cacheSw.elapsed,
+          isSuccess: false,
+          details: 'Cache miss. Proceeding to remote neural separation.',
+        );
       }
     } catch (e) {
-      LogService.w('StemService', 'AI separation error: $e');
+      cacheSw.stop();
+      diag.addStep(
+        stage: 'Tier 1: Local Disk Cache',
+        latency: cacheSw.elapsed,
+        isSuccess: false,
+        details: 'Cache check error: $e',
+      );
+    }
+
+    // 2. PRIORITY #1: SOTA AI Neural Engine (BS-RoFormer 12.97 dB SDR & Demucs v4)
+    if (_enginePreference != 'youtube' && _enginePreference != 'dsp') {
+      final aiSw = Stopwatch()..start();
+      try {
+        LogService.stream('StemService', 'Prioritizing SOTA AI Neural separation for "${song.title}" (${type.name})...');
+        final aiResult = await separateAudioWithAi(song: song, type: type, diagnostic: diag);
+        aiSw.stop();
+        if (aiResult != null && aiResult.isSuccess) {
+          LogService.stream('StemService', 'AI source separation successful for "${song.title}" (${type.name})');
+          diag.addStep(
+            stage: 'Tier 2: SOTA AI Neural Engine',
+            latency: aiSw.elapsed,
+            isSuccess: true,
+            details: 'Separation complete: ${aiResult.streamUrl}',
+          );
+          diag.complete(source: StemSource.aiSeparation, success: true, resolvedTarget: aiResult.streamUrl);
+          _recordDiagnostic(diag);
+          _cacheResult(cacheKey, aiResult);
+          return aiResult;
+        } else {
+          diag.addStep(
+            stage: 'Tier 2: SOTA AI Neural Engine',
+            latency: aiSw.elapsed,
+            isSuccess: false,
+            details: 'AI Neural spaces unavailable or timed out.',
+          );
+        }
+      } catch (e) {
+        aiSw.stop();
+        LogService.w('StemService', 'AI separation error: $e');
+        diag.addStep(
+          stage: 'Tier 2: SOTA AI Neural Engine',
+          latency: aiSw.elapsed,
+          isSuccess: false,
+          details: 'AI error: $e',
+        );
+      }
+    } else {
+      diag.addStep(
+        stage: 'Tier 2: SOTA AI Neural Engine',
+        latency: Duration.zero,
+        isSuccess: false,
+        details: 'Skipped by engine preference ($_enginePreference)',
+      );
     }
 
     // 3. SECONDARY: High-Speed Studio Master Matcher (Sing King, KaraFun, Official Topic Instrumental releases)
-    try {
-      LogService.stream('StemService', 'Searching verified studio backing stems for "${song.title}" (${type.name})...');
-      final ytResult = await _resolveYouTubeSmartStem(song, type, targetDuration: targetDuration);
-      if (ytResult != null && ytResult.isSuccess) {
-        LogService.stream('StemService', 'Studio Master matched for "${song.title}" (${type.name})');
-        _cacheResult(cacheKey, ytResult);
-        return ytResult;
+    if (_enginePreference != 'dsp') {
+      final ytSw = Stopwatch()..start();
+      try {
+        LogService.stream('StemService', 'Searching verified studio backing stems for "${song.title}" (${type.name})...');
+        final ytResult = await _resolveYouTubeSmartStem(song, type, targetDuration: targetDuration, diagnostic: diag);
+        ytSw.stop();
+        if (ytResult != null && ytResult.isSuccess) {
+          LogService.stream('StemService', 'Studio Master matched for "${song.title}" (${type.name})');
+          diag.addStep(
+            stage: 'Tier 3: YouTube Studio Matcher',
+            latency: ytSw.elapsed,
+            isSuccess: true,
+            details: 'Matched "${ytResult.candidateTitle}" (Score: ${ytResult.confidenceScore})',
+          );
+          diag.complete(source: StemSource.youtubeSmartMatch, success: true, resolvedTarget: ytResult.streamUrl);
+          _recordDiagnostic(diag);
+          _cacheResult(cacheKey, ytResult);
+          return ytResult;
+        } else {
+          diag.addStep(
+            stage: 'Tier 3: YouTube Studio Matcher',
+            latency: ytSw.elapsed,
+            isSuccess: false,
+            details: 'No candidate satisfied duration/confidence criteria.',
+          );
+        }
+      } catch (e) {
+        ytSw.stop();
+        LogService.w('StemService', 'Tier 2 Studio stem matching error: $e');
+        diag.addStep(
+          stage: 'Tier 3: YouTube Studio Matcher',
+          latency: ytSw.elapsed,
+          isSuccess: false,
+          details: 'Search error: $e',
+        );
       }
-    } catch (e) {
-      LogService.w('StemService', 'Tier 2 Studio stem matching error: $e');
+    } else {
+      diag.addStep(
+        stage: 'Tier 3: YouTube Studio Matcher',
+        latency: Duration.zero,
+        isSuccess: false,
+        details: 'Skipped by engine preference ($_enginePreference)',
+      );
     }
 
     // 4. Fallback: Tier 3 Hardware DSP Vocal Shaper
@@ -218,8 +520,28 @@ class StemService {
       type: type,
       reason: 'Studio and AI stems offline; using native DSP vocal notch/boost.',
     );
+    diag.addStep(
+      stage: 'Tier 4: Hardware DSP Isolation',
+      latency: const Duration(milliseconds: 2),
+      isSuccess: true,
+      details: 'Parametric DSP vocal notch/boost active.',
+    );
+    diag.complete(
+      source: StemSource.dspFallback,
+      success: false,
+      reason: 'Studio and AI stems offline; using native DSP vocal notch/boost.',
+    );
+    _recordDiagnostic(diag);
     _cacheResult(cacheKey, fallback);
     return fallback;
+  }
+
+  void _recordDiagnostic(StemPipelineDiagnostic diag) {
+    if (_diagnosticHistory.length >= 30) {
+      _diagnosticHistory.removeAt(0);
+    }
+    _diagnosticHistory.add(diag);
+    lastDiagnosticNotifier.value = diag;
   }
 
   void _cacheResult(String key, StemResult result) {
@@ -230,7 +552,7 @@ class StemService {
   }
 
   /// TIER 1: YouTube Smart Stem Matcher with Duration Validation and Heuristics
-  Future<StemResult?> _resolveYouTubeSmartStem(Song song, StemType type, {Duration? targetDuration}) async {
+  Future<StemResult?> _resolveYouTubeSmartStem(Song song, StemType type, {Duration? targetDuration, StemPipelineDiagnostic? diagnostic}) async {
     final cleanT = _sanitizeSongTitle(song.title);
     final cleanA = song.artist != 'Unknown Artist' && song.artist.isNotEmpty ? song.artist.trim() : '';
 
@@ -499,6 +821,7 @@ class StemService {
     required Song song,
     required StemType type,
     File? inputFile,
+    StemPipelineDiagnostic? diagnostic,
   }) async {
     try {
       final docDir = await getApplicationDocumentsDirectory();
@@ -513,24 +836,26 @@ class StemService {
       final localAudio = inputFile ?? await _prepareLocalAudioForSong(song, stemsDir, cleanId);
 
       // 1. First attempt: BS-RoFormer (Highest fidelity vocal separation)
-      final bsResult = await _tryBsRoformerSeparation(
+      final bsResult = (_enginePreference == 'demucs') ? null : await _tryBsRoformerSeparation(
         song: song,
         type: type,
         cleanId: cleanId,
         stemsDir: stemsDir,
         inputFile: localAudio,
+        diagnostic: diagnostic,
       );
       if (bsResult != null && bsResult.isSuccess) {
         return bsResult;
       }
 
       // 2. Second attempt: Demucs v4
-      final demucsResult = await _tryDemucsSeparation(
+      final demucsResult = (_enginePreference == 'bsRoformer') ? null : await _tryDemucsSeparation(
         song: song,
         type: type,
         cleanId: cleanId,
         stemsDir: stemsDir,
         inputFile: localAudio,
+        diagnostic: diagnostic,
       );
       if (demucsResult != null && demucsResult.isSuccess) {
         return demucsResult;
@@ -555,6 +880,7 @@ class StemService {
     required String cleanId,
     required Directory stemsDir,
     File? inputFile,
+    StemPipelineDiagnostic? diagnostic,
   }) async {
     const spaceBase = 'https://hugging-apps-bs-roformer-leap-audio-separator.hf.space';
     try {
@@ -656,6 +982,7 @@ class StemService {
     required String cleanId,
     required Directory stemsDir,
     File? inputFile,
+    StemPipelineDiagnostic? diagnostic,
   }) async {
     const spaceBase = 'https://abidlabs-music-separation.hf.space';
     try {

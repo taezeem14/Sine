@@ -93,6 +93,12 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   String _currentPreset = 'Flat';
   final Map<int, double> _customBandGains = {};
 
+  bool _clippingProtectionEnabled = true;
+  double _masterVolume = 1.0;
+  double _headroomAttenuation = 1.0;
+  bool get clippingProtectionEnabled => _clippingProtectionEnabled;
+  double get headroomAttenuation => _headroomAttenuation;
+
   List<SponsorSegment> _activeSponsorSegments = [];
   final Set<String> _skippedSegmentKeys = {};
   bool _isSkippingSponsor = false;
@@ -780,6 +786,61 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     }
   }
 
+  
+  Future<void> setClippingProtection(bool enabled) async {
+    _clippingProtectionEnabled = enabled;
+    await _updateHeadroomGain();
+  }
+
+  Future<void> setMasterVolume(double volume) async {
+    _masterVolume = volume.clamp(0.0, 1.0);
+    _preDuckVolume = _masterVolume;
+    await _updateHeadroomGain();
+  }
+
+  Future<void> _updateHeadroomGain() async {
+    if (!_clippingProtectionEnabled) {
+      _headroomAttenuation = 1.0;
+      if (!_isDucked) {
+        await _player.setVolume(_masterVolume);
+      }
+      return;
+    }
+
+    double maxBoost = 0.0;
+
+    for (final gain in _customBandGains.values) {
+      if (gain > maxBoost) maxBoost = gain;
+    }
+
+    if (_currentPreset == 'Vocals Only') {
+      maxBoost = 13.5;
+    } else if (_currentPreset == 'Instruments Only') {
+      maxBoost = 7.5;
+    } else if (_spotifyPresetMap.containsKey(_currentPreset.toLowerCase())) {
+      final curve = _spotifyPresetMap[_currentPreset.toLowerCase()]!;
+      for (final g in curve) {
+        if (g > maxBoost) maxBoost = g;
+      }
+    }
+
+    if (_bassBoost > 0) {
+      maxBoost += (_bassBoost * 4.5);
+    }
+
+    if (maxBoost > 1.0) {
+      final attenuationDb = (maxBoost * 0.45).clamp(0.0, 7.5);
+      _headroomAttenuation = (1.0 / (1.0 + (attenuationDb * 0.12))).clamp(0.40, 1.0);
+    } else {
+      _headroomAttenuation = 1.0;
+    }
+
+    if (!_isDucked) {
+      final targetVol = (_masterVolume * _headroomAttenuation).clamp(0.01, 1.0);
+      await _player.setVolume(targetVol);
+    }
+  }
+
   Future<void> setBassBoost(double gain) async {
     _bassBoost = gain.clamp(0.0, 1.0);
     try {
@@ -795,6 +856,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         await _equalizer.setEnabled(true);
         await applyEqualizerPreset(_currentPreset);
       }
+      await _updateHeadroomGain();
     } catch (e) {
       debugPrint('[AudioHandler] setBassBoost error: $e');
     }
@@ -808,6 +870,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         final clamped = gain.clamp(params.minDecibels, params.maxDecibels);
         await params.bands[bandIndex].setGain(clamped);
       }
+      await _updateHeadroomGain();
     } catch (_) {}
   }
 
@@ -1000,10 +1063,12 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         }
         try {
           await _loudnessEnhancer.setEnabled(true);
-          await _loudnessEnhancer.setTargetGain(0.40); // Bring isolated vocals forward
+          final target = _clippingProtectionEnabled ? 0.22 : 0.40;
+          await _loudnessEnhancer.setTargetGain(target); // Bring isolated vocals forward safely
         } catch (_) {}
       } else {
-        await setBassBoost(0.85); // High-impact low-end masking for vocal cancellation
+        final boost = _clippingProtectionEnabled ? 0.65 : 0.85;
+        await setBassBoost(boost); // Controlled low-end masking for vocal cancellation
         // Karaoke / Instruments Only:
         // Deep parametric notch carving out vocal formants (700Hz - 3400Hz);
         // Boost low-end bass and high-end air to psychoacoustically mask any vocal residual bleed
@@ -1040,6 +1105,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     } catch (e) {
       debugPrint('Apply isolation filter error: $e');
     }
+    await _updateHeadroomGain();
   }
 
   /// Seamlessly swaps the active audio stream to [newStreamUrl] (e.g. between Original,
@@ -1253,6 +1319,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       if (_eqEnabled) {
         await applyEqualizerPreset(_currentPreset);
       }
+      await _updateHeadroomGain();
     } catch (_) {}
   }
 

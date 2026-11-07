@@ -35,6 +35,13 @@ class StorageService {
   static const String _searchesLegacyKey = 'ember_recent_searches_v1';
   static const String _crossfadeKey = 'sine_crossfade_seconds';
   static const String _gaplessKey = 'sine_gapless_playback';
+  static const String _audioQualityKey = 'sine_audio_quality_preset';
+  static const String _clippingProtectionKey = 'sine_clipping_protection';
+  static const String _recoveryModeKey = 'sine_playback_recovery_mode';
+  static const String _savedSessionKey = 'sine_saved_playback_session';
+  static const String _savedQueueKey = 'sine_saved_queue_tracks';
+  static const String _stemEngineKey = 'sine_stem_engine_preference';
+  static const String _performanceHudKey = 'sine_performance_hud_enabled';
 
   final SharedPreferences? _prefs;
   final List<Song> _memFavorites = [];
@@ -439,5 +446,96 @@ class StorageService {
 
   Future<void> saveGaplessPlayback(bool enabled) async {
     await _prefs?.setBool(_gaplessKey, enabled);
+  }
+
+  // Audio Quality Preset (high, medium, dataSaver)
+  String loadAudioQualityPreset() {
+    return _prefs?.getString(_audioQualityKey) ?? 'high';
+  }
+
+  Future<void> saveAudioQualityPreset(String preset) async {
+    await _prefs?.setString(_audioQualityKey, preset);
+  }
+
+  // Audio Clipping Protection
+  bool loadClippingProtection() {
+    return _prefs?.getBool(_clippingProtectionKey) ?? true;
+  }
+
+  Future<void> saveClippingProtection(bool enabled) async {
+    await _prefs?.setBool(_clippingProtectionKey, enabled);
+  }
+
+  // Playback Recovery Mode (prompt, always, off)
+  String loadPlaybackRecoveryMode() {
+    return _prefs?.getString(_recoveryModeKey) ?? 'prompt';
+  }
+
+  Future<void> savePlaybackRecoveryMode(String mode) async {
+    await _prefs?.setString(_recoveryModeKey, mode);
+  }
+
+  // Saved Session Persistence
+  Map<String, dynamic>? loadSavedSession() {
+    final raw = _prefs?.getString(_savedSessionKey);
+    if (raw == null) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveSavedSession(Map<String, dynamic> session) async {
+    await _prefs?.setString(_savedSessionKey, jsonEncode(session));
+  }
+
+  Future<void> clearSavedSession() async {
+    await _prefs?.remove(_savedSessionKey);
+  }
+
+  // Saved Queue Tracks
+  List<Song> loadSavedQueue() {
+    final raw = _prefs?.getStringList(_savedQueueKey) ?? [];
+    final songs = <Song>[];
+    for (final s in raw) {
+      try {
+        final decoded = jsonDecode(s);
+        if (decoded is Map) {
+          final song = Song.fromMap(Map<String, dynamic>.from(decoded));
+          if (!Song.isPlaceholder(song)) songs.add(song);
+        }
+      } catch (_) {}
+    }
+    return songs;
+  }
+
+  Future<void> saveSavedQueue(List<Song> queue) async {
+    final list = queue
+        .where((s) => !Song.isPlaceholder(s))
+        .map((s) => jsonEncode(s.toMap()))
+        .toList();
+    await _prefs?.setStringList(_savedQueueKey, list);
+  }
+
+  // Stem AI Engine Preference (auto, bsRoformer, demucs, youtube, dsp)
+  String loadStemEnginePreference() {
+    return _prefs?.getString(_stemEngineKey) ?? 'auto';
+  }
+
+  Future<void> saveStemEnginePreference(String engine) async {
+    await _prefs?.setString(_stemEngineKey, engine);
+  }
+
+  // Performance HUD Overlay
+  bool loadPerformanceHudEnabled() {
+    return _prefs?.getBool(_performanceHudKey) ?? false;
+  }
+
+  Future<void> savePerformanceHudEnabled(bool enabled) async {
+    await _prefs?.setBool(_performanceHudKey, enabled);
   }
 }

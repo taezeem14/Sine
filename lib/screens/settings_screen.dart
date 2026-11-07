@@ -230,6 +230,144 @@ class _SettingsContentState extends State<SettingsContent> {
     }
   }
 
+  void _showAudioQualitySheet(BuildContext context, PlayerProvider player) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: EmberColors.obsidianBase,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Audio Streaming Quality', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                const Text('Select audio stream bitrate priority for YouTube NewPipe playback.', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
+                const SizedBox(height: 14),
+                _buildOptionTile('High Bitrate (Audiophile)', 'WebM Opus (160+ kbps) & AAC (128 kbps)', player.audioQuality == 'high', () {
+                  player.setAudioQuality('high');
+                  Navigator.pop(context);
+                }),
+                _buildOptionTile('Medium (Balanced)', 'Fast hardware Muxed MP4 & AAC (128 kbps)', player.audioQuality == 'medium', () {
+                  player.setAudioQuality('medium');
+                  Navigator.pop(context);
+                }),
+                _buildOptionTile('Data Saver (Low Bandwidth)', 'Low-bitrate Opus (50-70 kbps) for mobile data', player.audioQuality == 'dataSaver', () {
+                  player.setAudioQuality('dataSaver');
+                  Navigator.pop(context);
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showStemEngineSheet(BuildContext context, PlayerProvider player) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: EmberColors.obsidianBase,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Neural Stem Separation Engine', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                const Text('Prioritize AI models or local matching for Karaoke & Acapella isolation.', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
+                const SizedBox(height: 14),
+                _buildOptionTile('Automatic SOTA (Recommended)', 'BS-RoFormer (12.97dB SDR) -> Demucs v4 -> Studio', player.stemEnginePreference == 'auto', () {
+                  player.setStemEnginePreference('auto');
+                  Navigator.pop(context);
+                }),
+                _buildOptionTile('Force BS-RoFormer Only', 'Exclusive world-record SDR neural space', player.stemEnginePreference == 'bsRoformer', () {
+                  player.setStemEnginePreference('bsRoformer');
+                  Navigator.pop(context);
+                }),
+                _buildOptionTile('Force Demucs v4 Only', 'Fast 4-source hybrid neural network', player.stemEnginePreference == 'demucs', () {
+                  player.setStemEnginePreference('demucs');
+                  Navigator.pop(context);
+                }),
+                _buildOptionTile('YouTube Studio Match Only', 'Bypass AI spaces; match verified backing tracks', player.stemEnginePreference == 'youtube', () {
+                  player.setStemEnginePreference('youtube');
+                  Navigator.pop(context);
+                }),
+                _buildOptionTile('DSP Hardware Only (Offline)', 'Zero network data; instant parametric vocal notch', player.stemEnginePreference == 'dsp', () {
+                  player.setStemEnginePreference('dsp');
+                  Navigator.pop(context);
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showRecoveryModeSheet(BuildContext context, PlayerProvider player) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: EmberColors.obsidianBase,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Playback Session Recovery', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                const Text('How Sine handles previously active playback when the app is restarted.', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
+                const SizedBox(height: 14),
+                _buildOptionTile('Prompt (Recommended)', 'Clean startup; show discrete "Resume" banner on Home', player.playbackRecoveryMode == 'prompt', () {
+                  player.setPlaybackRecoveryMode('prompt');
+                  Navigator.pop(context);
+                }),
+                _buildOptionTile('Always Direct Restore', 'Immediately restore queue and seek to exact second', player.playbackRecoveryMode == 'always', () {
+                  player.setPlaybackRecoveryMode('always');
+                  Navigator.pop(context);
+                }),
+                _buildOptionTile('Off (Clean Every Start)', 'Discard previous session; always start with clean player', player.playbackRecoveryMode == 'off', () {
+                  player.setPlaybackRecoveryMode('off');
+                  Navigator.pop(context);
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOptionTile(String title, String subtitle, bool isSelected, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? EmberColors.primaryAmber.withValues(alpha: 0.14) : EmberColors.surfaceContainerHigh.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isSelected ? EmberColors.primaryAmber : Colors.transparent),
+      ),
+      child: ListTile(
+        dense: true,
+        title: Text(title, style: TextStyle(color: isSelected ? EmberColors.primaryAmberHi : EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle, style: const TextStyle(color: EmberColors.textMuted, fontSize: 11)),
+        trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: EmberColors.primaryAmber, size: 18) : null,
+        onTap: onTap,
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerProvider>();
@@ -477,6 +615,61 @@ class _SettingsContentState extends State<SettingsContent> {
           onTap: () => EqualizerScreen.open(context),
         ),
         _SettingsTile(
+          icon: FontAwesomeIcons.shieldHalved,
+          iconColor: Colors.greenAccent,
+          title: 'Audio Clipping Protection',
+          subtitle: 'Dynamic digital headroom scaling prevents distortion & crackle during bass/vocal boosts',
+          trailing: Switch(
+            value: player.clippingProtectionEnabled,
+            activeThumbColor: Colors.greenAccent,
+            onChanged: (val) => player.setClippingProtection(val),
+          ),
+          onTap: () => player.setClippingProtection(!player.clippingProtectionEnabled),
+        ),
+        _SettingsTile(
+          icon: FontAwesomeIcons.gaugeHigh,
+          title: 'Audio Streaming Quality',
+          subtitle: 'Bitrate: ${player.audioQuality.toUpperCase()} • High-res WebM Opus & AAC',
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: EmberColors.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: EmberColors.outlineVariant),
+            ),
+            child: Text(player.audioQuality.toUpperCase(), style: const TextStyle(color: EmberColors.primaryAmber, fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+          onTap: () => _showAudioQualitySheet(context, player),
+        ),
+        _SettingsTile(
+          icon: FontAwesomeIcons.brain,
+          iconColor: const Color(0xFF00E5FF),
+          title: 'Neural Stem Engine Preference',
+          subtitle: 'AI Model: ${player.stemEnginePreference.toUpperCase()} • SOTA Vocal & Backing Separation',
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          onTap: () => _showStemEngineSheet(context, player),
+        ),
+        _SettingsTile(
+          icon: FontAwesomeIcons.clockRotateLeft,
+          iconColor: EmberColors.primaryAmber,
+          title: 'Playback Session Recovery',
+          subtitle: 'Mode: ${player.playbackRecoveryMode.toUpperCase()} • Reliable app restart recovery',
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          onTap: () => _showRecoveryModeSheet(context, player),
+        ),
+        _SettingsTile(
+          icon: FontAwesomeIcons.chartLine,
+          iconColor: Colors.pinkAccent,
+          title: 'Floating Performance HUD',
+          subtitle: 'Display real-time 120 FPS & dropped frame monitor overlay across all screens',
+          trailing: Switch(
+            value: player.performanceHudEnabled,
+            activeThumbColor: Colors.pinkAccent,
+            onChanged: (val) => player.setPerformanceHudEnabled(val),
+          ),
+          onTap: () => player.setPerformanceHudEnabled(!player.performanceHudEnabled),
+        ),
+        _SettingsTile(
           icon: FontAwesomeIcons.shuffle,
           title: 'Crossfade Audio',
           subtitle: player.crossfadeSeconds > 0
@@ -517,23 +710,7 @@ class _SettingsContentState extends State<SettingsContent> {
             activeThumbColor: EmberColors.primaryAmber,
             onChanged: (_) => player.toggleAutoplay(),
           ),
-
           onTap: () => player.toggleAutoplay(),
-        ),
-        _SettingsTile(
-          icon: FontAwesomeIcons.gaugeHigh,
-          title: 'Audio Streaming Quality',
-          subtitle: 'High Bitrate YouTube Opus (160 kbps) & AAC (128 kbps)',
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: EmberColors.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: EmberColors.outlineVariant),
-            ),
-            child: const Text('High Bitrate', style: TextStyle(color: EmberColors.primaryAmber, fontSize: 11, fontWeight: FontWeight.bold)),
-          ),
-          onTap: null,
         ),
         _SettingsTile(
           icon: FontAwesomeIcons.stop,
@@ -562,6 +739,22 @@ class _SettingsContentState extends State<SettingsContent> {
         // SECTION 2: STORAGE & CACHE
         // ==========================================
         const _SectionHeader(title: 'Storage & Database'),
+                _SettingsTile(
+          icon: FontAwesomeIcons.layerGroup,
+          title: 'Deduplicate Active Queue',
+          subtitle: 'Remove all duplicate tracks while preserving active playback',
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          onTap: () {
+            player.deduplicateQueue();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                backgroundColor: EmberColors.surfaceContainerHigh,
+                duration: Duration(seconds: 2),
+                content: Text('Active queue deduplicated cleanly!', style: TextStyle(color: EmberColors.primaryAmberHi)),
+              ),
+            );
+          },
+        ),
         _SettingsTile(
           icon: FontAwesomeIcons.broom,
           title: 'Purge Placeholders & Clean Cache',

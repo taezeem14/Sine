@@ -14,6 +14,38 @@ import '../services/stream_resolver_service.dart';
 import '../services/stem_service.dart';
 import '../services/smart_radio_service.dart';
 import '../services/widget_service.dart';
+import '../services/performance_service.dart';
+
+
+class SavedPlaybackSession {
+  final Song song;
+  final int positionMs;
+  final List<Song> queue;
+  final int currentIndex;
+  final DateTime savedAt;
+
+  const SavedPlaybackSession({
+    required this.song,
+    required this.positionMs,
+    required this.queue,
+    required this.currentIndex,
+    required this.savedAt,
+  });
+
+  factory SavedPlaybackSession.fromMap(Map<String, dynamic> map) {
+    final song = Song.fromMap(Map<String, dynamic>.from(map['song'] as Map));
+    final qList = (map['queue'] as List? ?? [])
+        .map((m) => Song.fromMap(Map<String, dynamic>.from(m as Map)))
+        .toList();
+    return SavedPlaybackSession(
+      song: song,
+      positionMs: (map['positionMs'] as num?)?.toInt() ?? 0,
+      queue: qList,
+      currentIndex: (map['currentIndex'] as num?)?.toInt() ?? 0,
+      savedAt: DateTime.tryParse(map['savedAt']?.toString() ?? '') ?? DateTime.now(),
+    );
+  }
+}
 
 enum IsolationMode {
   none,
@@ -97,6 +129,30 @@ class PlayerProvider extends ChangeNotifier {
   String? _stemStatusBadgeText;
   String? get stemStatusBadgeText => _stemStatusBadgeText;
   final Map<String, String> _originalStreamCache = {};
+
+  // v1.1.9 Core Features: Settings, Headroom & Session Recovery
+  String _audioQuality = 'high';
+  String get audioQuality => _audioQuality;
+
+  bool _clippingProtection = true;
+  bool get clippingProtectionEnabled => _clippingProtection;
+
+  String _playbackRecoveryMode = 'prompt'; // 'prompt', 'always', 'off'
+  String get playbackRecoveryMode => _playbackRecoveryMode;
+
+  SavedPlaybackSession? _recoverableSession;
+  SavedPlaybackSession? get recoverableSession => _recoverableSession;
+
+  String _stemEnginePreference = 'auto'; // 'auto', 'bsRoformer', 'demucs', 'youtube', 'dsp'
+  String get stemEnginePreference => _stemEnginePreference;
+
+  bool _performanceHudEnabled = false;
+  bool get performanceHudEnabled => _performanceHudEnabled;
+
+  StemPipelineDiagnostic? get lastStemDiagnostic => StemService.instance.lastDiagnostic;
+
+  int _lastSessionPersistSec = 0;
+
 
 
   LyricsResult _lyrics = LyricsResult.empty;
@@ -236,6 +292,37 @@ class PlayerProvider extends ChangeNotifier {
     _crossfadeSeconds = _storageService.loadCrossfadeSeconds();
     _gaplessPlayback = _storageService.loadGaplessPlayback();
 
+    _audioQuality = _storageService.loadAudioQualityPreset();
+    YouTubeImporterService.preferredQuality = _audioQuality;
+
+    _clippingProtection = _storageService.loadClippingProtection();
+    _audioHandler.setClippingProtection(_clippingProtection);
+
+    _playbackRecoveryMode = _storageService.loadPlaybackRecoveryMode();
+
+    _stemEnginePreference = _storageService.loadStemEnginePreference();
+    StemService.instance.setEnginePreference(_stemEnginePreference);
+
+    _performanceHudEnabled = _storageService.loadPerformanceHudEnabled();
+    PerformanceService.instance.setHudVisible(_performanceHudEnabled);
+    PerformanceService.instance.start();
+
+    // Check for recoverable previous playback session
+    final savedSessionMap = _storageService.loadSavedSession();
+    if (savedSessionMap != null && _playbackRecoveryMode != 'off') {
+      try {
+        final session = SavedPlaybackSession.fromMap(savedSessionMap);
+        if (_playbackRecoveryMode == 'always') {
+          _queue = List.from(session.queue);
+          _currentIndex = session.currentIndex.clamp(0, _queue.isNotEmpty ? _queue.length - 1 : 0);
+          _unshuffledQueue = List.from(_queue);
+        } else {
+          _recoverableSession = session;
+        }
+      } catch (_) {}
+    }
+
+
     // Re-sync downloads on completion or cold start
     DownloadService.progressStream.listen((p) {
       if (p.isCompleted) {
@@ -320,6 +407,10 @@ class PlayerProvider extends ChangeNotifier {
       if (_isScrubbing) return;
       _position = pos;
       positionNotifier.value = pos;
+      if (currentSong != null && (pos.inSeconds - _lastSessionPersistSec).abs() >= 6) {
+        _lastSessionPersistSec = pos.inSeconds;
+        _saveCurrentSession();
+      }
       final lyricIdx = _findLyricIndex(pos);
       if (lyricIdx != activeLyricIndexNotifier.value) {
         activeLyricIndexNotifier.value = lyricIdx;
@@ -518,7 +609,7 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> playSong(Song song, {List<Song>? contextQueue, bool isAutoAdvance = false, String? playingFrom}) async {
+  Future<void> playSong(Song song, {List<Song>? contextQueue, bool isAutoAdvance = false, String? playingFrom, Duration? initialPosition}) async {
     if (!isAutoAdvance) {
       // User-initiated tap or explicit playlist selection: reset failure counter
       _consecutiveStreamFailures = 0;
@@ -607,7 +698,10 @@ class PlayerProvider extends ChangeNotifier {
       }
     });
 
-    await _audioHandler.playSong(resolvedSong);
+        await _audioHandler.playSong(resolvedSong);
+    if (initialPosition != null && initialPosition > Duration.zero) {
+      await _audioHandler.seek(initialPosition);
+    }
     if (_playSessionId != thisSession) {
       // Newer song selection superseded this one; discard outdated state updates
       return;
@@ -1097,6 +1191,103 @@ class PlayerProvider extends ChangeNotifier {
         }
       }
     });
+  }
+
+
+  // ==========================================
+  // v1.1.9 SETTINGS, CLIPPING & RECOVERY METHODS
+  // ==========================================
+
+  void _saveCurrentSession() {
+    if (currentSong == null) return;
+    _storageService.saveSavedSession({
+      'song': currentSong!.toMap(),
+      'positionMs': _position.inMilliseconds,
+      'queue': _queue.map((s) => s.toMap()).toList(),
+      'currentIndex': _currentIndex,
+      'savedAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<void> setAudioQuality(String quality) async {
+    _audioQuality = quality;
+    YouTubeImporterService.preferredQuality = quality;
+    await _storageService.saveAudioQualityPreset(quality);
+    notifyListeners();
+  }
+
+  Future<void> setClippingProtection(bool enabled) async {
+    _clippingProtection = enabled;
+    await _storageService.saveClippingProtection(enabled);
+    await _audioHandler.setClippingProtection(enabled);
+    notifyListeners();
+  }
+
+  Future<void> setPlaybackRecoveryMode(String mode) async {
+    _playbackRecoveryMode = mode;
+    await _storageService.savePlaybackRecoveryMode(mode);
+    notifyListeners();
+  }
+
+  Future<void> setStemEnginePreference(String engine) async {
+    _stemEnginePreference = engine;
+    StemService.instance.setEnginePreference(engine);
+    await _storageService.saveStemEnginePreference(engine);
+    notifyListeners();
+  }
+
+  Future<void> setPerformanceHudEnabled(bool enabled) async {
+    _performanceHudEnabled = enabled;
+    await _storageService.savePerformanceHudEnabled(enabled);
+    PerformanceService.instance.setHudVisible(enabled);
+    notifyListeners();
+  }
+
+  void resumeRecoveredSession() {
+    if (_recoverableSession == null) return;
+    final session = _recoverableSession!;
+    _recoverableSession = null;
+    _storageService.clearSavedSession();
+    _queue = List.from(session.queue);
+    _currentIndex = session.currentIndex.clamp(0, _queue.isNotEmpty ? _queue.length - 1 : 0);
+    _unshuffledQueue = List.from(_queue);
+    playSong(session.song, initialPosition: Duration(milliseconds: session.positionMs));
+    notifyListeners();
+  }
+
+  void dismissRecoverableSession() {
+    _recoverableSession = null;
+    _storageService.clearSavedSession();
+    notifyListeners();
+  }
+
+  void preSeparateStems(Song song, {StemType type = StemType.instrumental}) {
+    StemService.instance.enqueueBackgroundSeparation(song, type);
+    notifyListeners();
+  }
+
+  void deduplicateQueue() {
+    if (_queue.length <= 1) return;
+    final seenIds = <String>{};
+    final newQueue = <Song>[];
+    final currentId = currentSong?.id;
+
+    for (final song in _queue) {
+      if (seenIds.add(song.id)) {
+        newQueue.add(song);
+      }
+    }
+
+    _queue = newQueue;
+    if (currentId != null) {
+      final newIdx = _queue.indexWhere((s) => s.id == currentId);
+      _currentIndex = newIdx != -1 ? newIdx : 0;
+    } else {
+      _currentIndex = _queue.isEmpty ? -1 : 0;
+    }
+    _unshuffledQueue = List.from(_queue);
+    _storageService.saveSavedQueue(_queue);
+    notifyListeners();
   }
 
   // Queue manipulation

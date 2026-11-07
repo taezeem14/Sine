@@ -24,7 +24,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.1.8)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.8.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.1.9)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.9.apk) 👈
 
 *Tap above to download the APK, install on Android, and elevate your earholes immediately.*
 
@@ -56,6 +56,30 @@ Look, Spotify got greedy with \$11+/month subscription prices and YouTube Music 
 - Just pure, uninterrupted, audiophile-grade music streamed straight from YouTube & YouTube Music's global catalog.
 
 We cooked so you can vibe. Fr fr. 👨‍🍳🔥
+
+---
+
+## 🚀 What's New in v1.1.9 (Neural Stem Diagnostics, Audio Headroom Limiter & 120 FPS Telemetry)
+- 🔬 **Critical: Stem Pipeline Diagnostics & Benchmark Test Bench**:
+  - Live stage-by-stage diagnostic trace in Diagnostics Screen inspecting Tier 1 Disk Cache (0ms), Tier 2 SOTA AI Neural Spaces (BS-RoFormer 12.97 dB SDR & Demucs v4), Tier 3 YouTube Studio Matcher, and Tier 4 Hardware DSP.
+  - Logs HTTP statuses, Gradio upload payloads, candidate matching scores, duration deltas, and exact latency down to the millisecond.
+  - Interactive benchmark tester allowing instant on-demand stem isolation diagnostics for any YouTube song ID or title.
+- 🛡️ **Critical: Audio Clipping Protection & Digital Headroom Scaling**:
+  - Built-in dynamic digital headroom limiter in `SineAudioHandler` calculating real-time peak EQ boosts (+13.5dB Acapella resonance, +8.5dB Karaoke bass, Equalizer curve presets).
+  - Automatically attenuates pre-amp volume dynamically to guarantee the output signal never exceeds 0 dBFS or causes DAC oversaturation, distortion, or crackle.
+- ⚡ **High: Asynchronous Background Stem Processing**:
+  - Non-blocking FIFO background worker queue in `StemService` (`enqueueBackgroundSeparation`) separating vocal/instrumental stems in background threads without stuttering active audio or freezing UI.
+- 🔄 **High: Persistent Playback Recovery & Reliable Restarts**:
+  - Discrete, non-intrusive Spotify-style obsidian session recovery banner on Home screen: *"🎵 Resume session: [Track] ([mm:ss])"*, allowing one-tap resumption right to the exact second.
+  - Configurable recovery modes in Settings: Prompt (Recommended), Always Direct Restore, or Off (Clean Start Always).
+- 🗃️ **High: Queue State Management & Deduplication**:
+  - Hardened queue operations with atomic index tracking, zero out-of-bounds errors, and one-tap queue deduplication (*"Deduplicate Active Queue"*).
+- 🎚️ **Medium: Audio Quality & AI Model Selectors**:
+  - User-configurable audio streaming bitrates: High (Audiophile WebM Opus 160+ kbps & AAC), Medium (Balanced 128 kbps), and Data Saver (Eco Opus 50-70 kbps).
+  - Neural stem model selection in Settings: Automatic SOTA, Force BS-RoFormer, Force Demucs, YouTube Match Only, or DSP Hardware Only.
+- 📊 **Medium: Performance Monitoring & 120 FPS Dropped Frame Telemetry**:
+  - Flutter FrameTiming callback monitor tracking instantaneous FPS, rolling average FPS, 1% low FPS, and jank frames (>16.6ms / >8.3ms).
+  - Optional floating developer HUD overlay toggleable in Settings or Diagnostics.
 
 ---
 

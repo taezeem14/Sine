@@ -36,6 +36,13 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
     return 'Good evening';
   }
 
+  String _formatDurationMs(int ms) {
+    final d = Duration(milliseconds: ms);
+    final minutes = d.inMinutes;
+    final seconds = d.inSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -93,6 +100,100 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
               const SizedBox(width: 8),
             ],
           ),
+
+          // 1b. Persistent Playback Session Recovery Banner
+          if (player.recoverableSession != null)
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      EmberColors.primaryAmber.withValues(alpha: 0.18),
+                      EmberColors.surfaceContainerHigh.withValues(alpha: 0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: EmberColors.primaryAmber.withValues(alpha: 0.45),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: EmberColors.primaryAmber.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: EmberColors.primaryAmber,
+                      ),
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(Icons.play_arrow_rounded, color: EmberColors.obsidianBase, size: 24),
+                        onPressed: () => player.resumeRecoveredSession(),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text(
+                                'RESUME SESSION',
+                                style: TextStyle(
+                                  color: EmberColors.primaryAmberHi,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '• ${_formatDurationMs(player.recoverableSession!.positionMs)}',
+                                style: const TextStyle(
+                                  color: EmberColors.textMuted,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            player.recoverableSession!.song.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: EmberColors.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: EmberColors.textMuted, size: 18),
+                      tooltip: 'Dismiss',
+                      onPressed: () => player.dismissRecoverableSession(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           // 2. Filter Pills Row (YouTube Music Genres)
           SliverToBoxAdapter(
