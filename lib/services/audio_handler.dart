@@ -640,9 +640,31 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         } catch (e) {
           try { await _player.stop(); } catch (_) {}
           LogService.w('AudioHandler', 'Candidate #${i + 1} connection failed: $e');
-          if (e.toString().contains('403') || e.toString().contains('InvalidResponseCodeException: 403')) {
-            LogService.w('AudioHandler', 'HTTP 403 detected on direct stream. Skipping to proxy engine...');
-            break;
+
+          // Resilient fallback: Retry candidate with clean ExoPlayer headers if custom headers triggered Source error / 403
+          if (isYouTubeStream) {
+            try {
+              LogService.stream('AudioHandler', 'Retrying candidate #${i + 1} with clean headers...');
+              _activeStreamUrl = url;
+              await _player.setUrl(
+                url,
+                headers: null,
+                initialPosition: Duration.zero,
+                preload: false,
+              ).timeout(const Duration(seconds: 8));
+              if (currentRequestId != _playRequestId) {
+                try { await _player.stop(); } catch (_) {}
+                return;
+              }
+              await _player.play();
+              started = true;
+              LogService.instance.recordPlaybackSuccess(song);
+              debugPrint('Successfully playing "${song.title}" via candidate #${i + 1} (clean headers)');
+              break;
+            } catch (retryErr) {
+              try { await _player.stop(); } catch (_) {}
+              LogService.w('AudioHandler', 'Candidate #${i + 1} retry failed: $retryErr');
+            }
           }
         }
       }
@@ -680,6 +702,27 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             } catch (e) {
               try { await _player.stop(); } catch (_) {}
               LogService.w('AudioHandler', 'Fresh candidate #${i + 1} failed: $e');
+              if (isYouTubeStream) {
+                try {
+                  LogService.stream('AudioHandler', 'Retrying fresh candidate #${i + 1} with clean headers...');
+                  _activeStreamUrl = url;
+                  await _player.setUrl(
+                    url,
+                    headers: null,
+                    initialPosition: Duration.zero,
+                    preload: false,
+                  ).timeout(const Duration(seconds: 8));
+                  if (currentRequestId != _playRequestId) {
+                    try { await _player.stop(); } catch (_) {}
+                    return;
+                  }
+                  await _player.play();
+                  started = true;
+                  LogService.instance.recordPlaybackSuccess(song);
+                  debugPrint('Successfully playing "${song.title}" via fresh candidate #${i + 1} (clean headers)');
+                  break;
+                } catch (_) {}
+              }
             }
           }
         } catch (e) {

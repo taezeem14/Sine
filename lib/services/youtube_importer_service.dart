@@ -352,49 +352,20 @@ class YouTubeImporterService {
         final mp4Audio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'mp4').toList();
         final webmAudio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'webm').toList();
 
-        if (preferProgressiveMp4) {
-          // Hardware-accelerated Progressive MP4 (AAC itag 140 & itag 18) prioritized for ExoPlayer seek-safety
-          if (mp4Audio.isNotEmpty) {
-            candidates.add(mp4Audio.withHighestBitrate().url.toString());
-          }
-          if (muxedMp4.isNotEmpty) {
-            candidates.add(muxedMp4.withHighestBitrate().url.toString());
-          }
-          if (webmAudio.isNotEmpty) {
-            candidates.add(webmAudio.withHighestBitrate().url.toString());
-          }
-        } else if (preferredQuality == 'high') {
-          // Audiophile High Bitrate: 160+ kbps WebM Opus first, then highest MP4 AAC
-          if (webmAudio.isNotEmpty) {
-            candidates.add(webmAudio.withHighestBitrate().url.toString());
-          }
-          if (mp4Audio.isNotEmpty) {
-            candidates.add(mp4Audio.withHighestBitrate().url.toString());
-          }
-          if (muxedMp4.isNotEmpty) {
-            candidates.add(muxedMp4.withHighestBitrate().url.toString());
-          }
-        } else if (preferredQuality == 'dataSaver') {
-          // Data Saver: lowest bandwidth streams first
-          final allAudio = manifest.audioOnly.toList()
-            ..sort((a, b) => a.bitrate.bitsPerSecond.compareTo(b.bitrate.bitsPerSecond));
-          if (allAudio.isNotEmpty) {
-            candidates.add(allAudio.first.url.toString());
-          }
-          if (muxedMp4.isNotEmpty) {
-            candidates.add(muxedMp4.first.url.toString());
-          }
-        } else {
-          // Medium / Balanced: Hardware accelerated Muxed MP4 & 128kbps AAC first
-          if (muxedMp4.isNotEmpty) {
-            candidates.add(muxedMp4.withHighestBitrate().url.toString());
-          }
-          if (mp4Audio.isNotEmpty) {
-            candidates.add(mp4Audio.withHighestBitrate().url.toString());
-          }
-          if (webmAudio.isNotEmpty) {
-            candidates.add(webmAudio.withHighestBitrate().url.toString());
-          }
+        // 1. Primary (Fastest & Most Reliable): Progressive Muxed MP4 (itag 18, 360p progressive container with AAC audio)
+        // Instant hardware decoding on Android ExoPlayer, immune to DASH cipher throttling, starts in ~0.5s - 1.2s
+        if (muxedMp4.isNotEmpty) {
+          candidates.add(muxedMp4.withHighestBitrate().url.toString());
+        }
+
+        // 2. Secondary Fallback: Standalone MP4 / M4A AAC (itag 140, ~128kbps) audio stream
+        if (mp4Audio.isNotEmpty) {
+          candidates.add(mp4Audio.withHighestBitrate().url.toString());
+        }
+
+        // 3. Tertiary Fallback: Standalone WebM Opus (itag 251, ~160kbps) audiophile audio stream
+        if (webmAudio.isNotEmpty) {
+          candidates.add(webmAudio.withHighestBitrate().url.toString());
         }
 
         if (candidates.isNotEmpty) {
