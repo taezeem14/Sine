@@ -130,7 +130,7 @@ class PlayerProvider extends ChangeNotifier {
   String? get stemStatusBadgeText => _stemStatusBadgeText;
   final Map<String, String> _originalStreamCache = {};
 
-  // v1.1.9 Core Features: Settings, Headroom & Session Recovery
+  // Core Features: Settings, Headroom & Session Recovery
   String _audioQuality = 'high';
   String get audioQuality => _audioQuality;
 
@@ -1208,7 +1208,7 @@ class PlayerProvider extends ChangeNotifier {
 
 
   // ==========================================
-  // v1.1.9 SETTINGS, CLIPPING & RECOVERY METHODS
+  // SETTINGS, CLIPPING & RECOVERY METHODS
   // ==========================================
 
   void _saveCurrentSession() {

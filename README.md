@@ -24,7 +24,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.1.9)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.9.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.1.8)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.8.apk) 👈
 
 *Tap above to download the APK, install on Android, and elevate your earholes immediately.*
 
@@ -59,7 +59,7 @@ We cooked so you can vibe. Fr fr. 👨‍🍳🔥
 
 ---
 
-## 🚀 What's New in v1.1.9 (Neural Stem Diagnostics, Audio Headroom Limiter & 120 FPS Telemetry)
+## 🚀 What's New in v1.1.8 (Neural Stem Diagnostics, Audio Headroom Limiter & 120 FPS Telemetry)
 - 🔬 **Critical: Stem Pipeline Diagnostics & Benchmark Test Bench**:
   - Live stage-by-stage diagnostic trace in Diagnostics Screen inspecting Tier 1 Disk Cache (0ms), Tier 2 SOTA AI Neural Spaces (BS-RoFormer 12.97 dB SDR & Demucs v4), Tier 3 YouTube Studio Matcher, and Tier 4 Hardware DSP.
   - Logs HTTP statuses, Gradio upload payloads, candidate matching scores, duration deltas, and exact latency down to the millisecond.
