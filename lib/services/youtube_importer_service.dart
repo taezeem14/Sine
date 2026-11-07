@@ -156,6 +156,11 @@ class YouTubeImporterService {
         lowerAuthor.contains('chill') ||
         lowerAuthor.contains('entertainment') ||
         lowerAuthor.contains('media') ||
+        lowerAuthor.contains('lofi') ||
+        lowerAuthor.contains('slowed') ||
+        lowerAuthor.contains('reverb') ||
+        lowerAuthor.contains('vibes') ||
+        lowerAuthor.contains('edits') ||
         cleanAuthor == 'YouTube' ||
         cleanAuthor == 'Unknown Artist';
 
@@ -193,20 +198,15 @@ class YouTubeImporterService {
 
     // Check for "Title" by Artist pattern
     final byMatch = RegExp(r'^(.*?)\s+by\s+(.*?)$', caseSensitive: false).firstMatch(t);
+    final delimiterMatch = RegExp(r'\s+[-–—:]\s*|\s*[-–—:]\s+').firstMatch(t);
     if (byMatch != null) {
       candidateTitle = byMatch.group(1)?.trim() ?? t;
       candidateArtist = byMatch.group(2)?.trim() ?? '';
-    } else if (t.contains(' - ') || t.contains(' – ') || t.contains(' — ') || t.contains(' : ')) {
-      final delimiter = t.contains(' - ')
-          ? ' - '
-          : (t.contains(' – ')
-              ? ' – '
-              : (t.contains(' — ') ? ' — ' : ' : '));
-      final parts = t.split(delimiter);
+    } else if (delimiterMatch != null) {
+      final partA = t.substring(0, delimiterMatch.start).trim();
+      final partB = t.substring(delimiterMatch.end).trim();
 
-      if (parts.length >= 2) {
-        final partA = parts[0].trim();
-        final partB = parts.sublist(1).join(delimiter).trim();
+      if (partA.isNotEmpty && partB.isNotEmpty) {
 
         // Check if one of the parts is enclosed in quotes -> Quotes ALWAYS indicate Title
         final aQuoted = (partA.startsWith('"') && partA.endsWith('"')) ||
@@ -253,17 +253,30 @@ class YouTubeImporterService {
               candidateTitle = partB;
               candidateArtist = pipeArtist ?? (cleanAuthor.isNotEmpty && !isPublisherOrCurator ? cleanAuthor : '');
             } else {
-              // Check if one part has explicit title keywords like "Song", "Audio", "Official"
-              final aHasTitleKeywords = RegExp(r'\b(song|track|audio|theme|remix|acoustic|live|cover|version|slowed|reverb)\b', caseSensitive: false).hasMatch(partA);
-              final bHasTitleKeywords = RegExp(r'\b(song|track|audio|theme|remix|acoustic|live|cover|version|slowed|reverb)\b', caseSensitive: false).hasMatch(partB);
+              // Community / Curator Upload check:
+              // Curator channels (lofi, slowed, reverb, studio, edits, records) or titles with audio modifiers
+              // almost universally use "Song Title - Artist" (e.g. "Wishes - Hasan Raheem", "Heat Waves - Glass Animals")
+              final isCuratorOrRemix = isPublisherOrCurator ||
+                  RegExp(r'\b(slowed|reverb|lofi|remix|speed\s*up|sped\s*up|nightcore|flip|edit)\b', caseSensitive: false).hasMatch(rawTitle) ||
+                  RegExp(r'\b(slowed|reverb|lofi|remix|speed\s*up|sped\s*up|nightcore|flip|edit)\b', caseSensitive: false).hasMatch(cleanAuthor);
 
-              if (aHasTitleKeywords && !bHasTitleKeywords) {
+              if (isCuratorOrRemix) {
+                // Song Title - Artist format
                 candidateTitle = partA;
                 candidateArtist = partB;
               } else {
-                // Default to standard "Artist - Title"
-                candidateArtist = partA;
-                candidateTitle = partB;
+                // Check if one part has explicit title keywords like "Song", "Audio", "Official"
+                final aHasTitleKeywords = RegExp(r'\b(song|track|audio|theme|remix|acoustic|live|cover|version)\b', caseSensitive: false).hasMatch(partA);
+                final bHasTitleKeywords = RegExp(r'\b(song|track|audio|theme|remix|acoustic|live|cover|version)\b', caseSensitive: false).hasMatch(partB);
+
+                if (aHasTitleKeywords && !bHasTitleKeywords) {
+                  candidateTitle = partA;
+                  candidateArtist = partB;
+                } else {
+                  // Default to standard "Artist - Title"
+                  candidateArtist = partA;
+                  candidateTitle = partB;
+                }
               }
             }
           }
@@ -272,7 +285,9 @@ class YouTubeImporterService {
     }
 
     // 3. Fallback artist assignment if title had no delimiter
-    String finalArtist = candidateArtist.trim();
+    String finalArtist = candidateArtist
+        .replaceAll(RegExp(r'\(.*\)|\[.*\]', caseSensitive: false), '')
+        .trim();
     if (finalArtist.isEmpty && cleanAuthor.isNotEmpty && !isPublisherOrCurator) {
       finalArtist = cleanAuthor.trim();
     }
@@ -317,7 +332,7 @@ class YouTubeImporterService {
     final cleanId = videoId.replaceFirst('yt_', '').trim();
     if (cleanId.isEmpty) return [];
 
-    final cacheKey = preferProgressiveMp4 ? '${cleanId}_mp4' : cleanId;
+    final cacheKey = '${cleanId}_${preferProgressiveMp4 ? 'mp4' : preferredQuality}';
     final cached = _streamCache[cacheKey];
     if (cached != null && cached.urls.isNotEmpty && DateTime.now().difference(cached.cachedAt) < _streamCacheTtl) {
       return List.from(cached.urls);
@@ -352,20 +367,42 @@ class YouTubeImporterService {
         final mp4Audio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'mp4').toList();
         final webmAudio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'webm').toList();
 
-        // 1. Primary (Fastest & Most Reliable): Progressive Muxed MP4 (itag 18, 360p progressive container with AAC audio)
-        // Instant hardware decoding on Android ExoPlayer, immune to DASH cipher throttling, starts in ~0.5s - 1.2s
-        if (muxedMp4.isNotEmpty) {
-          candidates.add(muxedMp4.withHighestBitrate().url.toString());
-        }
-
-        // 2. Secondary Fallback: Standalone MP4 / M4A AAC (itag 140, ~128kbps) audio stream
-        if (mp4Audio.isNotEmpty) {
-          candidates.add(mp4Audio.withHighestBitrate().url.toString());
-        }
-
-        // 3. Tertiary Fallback: Standalone WebM Opus (itag 251, ~160kbps) audiophile audio stream
-        if (webmAudio.isNotEmpty) {
-          candidates.add(webmAudio.withHighestBitrate().url.toString());
+        // Sort candidates based on user's preferred quality preset:
+        // 'high'      -> Standalone MP4 AAC (128 kbps), Progressive MP4 (AAC), then WebM Opus
+        // 'medium'    -> Progressive Muxed MP4 (360p container with AAC, fastest start), MP4 AAC, then WebM Opus
+        // 'dataSaver' -> Lowest bitrate audio stream (50-70 kbps), Progressive MP4, then remaining
+        if (preferProgressiveMp4 || preferredQuality == 'medium') {
+          if (muxedMp4.isNotEmpty) {
+            candidates.add(muxedMp4.withHighestBitrate().url.toString());
+          }
+          if (mp4Audio.isNotEmpty) {
+            candidates.add(mp4Audio.withHighestBitrate().url.toString());
+          }
+          if (webmAudio.isNotEmpty) {
+            candidates.add(webmAudio.withHighestBitrate().url.toString());
+          }
+        } else if (preferredQuality == 'high') {
+          if (mp4Audio.isNotEmpty) {
+            candidates.add(mp4Audio.withHighestBitrate().url.toString());
+          }
+          if (muxedMp4.isNotEmpty) {
+            candidates.add(muxedMp4.withHighestBitrate().url.toString());
+          }
+          if (webmAudio.isNotEmpty) {
+            candidates.add(webmAudio.withHighestBitrate().url.toString());
+          }
+        } else if (preferredQuality == 'dataSaver') {
+          final allAudio = [...mp4Audio, ...webmAudio];
+          if (allAudio.isNotEmpty) {
+            allAudio.sort((a, b) => a.bitrate.compareTo(b.bitrate));
+            candidates.add(allAudio.first.url.toString());
+          }
+          if (muxedMp4.isNotEmpty) {
+            candidates.add(muxedMp4.withHighestBitrate().url.toString());
+          }
+          if (mp4Audio.isNotEmpty) {
+            candidates.add(mp4Audio.withHighestBitrate().url.toString());
+          }
         }
 
         if (candidates.isNotEmpty) {

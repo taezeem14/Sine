@@ -73,295 +73,302 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
     return Scaffold(
       backgroundColor: EmberColors.obsidianBase,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              // 1. Top Navigation Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const FaIcon(FontAwesomeIcons.chevronDown, size: 18, color: EmberColors.textPrimary),
-                      tooltip: 'Collapse',
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'PLAYING FROM',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: EmberColors.textMuted,
-                                  letterSpacing: 1.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            playingFrom.toUpperCase(),
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  color: EmberColors.primaryBlue,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Quick Sine QR Code Share
-                    IconButton(
-                      icon: const FaIcon(FontAwesomeIcons.qrcode, size: 18, color: EmberColors.textSecondary),
-                      tooltip: 'Show Sine QR Code',
-                      onPressed: () => SineQrCodeSheet.show(context, song),
-                    ),
-                    // Three Dots Menu -> Opens Track Options Bottom Sheet
-                    IconButton(
-                      icon: const FaIcon(FontAwesomeIcons.ellipsis, size: 18, color: EmberColors.textSecondary),
-                      tooltip: 'More Options',
-                      onPressed: () => TrackOptionsSheet.show(context, song),
-                    ),
-                  ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
                 ),
-              ),
-
-              // 2. Active Studio Stem Status Banner
-              if (isolationMode != IsolationMode.none)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                child: IntrinsicHeight(
+                  child: Column(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: EmberColors.primaryBlue.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: EmberColors.primaryBlue.withValues(alpha: 0.4),
-                            width: 1,
-                          ),
-                        ),
+                      // 1. Top Navigation Bar
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            if (isStemLoading) ...[
-                              const SizedBox(
-                                width: 10,
-                                height: 10,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 1.5,
-                                  color: EmberColors.primaryBlue,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                            ] else ...[
-                              Icon(
-                                isolationMode == IsolationMode.instrumentsOnly
-                                    ? Icons.music_note_rounded
-                                    : Icons.mic_rounded,
-                                size: 13,
-                                color: EmberColors.primaryBlue,
-                              ),
-                              const SizedBox(width: 5),
-                            ],
-                            Text(
-                              stemBadge ??
-                                  (isolationMode == IsolationMode.instrumentsOnly
-                                      ? 'AI Karaoke Active'
-                                      : 'AI Acapella Active'),
-                              style: const TextStyle(
-                                color: EmberColors.primaryBlue,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
+                            IconButton(
+                              icon: const FaIcon(FontAwesomeIcons.chevronDown, size: 18, color: EmberColors.textPrimary),
+                              tooltip: 'Collapse',
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                            Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'PLAYING FROM',
+                                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                          color: EmberColors.textMuted,
+                                          letterSpacing: 1.5,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    playingFrom.toUpperCase(),
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                          color: EmberColors.primaryBlue,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => context.read<PlayerProvider>().revertToOriginalTrack(),
-                              child: const Icon(
-                                Icons.close_rounded,
-                                size: 15,
-                                color: EmberColors.textMuted,
-                              ),
+                            // Quick Sine QR Code Share
+                            IconButton(
+                              icon: const FaIcon(FontAwesomeIcons.qrcode, size: 18, color: EmberColors.textSecondary),
+                              tooltip: 'Show Sine QR Code',
+                              onPressed: () => SineQrCodeSheet.show(context, song),
+                            ),
+                            // Three Dots Menu -> Opens Track Options Bottom Sheet
+                            IconButton(
+                              icon: const FaIcon(FontAwesomeIcons.ellipsis, size: 18, color: EmberColors.textSecondary),
+                              tooltip: 'More Options',
+                              onPressed: () => TrackOptionsSheet.show(context, song),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
 
-              const SizedBox(height: 8),
-
-              // 3. Center Viewport: Animated flip between Album Art / Vinyl and Synchronized Lyrics
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: SizedBox(
-                  height: 310,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 320),
-                    transitionBuilder: (child, anim) => FadeTransition(
-                      opacity: anim,
-                      child: ScaleTransition(
-                        scale: Tween<double>(begin: 0.96, end: 1.0).animate(anim),
-                        child: child,
-                      ),
-                    ),
-                    child: _showLyrics
-                        ? Container(
-                            key: const ValueKey('lyrics_mode'),
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            decoration: BoxDecoration(
-                              color: EmberColors.surfaceContainerLow.withValues(alpha: 0.6),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.4)),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(24),
-                              child: const RepaintBoundary(
-                                child: SynchronizedLyricsView(),
+                      // 2. Active Studio Stem Status Banner
+                      if (isolationMode != IsolationMode.none)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: EmberColors.primaryBlue.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: EmberColors.primaryBlue.withValues(alpha: 0.4),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (isStemLoading) ...[
+                                      const SizedBox(
+                                        width: 10,
+                                        height: 10,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 1.5,
+                                          color: EmberColors.primaryBlue,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                    ] else ...[
+                                      Icon(
+                                        isolationMode == IsolationMode.instrumentsOnly
+                                            ? Icons.music_note_rounded
+                                            : Icons.mic_rounded,
+                                        size: 13,
+                                        color: EmberColors.primaryBlue,
+                                      ),
+                                      const SizedBox(width: 5),
+                                    ],
+                                    Text(
+                                      stemBadge ??
+                                          (isolationMode == IsolationMode.instrumentsOnly
+                                              ? 'AI Karaoke Active'
+                                              : 'AI Acapella Active'),
+                                      style: const TextStyle(
+                                        color: EmberColors.primaryBlue,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    GestureDetector(
+                                      onTap: () => context.read<PlayerProvider>().revertToOriginalTrack(),
+                                      child: const Icon(
+                                        Icons.close_rounded,
+                                        size: 15,
+                                        color: EmberColors.textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          )
-                        : Center(
-                            key: const ValueKey('vinyl_mode'),
-                            child: GestureDetector(
-                              onTap: () => setState(() => _showLyrics = true),
-                              child: RepaintBoundary(
-                                child: AmbientGlow(
-                                  isPlaying: isPlaying,
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: AnimatedScale(
-                                      scale: isPlaying ? 1.0 : 0.94,
-                                      duration: const Duration(milliseconds: 350),
-                                      curve: Curves.easeOutBack,
-                                      child: SizedBox(
-                                        width: 290,
-                                        height: 250,
-                                        child: Stack(
-                                          alignment: Alignment.centerLeft,
-                                          children: [
-                                            // Vinyl disc peek from right
-                                            Positioned(
-                                              right: 0,
-                                              child: RepaintBoundary(
-                                                child: VinylDisc(
-                                                  size: 210,
-                                                  isPlaying: isPlaying,
-                                                ),
-                                              ),
-                                            ),
-                                            // Square album cover
-                                            ClipRRect(
-                                              borderRadius: BorderRadius.circular(24),
-                                              child: Container(
-                                                width: 230,
-                                                height: 230,
-                                                decoration: BoxDecoration(
-                                                  color: EmberColors.surfaceContainerHigh,
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.black.withValues(alpha: 0.5),
-                                                      blurRadius: 20,
-                                                      offset: const Offset(4, 4),
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: song.artworkUrl.isNotEmpty
-                                                    ? CachedNetworkImage(
-                                                        imageUrl: song.artworkUrl,
-                                                        memCacheWidth: 600,
-                                                        fit: BoxFit.cover,
-                                                        errorWidget: (_, _, _) => const Center(
-                                                          child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
+                            ],
+                          ),
+                        ),
+
+                      // 3. Center Viewport: Animated flip between Album Art / Vinyl and Synchronized Lyrics
+                      // Expanded ensures it occupies all available vertical display space without any dead space at the bottom
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                          child: Center(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 320),
+                              transitionBuilder: (child, anim) => FadeTransition(
+                                opacity: anim,
+                                child: ScaleTransition(
+                                  scale: Tween<double>(begin: 0.96, end: 1.0).animate(anim),
+                                  child: child,
+                                ),
+                              ),
+                              child: _showLyrics
+                                  ? Container(
+                                      key: const ValueKey('lyrics_mode'),
+                                      margin: const EdgeInsets.symmetric(vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: EmberColors.surfaceContainerLow.withValues(alpha: 0.6),
+                                        borderRadius: BorderRadius.circular(24),
+                                        border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.4)),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(24),
+                                        child: const RepaintBoundary(
+                                          child: SynchronizedLyricsView(),
+                                        ),
+                                      ),
+                                    )
+                                  : Center(
+                                      key: const ValueKey('vinyl_mode'),
+                                      child: GestureDetector(
+                                        onTap: () => setState(() => _showLyrics = true),
+                                        child: RepaintBoundary(
+                                          child: AmbientGlow(
+                                            isPlaying: isPlaying,
+                                            child: FittedBox(
+                                              fit: BoxFit.contain,
+                                              child: AnimatedScale(
+                                                scale: isPlaying ? 1.0 : 0.94,
+                                                duration: const Duration(milliseconds: 350),
+                                                curve: Curves.easeOutBack,
+                                                child: SizedBox(
+                                                  width: 320,
+                                                  height: 280,
+                                                  child: Stack(
+                                                    alignment: Alignment.centerLeft,
+                                                    children: [
+                                                      // Vinyl disc peek from right
+                                                      Positioned(
+                                                        right: 0,
+                                                        child: RepaintBoundary(
+                                                          child: VinylDisc(
+                                                            size: 240,
+                                                            isPlaying: isPlaying,
+                                                          ),
                                                         ),
-                                                      )
-                                                    : const Center(
-                                                        child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
                                                       ),
+                                                      // Square album cover
+                                                      ClipRRect(
+                                                        borderRadius: BorderRadius.circular(24),
+                                                        child: Container(
+                                                          width: 260,
+                                                          height: 260,
+                                                          decoration: BoxDecoration(
+                                                            color: EmberColors.surfaceContainerHigh,
+                                                            boxShadow: [
+                                                              BoxShadow(
+                                                                color: Colors.black.withValues(alpha: 0.5),
+                                                                blurRadius: 20,
+                                                                offset: const Offset(4, 4),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          child: song.artworkUrl.isNotEmpty
+                                                              ? CachedNetworkImage(
+                                                                  imageUrl: song.artworkUrl,
+                                                                  memCacheWidth: 600,
+                                                                  fit: BoxFit.cover,
+                                                                  errorWidget: (_, _, _) => const Center(
+                                                                    child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
+                                                                  ),
+                                                                )
+                                                              : const Center(
+                                                                  child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
+                                                                ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
                                               ),
                                             ),
-                                          ],
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ),
                             ),
                           ),
+                        ),
+                      ),
+
+                      // 4. Title, Artist & Spotify-style Bouncy Heart
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 6),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    song.title,
+                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                          color: EmberColors.textPrimary,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: -0.4,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    song.artist,
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: EmberColors.textSecondary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _SpotifyHeartButton(song: song),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // 5. Scrubber Bar & Timecodes (Isolated 120 FPS Rebuild Boundary)
+                      const _ScrubberSection(),
+
+                      const SizedBox(height: 6),
+
+                      // 6. Transport Controls (Shuffle, Previous, Play/Pause, Next, Repeat)
+                      const _TransportControlsSection(),
+
+                      const SizedBox(height: 12),
+
+                      // 7. Utility Action Pills (Lyrics Toggle, EQ, Sleep, Speed, Queue)
+                      _UtilityPillsRow(
+                        showLyrics: _showLyrics,
+                        onToggleLyrics: () => setState(() => _showLyrics = !_showLyrics),
+                      ),
+
+                      const SizedBox(height: 16),
+                    ],
                   ),
                 ),
               ),
-
-              const SizedBox(height: 12),
-
-              // 4. Title, Artist & Spotify-style Bouncy Heart
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            song.title,
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  color: EmberColors.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: -0.4,
-                                ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            song.artist,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: EmberColors.textSecondary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    _SpotifyHeartButton(song: song),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              // 5. Scrubber Bar & Timecodes (Isolated 120 FPS Rebuild Boundary)
-              const _ScrubberSection(),
-
-              const SizedBox(height: 8),
-
-              // 6. Transport Controls (Shuffle, Previous, Play/Pause, Next, Repeat)
-              const _TransportControlsSection(),
-
-              const SizedBox(height: 12),
-
-              // 7. Utility Action Pills (Lyrics Toggle, EQ, Sleep, Speed, Queue)
-              _UtilityPillsRow(
-                showLyrics: _showLyrics,
-                onToggleLyrics: () => setState(() => _showLyrics = !_showLyrics),
-              ),
-
-              const SizedBox(height: 20),
-
-              const SizedBox(height: 24),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

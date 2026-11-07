@@ -1,4 +1,3 @@
-﻿import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/ember_theme.dart';
 
@@ -21,6 +20,7 @@ class AmbientGlow extends StatefulWidget {
 class _AmbientGlowState extends State<AmbientGlow>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  late Animation<double> _opacityAnimation;
 
   @override
   void initState() {
@@ -28,6 +28,9 @@ class _AmbientGlowState extends State<AmbientGlow>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3200),
+    );
+    _opacityAnimation = Tween<double>(begin: 0.55, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
     if (widget.isPlaying) {
       _controller.repeat(reverse: true);
@@ -40,7 +43,7 @@ class _AmbientGlowState extends State<AmbientGlow>
     if (widget.isPlaying && !_controller.isAnimating) {
       _controller.repeat(reverse: true);
     } else if (!widget.isPlaying && _controller.isAnimating) {
-      _controller.animateTo(0.0, duration: const Duration(milliseconds: 600), curve: Curves.easeOut);
+      _controller.animateTo(0.0, duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
     }
   }
 
@@ -52,33 +55,34 @@ class _AmbientGlowState extends State<AmbientGlow>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final breathe = math.sin(_controller.value * math.pi) * 0.15;
-        final spreadRadius = 24.0 * (1.0 + breathe);
-        final blurRadius = 48.0 * (1.0 + breathe);
-
-        return Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: widget.glowColor.withValues(alpha: widget.isPlaying ? 0.35 : 0.15),
-                blurRadius: blurRadius,
-                spreadRadius: spreadRadius,
-              ),
-              BoxShadow(
-                color: EmberColors.secondaryHoney.withValues(alpha: widget.isPlaying ? 0.20 : 0.08),
-                blurRadius: blurRadius * 1.5,
-                spreadRadius: spreadRadius * 0.8,
-              ),
-            ],
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // Static blurred background with animated opacity (GPU composited, zero re-rasterization)
+        FadeTransition(
+          opacity: _opacityAnimation,
+          child: Container(
+            width: 250,
+            height: 250,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: widget.glowColor.withValues(alpha: widget.isPlaying ? 0.32 : 0.12),
+                  blurRadius: 52,
+                  spreadRadius: 22,
+                ),
+                BoxShadow(
+                  color: EmberColors.secondaryHoney.withValues(alpha: widget.isPlaying ? 0.18 : 0.06),
+                  blurRadius: 78,
+                  spreadRadius: 16,
+                ),
+              ],
+            ),
           ),
-          child: child,
-        );
-      },
-      child: widget.child,
+        ),
+        widget.child,
+      ],
     );
   }
 }

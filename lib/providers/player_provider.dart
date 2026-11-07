@@ -305,7 +305,9 @@ class PlayerProvider extends ChangeNotifier {
 
     _performanceHudEnabled = _storageService.loadPerformanceHudEnabled();
     PerformanceService.instance.setHudVisible(_performanceHudEnabled);
-    PerformanceService.instance.start();
+    if (_performanceHudEnabled) {
+      PerformanceService.instance.start();
+    }
 
     // Check for recoverable previous playback session
     final savedSessionMap = _storageService.loadSavedSession();
@@ -412,7 +414,7 @@ class PlayerProvider extends ChangeNotifier {
       if (_isScrubbing) return;
       _position = pos;
       positionNotifier.value = pos;
-      if (currentSong != null && (pos.inSeconds - _lastSessionPersistSec).abs() >= 6) {
+      if (currentSong != null && (pos.inSeconds - _lastSessionPersistSec).abs() >= 25) {
         _lastSessionPersistSec = pos.inSeconds;
         _saveCurrentSession();
       }
@@ -1253,6 +1255,11 @@ class PlayerProvider extends ChangeNotifier {
     _performanceHudEnabled = enabled;
     await _storageService.savePerformanceHudEnabled(enabled);
     PerformanceService.instance.setHudVisible(enabled);
+    if (enabled) {
+      PerformanceService.instance.start();
+    } else {
+      PerformanceService.instance.stop();
+    }
     notifyListeners();
   }
 

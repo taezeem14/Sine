@@ -335,6 +335,11 @@ void main() {
       final meta5 = YouTubeImporterService.parseYouTubeMetadata('Shape of You by Ed Sheeran', 'Ed Sheeran');
       expect(meta5.cleanTitle, 'Shape of You');
       expect(meta5.cleanArtist, 'Ed Sheeran');
+
+      // Case 6: Curator upload with asymmetric hyphen e.g. "Wishes- Hasan Raheem (Slowed + Reverb)" from "Slow Studio"
+      final meta6 = YouTubeImporterService.parseYouTubeMetadata('Wishes- Hasan Raheem (Slowed + Reverb)', 'Slow Studio');
+      expect(meta6.cleanTitle, 'Wishes');
+      expect(meta6.cleanArtist, 'Hasan Raheem');
     });
 
     test('isTempoModified correctly identifies slowed, reverb, sped-up, and nightcore tracks', () {
