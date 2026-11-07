@@ -24,7 +24,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.1.7)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.7.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.1.8)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.8.apk) 👈
 
 *Tap above to download the APK, install on Android, and elevate your earholes immediately.*
 
@@ -56,6 +56,22 @@ Look, Spotify got greedy with \$11+/month subscription prices and YouTube Music 
 - Just pure, uninterrupted, audiophile-grade music streamed straight from YouTube & YouTube Music's global catalog.
 
 We cooked so you can vibe. Fr fr. 👨‍🍳🔥
+
+---
+
+## 🚀 What's New in v1.1.8 (Clean Launch Player, Resilient Audio Isolation & 120 FPS Fluid Animations)
+- 🧹 **Clean Cold-Launch Player Architecture**:
+  - Eradicated the persistent cold-boot bug where the previously played track pre-populated the player and mini-player on startup.
+  - The player starts cleanly in a dormant state (currentIndex = -1, queue = []) with the mini-player hidden until the user explicitly selects a track or playlist.
+- 🎛️ **Bulletproof Audio Isolation & Resilient Stem Swapping**:
+  - Fixed audio separation stream swapping: now validates the ExoPlayer stream swap outcome and immediately falls back to high-impact hardware DSP filtering if an online stream expires or fails.
+  - Expanded studio backing track and acapella matching with broadened search queries (Sing King, KaraFun, Topic, Acapella, Vocal Stem), expanded delta thresholds (up to $\pm 18 for count-in intros), and lowered match thresholds.
+  - Tuned hardware DSP vocal isolation: dynamic bass boost cut (0.0) on acapella and heavy low-end bass boost (+0.85) on instrumental mode for powerful psychoacoustic vocal frequency masking.
+- 💫 **120 FPS Buttery UI & Tactile Micro-Interactions**:
+  - Added Spotify-style tactile spring-scale bounce to Now Playing album artwork (AnimatedScale from 0.94x when paused to 1.0x on play with Curves.easeOutBack).
+  - Added unified BouncingScrollPhysics across Settings, Home, Search, and Library for consistent, fluid kinetic scrolling on high-refresh-rate displays.
+- 🏷️ **Single Source of Truth Version Metadata**:
+  - Unified app version, release tag, and build number across AppConstants, settings_screen.dart, diagnostics_log_screen.dart, log_service.dart, and pubspec.yaml.
 
 ---
 

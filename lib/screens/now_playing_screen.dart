@@ -281,53 +281,58 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                   isPlaying: isPlaying,
                                   child: FittedBox(
                                     fit: BoxFit.scaleDown,
-                                    child: SizedBox(
-                                      width: 290,
-                                      height: 250,
-                                      child: Stack(
-                                        alignment: Alignment.centerLeft,
-                                        children: [
-                                          // Vinyl disc peek from right
-                                          Positioned(
-                                            right: 0,
-                                            child: RepaintBoundary(
-                                              child: VinylDisc(
-                                                size: 210,
-                                                isPlaying: isPlaying,
+                                    child: AnimatedScale(
+                                      scale: isPlaying ? 1.0 : 0.94,
+                                      duration: const Duration(milliseconds: 350),
+                                      curve: Curves.easeOutBack,
+                                      child: SizedBox(
+                                        width: 290,
+                                        height: 250,
+                                        child: Stack(
+                                          alignment: Alignment.centerLeft,
+                                          children: [
+                                            // Vinyl disc peek from right
+                                            Positioned(
+                                              right: 0,
+                                              child: RepaintBoundary(
+                                                child: VinylDisc(
+                                                  size: 210,
+                                                  isPlaying: isPlaying,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          // Square album cover
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(24),
-                                            child: Container(
-                                              width: 230,
-                                              height: 230,
-                                              decoration: BoxDecoration(
-                                                color: EmberColors.surfaceContainerHigh,
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.black.withValues(alpha: 0.5),
-                                                    blurRadius: 20,
-                                                    offset: const Offset(4, 4),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: song.artworkUrl.isNotEmpty
-                                                  ? CachedNetworkImage(
-                                                      imageUrl: song.artworkUrl,
-                                                      memCacheWidth: 600,
-                                                      fit: BoxFit.cover,
-                                                      errorWidget: (_, _, _) => const Center(
+                                            // Square album cover
+                                            ClipRRect(
+                                              borderRadius: BorderRadius.circular(24),
+                                              child: Container(
+                                                width: 230,
+                                                height: 230,
+                                                decoration: BoxDecoration(
+                                                  color: EmberColors.surfaceContainerHigh,
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black.withValues(alpha: 0.5),
+                                                      blurRadius: 20,
+                                                      offset: const Offset(4, 4),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: song.artworkUrl.isNotEmpty
+                                                    ? CachedNetworkImage(
+                                                        imageUrl: song.artworkUrl,
+                                                        memCacheWidth: 600,
+                                                        fit: BoxFit.cover,
+                                                        errorWidget: (_, _, _) => const Center(
+                                                          child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
+                                                        ),
+                                                      )
+                                                    : const Center(
                                                         child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
                                                       ),
-                                                    )
-                                                  : const Center(
-                                                      child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
-                                                    ),
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),

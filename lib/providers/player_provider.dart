@@ -26,7 +26,7 @@ class PlayerProvider extends ChangeNotifier {
   final StorageService _storageService;
 
   List<Song> _queue = [];
-  int _currentIndex = 0;
+  int _currentIndex = -1;
   bool _isPlaying = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
@@ -307,14 +307,9 @@ class PlayerProvider extends ChangeNotifier {
         .map((p) => p.copyWith(songs: p.songs.where((s) => !Song.isPlaceholder(s)).toList()))
         .toList();
 
-    // Restore previous queue from history or offline downloads, avoiding mock placeholder tracks
-    if (_history.isNotEmpty) {
-      _queue = List.from(_history.take(20));
-    } else if (_downloads.isNotEmpty) {
-      _queue = List.from(_downloads);
-    } else {
-      _queue = [];
-    }
+    // On fresh app launch, start with an empty queue and unselected player so the player does not show the previous session's track
+    _queue = [];
+    _currentIndex = -1;
 
     // Load initial trending discovery tracks
     _loadInitialDiscoveryTracks();
@@ -1480,26 +1475,51 @@ class PlayerProvider extends ChangeNotifier {
       }
 
       if (stemResult.isStudioStem && stemResult.streamUrl != null) {
-        _isStudioStemActive = true;
-        _stemStatusBadgeText = mode == IsolationMode.instrumentsOnly
-            ? (stemResult.source == StemSource.aiSeparation
-                ? 'BS-RoFormer AI Karaoke'
-                : (stemResult.isLocal ? 'Offline Studio Karaoke' : 'Studio Karaoke (Synced)'))
-            : (stemResult.source == StemSource.aiSeparation
-                ? 'BS-RoFormer AI Acapella'
-                : (stemResult.isLocal ? 'Offline Studio Acapella' : 'Studio Acapella (Synced)'));
-
         // Clear heavy EQ notch since we now have dedicated studio stem audio
         await _audioHandler.applyEqualizerPreset('Flat');
         await _audioHandler.setEqualizerEnabled(false);
 
         // Swap ExoPlayer audio stream seamlessly at exact current position
-        await _audioHandler.swapAudioStream(
+        final bool swapped = await _audioHandler.swapAudioStream(
           stemResult.streamUrl!,
           currentPosition: _position,
           playImmediately: _isPlaying,
           isLocal: stemResult.isLocal,
         );
+
+        if (swapped) {
+          _isStudioStemActive = true;
+          _stemStatusBadgeText = mode == IsolationMode.instrumentsOnly
+              ? (stemResult.source == StemSource.aiSeparation
+                  ? 'BS-RoFormer AI Karaoke'
+                  : (stemResult.isLocal ? 'Offline Studio Karaoke' : 'Studio Karaoke (Lossless)'))
+              : (stemResult.source == StemSource.aiSeparation
+                  ? 'BS-RoFormer AI Acapella'
+                  : (stemResult.isLocal ? 'Offline Studio Acapella' : 'Studio Acapella (Synced)'));
+        } else {
+          // If stream swapping failed or stream URL expired, immediately fallback to DSP vocal shaper
+          _isStudioStemActive = false;
+          _stemStatusBadgeText = mode == IsolationMode.instrumentsOnly
+              ? 'DSP Vocal Shaper'
+              : 'DSP Vocal Boost';
+
+          _eqEnabled = true;
+          await _storageService.saveEqualizerEnabled(true);
+          await _audioHandler.setEqualizerEnabled(true);
+
+          final presetName = mode == IsolationMode.vocalsOnly ? 'Vocals Only' : 'Instruments Only';
+          _eqPreset = presetName;
+          await _storageService.saveEqualizerPreset(presetName);
+          await _audioHandler.applyIsolationFilter(vocalsOnly: mode == IsolationMode.vocalsOnly);
+
+          try {
+            final params = await _audioHandler.equalizer.parameters;
+            for (int i = 0; i < params.bands.length; i++) {
+              _bandGains[i] = params.bands[i].gain;
+            }
+            await _storageService.saveBandGains(_bandGains);
+          } catch (_) {}
+        }
       } else {
         // Fallback: apply deep hardware DSP notch filter + psychoacoustic frequency masking
         _isStudioStemActive = false;

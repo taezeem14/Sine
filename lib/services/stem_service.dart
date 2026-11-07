@@ -119,6 +119,13 @@ class StemService {
     'stingray karaoke',
     'vocal-star',
     'acousticinstrumentals',
+    'official instrumental',
+    'studio instrumental',
+    'mr karaoke',
+    'zoom karaoke',
+    'sunfly karaoke',
+    'pianonest',
+    'costantino carrara',
   };
 
   /// Clean title of track to maximize YouTube search recall
@@ -161,14 +168,14 @@ class StemService {
       return _inFlightResolutions[cacheKey]!;
     }
 
-    final future = _resolveInternal(song, type, cacheKey);
+    final future = _resolveInternal(song, type, cacheKey, targetDuration: targetDuration);
     _inFlightResolutions[cacheKey] = future;
     return future.whenComplete(() {
       _inFlightResolutions.remove(cacheKey);
     });
   }
 
-  Future<StemResult> _resolveInternal(Song song, StemType type, String cacheKey) async {
+  Future<StemResult> _resolveInternal(Song song, StemType type, String cacheKey, {Duration? targetDuration}) async {
     // 1. Check local persistent AI / studio stem file (0ms hit)
     try {
       final localStem = await _checkLocalAiStem(song, type);
@@ -182,7 +189,7 @@ class StemService {
     // 2. High-Speed Studio Master Matcher (Sing King, KaraFun, Official Topic Instrumental releases)
     // Resolves in ~300ms with 100% studio master audio (no AI distortion or bleed)
     try {
-      final ytResult = await _resolveYouTubeSmartStem(song, type);
+      final ytResult = await _resolveYouTubeSmartStem(song, type, targetDuration: targetDuration);
       if (ytResult != null && ytResult.isSuccess) {
         LogService.stream('StemService', 'Studio Master matched for "${song.title}" (${type.name})');
         _cacheResult(cacheKey, ytResult);
@@ -222,7 +229,7 @@ class StemService {
   }
 
   /// TIER 1: YouTube Smart Stem Matcher with Duration Validation and Heuristics
-  Future<StemResult?> _resolveYouTubeSmartStem(Song song, StemType type) async {
+  Future<StemResult?> _resolveYouTubeSmartStem(Song song, StemType type, {Duration? targetDuration}) async {
     final cleanT = _sanitizeSongTitle(song.title);
     final cleanA = song.artist != 'Unknown Artist' && song.artist.isNotEmpty ? song.artist.trim() : '';
 
@@ -235,6 +242,10 @@ class StemService {
       }
       queries.add('$cleanT official instrumental');
       queries.add('$cleanT backing track');
+      queries.add('$cleanT sing king');
+      queries.add('$cleanT karafun');
+      queries.add('$cleanT instrumental');
+      queries.add('$cleanT karaoke');
       queries.add('$cleanT off vocal');
     } else {
       if (cleanA.isNotEmpty) {
@@ -242,14 +253,18 @@ class StemService {
         queries.add('$cleanT $cleanA vocals only');
       }
       queries.add('$cleanT isolated vocals');
+      queries.add('$cleanT studio acapella');
       queries.add('$cleanT vocal stem');
       queries.add('$cleanT a cappella');
+      queries.add('$cleanT acapella');
     }
 
-    final originalDuration = song.duration;
-    const maxDeltaSeconds = 7; // Maximum allowed duration discrepancy (maintains lyrics sync)
+    final effectiveDuration = (targetDuration != null && targetDuration > Duration.zero)
+        ? targetDuration
+        : song.duration;
+    const maxDeltaSeconds = 18; // Tolerates standard 8-15s count-in / backing track variations
 
-    for (final q in queries.take(3)) {
+    for (final q in queries.take(5)) {
       LogService.stream('StemService', 'Searching YouTube for stem: "$q"...');
       final candidates = await YouTubeImporterService.searchYouTube(q, limit: 10);
       if (candidates.isEmpty) continue;
@@ -261,7 +276,7 @@ class StemService {
       for (final cand in candidates) {
         final score = _scoreCandidate(
           candidate: cand,
-          original: song,
+          effectiveDuration: effectiveDuration,
           cleanTitle: cleanT,
           cleanArtist: cleanA,
           type: type,
@@ -271,12 +286,12 @@ class StemService {
         if (score > highestScore) {
           highestScore = score;
           bestCandidate = cand;
-          bestDelta = (cand.duration - originalDuration).abs();
+          bestDelta = (cand.duration - effectiveDuration).abs();
         }
       }
 
-      // If we found a candidate with strong confidence (score >= 45)
-      if (bestCandidate != null && highestScore >= 45) {
+      // If we found a candidate with confidence (score >= 30)
+      if (bestCandidate != null && highestScore >= 30) {
         final videoId = bestCandidate.id.replaceFirst('yt_', '').trim();
         LogService.stream(
           'StemService',
@@ -305,7 +320,7 @@ class StemService {
   /// Heuristic scoring engine for stem candidates
   int _scoreCandidate({
     required Song candidate,
-    required Song original,
+    required Duration effectiveDuration,
     required String cleanTitle,
     required String cleanArtist,
     required StemType type,
@@ -313,7 +328,7 @@ class StemService {
   }) {
     final candTitle = candidate.title.toLowerCase();
     final candAuthor = candidate.artist.toLowerCase();
-    final origDur = original.duration;
+    final origDur = effectiveDuration;
     final candDur = candidate.duration;
 
     // 1. Duration check (CRITICAL for synced lyrics)
@@ -334,8 +349,10 @@ class StemService {
       score += 45;
     } else if (deltaSec <= 4) {
       score += 30;
-    } else if (deltaSec <= 7) {
-      score += 15;
+    } else if (deltaSec <= 8) {
+      score += 20;
+    } else if (deltaSec <= 18) {
+      score += 10;
     }
 
     // 3. Anti-Junk / Exclusion filters

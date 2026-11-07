@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../services/log_service.dart';
 import '../theme/ember_theme.dart';
+import '../constants/app_constants.dart';
 
 class DiagnosticsLogScreen extends StatefulWidget {
   const DiagnosticsLogScreen({super.key});
@@ -592,7 +593,7 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
               icon: FontAwesomeIcons.microchip,
               children: [
                 _buildInfoRow('Operating System', log.osInfo),
-                _buildInfoRow('App Version', 'Sine 1.0.9 (Build 11)'),
+                _buildInfoRow('App Version', '${AppConstants.appName} ${AppConstants.version} (Build ${AppConstants.buildNumber})'),
                 _buildInfoRow('Audio Decoder', 'ExoPlayer / MediaCodec DSP Hardware Accelerated'),
                 _buildInfoRow('Architecture', 'NewPipe-Direct InnerTube Extractor'),
               ],

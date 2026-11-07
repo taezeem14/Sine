@@ -963,6 +963,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       double clampGain(double g) => g.clamp(minDb, maxDb);
 
       if (vocalsOnly) {
+        await setBassBoost(0.0);
         // Acapella / Vocals Only:
         // Aggressively mute kick, 808s, bass guitar, and cymbals; isolate voice resonance
         for (int i = 0; i < n; i++) {
@@ -997,6 +998,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           await bands[i].setGain(clampGain(target));
         }
       } else {
+        await setBassBoost(0.85); // High-impact low-end masking for vocal cancellation
         // Karaoke / Instruments Only:
         // Deep parametric notch carving out vocal formants (1kHz-3.5kHz);
         // Boost low-end bass and high-end air to psychoacoustically mask any vocal residual bleed

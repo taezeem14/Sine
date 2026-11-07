@@ -8,6 +8,7 @@ import 'equalizer_screen.dart';
 import 'diagnostics_log_screen.dart';
 import 'app_lock_screen.dart';
 import '../services/app_lock_service.dart';
+import '../constants/app_constants.dart';
 
 class SettingsScreen extends StatefulWidget {
   final int initialTab;
@@ -234,6 +235,7 @@ class _SettingsContentState extends State<SettingsContent> {
     final player = context.watch<PlayerProvider>();
 
     return ListView(
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       controller: widget.scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       children: [
@@ -596,8 +598,8 @@ class _SettingsContentState extends State<SettingsContent> {
         const _SettingsTile(
           icon: FontAwesomeIcons.mobileScreen,
           title: 'Sine Version',
-          subtitle: 'v1.1.2 (Release Build)',
-          trailing: Text('1.1.2', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
+          subtitle: '${AppConstants.releaseTag} (Release Build)',
+          trailing: Text(AppConstants.version, style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
           onTap: null,
         ),
         const _SettingsTile(

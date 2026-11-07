@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
+import '../constants/app_constants.dart';
 
 enum LogLevel { debug, info, warning, error, stream, exoplayer }
 
@@ -208,7 +209,7 @@ class LogService extends ChangeNotifier {
     final now = DateTime.now().toUtc().toIso8601String();
 
     buffer.writeln('## Sine Diagnostics & Error Report');
-    buffer.writeln('* __App:__ Sine v1.0.9 (Build 11)');
+    buffer.writeln('* __App:__ ${AppConstants.appName} ${AppConstants.releaseTag} (Build ${AppConstants.buildNumber})');
     buffer.writeln('* __OS:__ $_osInfo');
     buffer.writeln('* __Engine:__ just_audio 0.9.44 / Android ExoPlayer (DSP Hardware Decoder)');
     buffer.writeln('* __Timestamp:__ `$now`');
@@ -280,8 +281,8 @@ class LogService extends ChangeNotifier {
   /// Exports diagnostic report as structured JSON
   String exportJson() {
     final map = {
-      'app': 'Sine',
-      'version': '1.0.9+11',
+      'app': AppConstants.appName,
+      'version': AppConstants.fullVersion,
       'os': _osInfo,
       'timestamp': DateTime.now().toUtc().toIso8601String(),
       'consecutive_failures': _consecutiveFailures,
