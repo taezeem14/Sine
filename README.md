@@ -15,7 +15,7 @@
 
 [![Version](https://img.shields.io/badge/Version-v1.1.9%20(Build%2021)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![F-Droid](https://img.shields.io/badge/F--Droid-Ready-3DDC84?style=for-the-badge&logo=f-droid&logoColor=white)](metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml)
-[![IzzyOnDroid](https://img.shields.io/badge/IzzyOnDroid-Ready-blueviolet?style=for-the-badge&logo=android&logoColor=white)](https://gitlab.com/IzzyOnDroid/repo)
+[![IzzyOnDroid](https://img.shields.io/badge/IzzyOnDroid-Ready-blueviolet?style=for-the-badge&logo=android&logoColor=white)](https://codeberg.org/IzzyOnDroid/repodata)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
