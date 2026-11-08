@@ -519,7 +519,21 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                     ),
                   ),
                 )
-              else
+              else ...[
+                if (player.playlists.isNotEmpty && _selectedFilter == 'All')
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(16, 20, 16, 8),
+                      child: Text(
+                        'Playlists',
+                        style: TextStyle(
+                          color: EmberColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -565,6 +579,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                     childCount: player.playlists.length,
                   ),
                 ),
+              ],
             ],
 
             // 6. History Section (shown when filter is All or History)

@@ -212,7 +212,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                     const Spacer(),
                     IconButton(
                       icon: const FaIcon(FontAwesomeIcons.camera, color: EmberColors.textPrimary, size: 18),
-                      tooltip: 'Scan Sine Code',
+                      tooltip: 'Scan QR Code',
                       onPressed: _openQrScanner,
                     ),
                     const SizedBox(width: 6),

@@ -1427,7 +1427,7 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> importScannedPlaylist(Playlist playlist) async {
-    final cleanId = playlist.id.isNotEmpty
+    final cleanId = (playlist.id.isNotEmpty && playlist.id != 'downloaded_songs')
         ? playlist.id
         : 'pl_${DateTime.now().millisecondsSinceEpoch}';
     final toSave = playlist.copyWith(id: cleanId);
@@ -1438,6 +1438,7 @@ class PlayerProvider extends ChangeNotifier {
       _playlists.insert(0, toSave);
     }
     await _storageService.savePlaylists(_playlists);
+    _playlists = _storageService.loadPlaylists();
     notifyListeners();
   }
 

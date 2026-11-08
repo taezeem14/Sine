@@ -58,15 +58,18 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
     if (_isProcessing) return;
     setState(() => _isProcessing = true);
     HapticFeedback.heavyImpact();
+    try {
+      await _controller.stop();
+    } catch (_) {}
 
+    if (!mounted) return;
     final player = context.read<PlayerProvider>();
-    final messenger = ScaffoldMessenger.of(context);
 
     try {
       // 1. Sine Scannable Playlist URI: sine://playlist?id=...&title=...&ytId=...&tracks=...
       if (rawCode.startsWith('sine://playlist')) {
         final uri = Uri.parse(rawCode);
-        final playlistId = uri.queryParameters['id'] ?? 'scanned_pl_${DateTime.now().millisecondsSinceEpoch}';
+        final playlistId = uri.queryParameters['id'] ?? 'pl_${DateTime.now().millisecondsSinceEpoch}';
         final title = uri.queryParameters['title'] ?? 'Scanned Playlist';
         final ytId = uri.queryParameters['ytId'] ?? '';
         final tracksParam = uri.queryParameters['tracks'] ?? '';
@@ -89,6 +92,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                   duration: const Duration(minutes: 3, seconds: 30),
                   artworkUrl: 'https://img.youtube.com/vi/${id.replaceFirst('yt_', '')}/hqdefault.jpg',
                   streamUrl: 'https://www.youtube.com/watch?v=${id.replaceFirst('yt_', '')}',
+                  source: 'youtube',
                 ),
               );
             }
@@ -97,12 +101,6 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
 
         // If tracks was empty but YouTube playlist id exists, fetch remotely
         if (songs.isEmpty && ytId.isNotEmpty) {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Importing YouTube playlist from Sine Code...'),
-              duration: Duration(seconds: 1),
-            ),
-          );
           final result = await YouTubeImporterService.importFromUrl('https://www.youtube.com/playlist?list=$ytId');
           if (result.playlist != null && result.playlist!.songs.isNotEmpty) {
             songs = result.playlist!.songs;
@@ -110,7 +108,6 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
         }
 
         if (mounted) {
-          Navigator.of(context).pop();
           _showScannedPlaylistSheet(context, player, title, playlistId, songs);
         }
         return;
@@ -122,25 +119,27 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
         final id = uri.queryParameters['id'] ?? '';
         final title = uri.queryParameters['title'] ?? 'Unknown Track';
         final artist = uri.queryParameters['artist'] ?? 'Unknown Artist';
+        final rawArtwork = uri.queryParameters['artwork'];
 
         if (id.isNotEmpty) {
+          final cleanVid = id.replaceFirst('yt_', '');
+          final artwork = (rawArtwork != null && rawArtwork.isNotEmpty)
+              ? rawArtwork
+              : 'https://img.youtube.com/vi/$cleanVid/hqdefault.jpg';
+
           final song = Song(
             id: id,
             title: title,
             artist: artist,
             duration: const Duration(minutes: 3, seconds: 30),
-            artworkUrl: 'https://img.youtube.com/vi/${id.replaceFirst('yt_', '')}/hqdefault.jpg',
-            streamUrl: 'https://www.youtube.com/watch?v=${id.replaceFirst('yt_', '')}',
+            artworkUrl: artwork,
+            streamUrl: 'https://www.youtube.com/watch?v=$cleanVid',
+            source: 'youtube',
           );
 
-          if (mounted) Navigator.of(context).pop();
-          await player.playSong(song);
-          messenger.showSnackBar(
-            SnackBar(
-              backgroundColor: EmberColors.surfaceContainerHigh,
-              content: Text('Playing "$title" from scanned Sine Code!', style: const TextStyle(color: EmberColors.primaryBlueHi)),
-            ),
-          );
+          if (mounted) {
+            _showScannedTrackSheet(context, player, song);
+          }
           return;
         }
       }
@@ -148,17 +147,10 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
       // 3. YouTube Playlist URL
       final ytPlaylistId = YouTubeImporterService.extractPlaylistId(rawCode);
       if (ytPlaylistId != null && ytPlaylistId.isNotEmpty) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Resolving YouTube playlist...'),
-            duration: Duration(seconds: 1),
-          ),
-        );
         final importResult = await YouTubeImporterService.importFromUrl(rawCode);
         if (importResult.playlist != null && importResult.playlist!.songs.isNotEmpty) {
           final pl = importResult.playlist!;
           if (mounted) {
-            Navigator.of(context).pop();
             _showScannedPlaylistSheet(context, player, pl.title, pl.id, pl.songs);
           }
           return;
@@ -168,34 +160,200 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
       // 4. YouTube Video URL or Video ID
       final videoId = YouTubeImporterService.extractVideoId(rawCode);
       if (videoId != null && videoId.isNotEmpty) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Resolving YouTube link...'),
-            duration: Duration(seconds: 1),
-          ),
-        );
-
         final importResult = await YouTubeImporterService.importFromUrl(rawCode);
         if (importResult.song != null) {
           final resolvedSong = importResult.song!;
-          if (mounted) Navigator.of(context).pop();
-          await player.playSong(resolvedSong);
-          messenger.showSnackBar(
-            SnackBar(
-              backgroundColor: EmberColors.surfaceContainerHigh,
-              content: Text('Playing "${resolvedSong.title}" from QR code!', style: const TextStyle(color: EmberColors.primaryBlueHi)),
-            ),
-          );
+          if (mounted) {
+            _showScannedTrackSheet(context, player, resolvedSong);
+          }
           return;
         }
       }
 
       // 5. Fallback: Search text query
-      if (mounted) Navigator.of(context).pop(rawCode);
+      if (mounted) {
+        Navigator.of(context).pop(rawCode);
+      }
     } catch (e) {
       debugPrint('[SineQrScanner] Scan error: $e');
-      setState(() => _isProcessing = false);
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        try {
+          _controller.start();
+        } catch (_) {}
+      }
     }
+  }
+
+  void _showScannedTrackSheet(
+    BuildContext context,
+    PlayerProvider player,
+    Song song,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: EmberColors.obsidianBase,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: EmberColors.textMuted.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: song.artworkUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: song.artworkUrl,
+                            width: 62,
+                            height: 62,
+                            memCacheWidth: 150,
+                            memCacheHeight: 150,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, _, _) => Container(
+                              width: 62,
+                              height: 62,
+                              color: EmberColors.surfaceContainerHigh,
+                              child: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                            ),
+                          )
+                        : Container(
+                            width: 62,
+                            height: 62,
+                            color: EmberColors.surfaceContainerHigh,
+                            child: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                          ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          song.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: EmberColors.textPrimary,
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          song.artist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: EmberColors.primaryBlue.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'SINE QR',
+                      style: TextStyle(
+                        color: EmberColors.primaryBlueHi,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: EmberColors.outlineVariant),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      icon: FaIcon(
+                        player.isFavorite(song.id) ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
+                        size: 14,
+                        color: player.isFavorite(song.id) ? Colors.redAccent : EmberColors.primaryBlue,
+                      ),
+                      label: Text(
+                        player.isFavorite(song.id) ? 'In Liked Songs' : 'Add to Library',
+                        style: const TextStyle(color: EmberColors.textPrimary),
+                      ),
+                      onPressed: () async {
+                        if (!player.isFavorite(song.id)) {
+                          await player.toggleFavorite(song);
+                        }
+                        if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: EmberColors.surfaceContainerHigh,
+                              content: Text(
+                                'Added "${song.title}" to Liked Songs in Library!',
+                                style: const TextStyle(color: EmberColors.primaryBlueHi),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: EmberColors.primaryBlue,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                      label: const Text('Play Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      onPressed: () async {
+                        await player.playSong(song);
+                        if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
+                        if (context.mounted) Navigator.of(context).pop();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).whenComplete(() {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        try {
+          _controller.start();
+        } catch (_) {}
+      }
+    });
   }
 
   void _showScannedPlaylistSheet(
@@ -206,7 +364,9 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
     List<Song> songs,
   ) {
     final playlist = Playlist(
-      id: playlistId.isNotEmpty ? playlistId : 'pl_${DateTime.now().millisecondsSinceEpoch}',
+      id: playlistId.isNotEmpty && !playlistId.startsWith('scanned_pl_')
+          ? playlistId
+          : 'pl_${DateTime.now().millisecondsSinceEpoch}',
       title: title.isNotEmpty ? title : 'Scanned Playlist',
       songs: songs,
       createdAt: DateTime.now(),
@@ -287,6 +447,22 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                       ],
                     ),
                   ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: EmberColors.primaryBlue.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'SINE QR',
+                      style: TextStyle(
+                        color: EmberColors.primaryBlueHi,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -343,21 +519,22 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       icon: const FaIcon(FontAwesomeIcons.bookmark, size: 14, color: EmberColors.primaryBlue),
-                      label: const Text('Save to Library', style: TextStyle(color: EmberColors.textPrimary)),
+                      label: const Text('Add to Library', style: TextStyle(color: EmberColors.textPrimary)),
                       onPressed: () async {
-                        final messenger = ScaffoldMessenger.of(context);
-                        final nav = Navigator.of(sheetCtx);
                         await player.importScannedPlaylist(playlist);
-                        nav.pop();
-                        messenger.showSnackBar(
-                          SnackBar(
-                            backgroundColor: EmberColors.surfaceContainerHigh,
-                            content: Text(
-                              'Saved "${playlist.title}" to Library!',
-                              style: const TextStyle(color: EmberColors.primaryBlueHi),
+                        if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: EmberColors.surfaceContainerHigh,
+                              content: Text(
+                                'Saved "${playlist.title}" to Library!',
+                                style: const TextStyle(color: EmberColors.primaryBlueHi),
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        }
                       },
                     ),
                   ),
@@ -372,9 +549,10 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                       icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
                       label: const Text('Play Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       onPressed: () async {
-                        Navigator.pop(sheetCtx);
                         await player.importScannedPlaylist(playlist);
                         await player.playPlaylist(playlist);
+                        if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
+                        if (context.mounted) Navigator.of(context).pop();
                       },
                     ),
                   ),
@@ -384,7 +562,14 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
           ),
         ),
       ),
-    );
+    ).whenComplete(() {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        try {
+          _controller.start();
+        } catch (_) {}
+      }
+    });
   }
 
   void _showManualInputDialog() {
@@ -394,13 +579,13 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
       builder: (ctx) => AlertDialog(
         backgroundColor: EmberColors.surfaceContainerLow,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Enter Code or Link', style: TextStyle(color: EmberColors.textPrimary)),
+        title: const Text('Enter Link or Code', style: TextStyle(color: EmberColors.textPrimary)),
         content: TextField(
           controller: textController,
           autofocus: true,
           style: const TextStyle(color: EmberColors.textPrimary),
           decoration: InputDecoration(
-            hintText: 'Paste YouTube link or Sine Code...',
+            hintText: 'Paste YouTube link or Sine QR link...',
             hintStyle: const TextStyle(color: EmberColors.textMuted),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -433,7 +618,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          'Scan Sine Code',
+          'Scan QR Code',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
@@ -525,7 +710,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                     left: 20,
                     right: 20,
                     child: const Text(
-                      'Point camera at a Sine Code or YouTube QR code',
+                      'Point camera at a Sine QR code or YouTube link',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,

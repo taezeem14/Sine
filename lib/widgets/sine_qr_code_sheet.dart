@@ -57,7 +57,8 @@ class SineQrCodeSheet extends StatelessWidget {
     final s = song!;
     final encodedTitle = Uri.encodeComponent(s.title);
     final encodedArtist = Uri.encodeComponent(s.artist);
-    return 'sine://track?id=${s.id}&title=$encodedTitle&artist=$encodedArtist';
+    final encodedArtwork = Uri.encodeComponent(s.artworkUrl);
+    return 'sine://track?id=${s.id}&title=$encodedTitle&artist=$encodedArtist&artwork=$encodedArtwork';
   }
 
   String get _itemTitle => playlist?.title ?? song?.title ?? 'Unknown';
@@ -67,7 +68,7 @@ class SineQrCodeSheet extends StatelessWidget {
       playlist != null
           ? (playlist!.coverUrl ?? (playlist!.songs.isNotEmpty ? playlist!.songs.first.artworkUrl : ''))
           : (song?.artworkUrl ?? '');
-  String get _codeTag => playlist != null ? 'PLAYLIST' : 'SINE CODE';
+  String get _codeTag => playlist != null ? 'PLAYLIST QR' : 'SINE QR';
 
   @override
   Widget build(BuildContext context) {
@@ -234,20 +235,22 @@ class SineQrCodeSheet extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
-                // Soundwave Graphic Bars (Spotify-style sound bars)
+                // Clean Scanner Branding Info
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    for (int i = 0; i < 24; i++)
-                      Container(
-                        width: 3.5,
-                        height: (12 + (i % 6) * 4.5).toDouble(),
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        decoration: BoxDecoration(
-                          color: i % 2 == 0 ? EmberColors.primaryBlue : EmberColors.secondaryCyan,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+                    const Icon(Icons.qr_code_scanner_rounded, size: 15, color: EmberColors.primaryBlue),
+                    const SizedBox(width: 8),
+                    Text(
+                      playlist != null
+                          ? 'Scan with Sine Camera to import playlist'
+                          : 'Scan with Sine Camera to play or save track',
+                      style: const TextStyle(
+                        color: EmberColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
+                    ),
                   ],
                 ),
               ],
@@ -266,10 +269,12 @@ class SineQrCodeSheet extends StatelessWidget {
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
+                        backgroundColor: EmberColors.surfaceContainerHigh,
                         content: Text(
                           playlist != null
-                              ? 'Sine playlist link copied to clipboard!'
-                              : 'Sine track link copied to clipboard!',
+                              ? 'Sine playlist QR link copied to clipboard!'
+                              : 'Sine track QR link copied to clipboard!',
+                          style: const TextStyle(color: EmberColors.primaryBlueHi),
                         ),
                         duration: const Duration(seconds: 2),
                       ),

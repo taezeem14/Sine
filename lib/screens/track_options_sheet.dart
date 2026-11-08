@@ -276,7 +276,7 @@ class TrackOptionsSheet extends StatelessWidget {
               icon: FontAwesomeIcons.qrcode,
               iconColor: EmberColors.secondaryCyan,
               title: 'Show Sine QR Code',
-              subtitle: 'Scannable Spotify-style code for instant sharing',
+              subtitle: 'Scannable QR code for instant offline & online sharing',
               onTap: () {
                 Navigator.pop(context);
                 SineQrCodeSheet.show(context, song);
