@@ -40,10 +40,12 @@ class _AmbientGlowState extends State<AmbientGlow>
   @override
   void didUpdateWidget(covariant AmbientGlow oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isPlaying && !_controller.isAnimating) {
-      _controller.repeat(reverse: true);
-    } else if (!widget.isPlaying && _controller.isAnimating) {
-      _controller.animateTo(0.0, duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
+    if (oldWidget.isPlaying != widget.isPlaying) {
+      if (widget.isPlaying) {
+        _controller.repeat(reverse: true);
+      } else {
+        _controller.stop();
+      }
     }
   }
 

@@ -1,0 +1,11 @@
+Sine is a high-fidelity, privacy-centric music streaming client for Android. Built with a NewPipe-inspired architecture, it provides an ad-free, account-free listening experience with pure acoustics and zero telemetry.
+
+<b>Key Features:</b>
+• <b>Audiophile Playback Engine:</b> Native ExoPlayer stream pipeline supporting high-bitrate Opus (160 kbps) and AAC (128 kbps) with seamless fallback chains across YouTube InnerTube, Piped, and Invidious instances.
+• <b>100% Private & Telemetry-Free:</b> No user accounts, no login required, zero analytics SDKs, and no tracking cookies. All history, playlists, and settings remain strictly on your device.
+• <b>Synchronized Lyrics:</b> Real-time synchronized LRC lyrics fetched directly via LRCLIB with auto-scroll and manual time-offset controls.
+• <b>Offline Downloads & Caching:</b> Download tracks with embedded metadata (ID3 tags and high-resolution album artwork) directly to local storage.
+• <b>Dynamic Headroom Limiter & 6-Band Graph EQ:</b> Studio-calibrated equalizer with 20 genre curve presets and dynamic peak limiting.
+• <b>Smart Sleep Timer & Crossfade:</b> Wall-clock compensated sleep timer for Android Doze mode and gapless crossfade transitions.
+• <b>SponsorBlock Integration:</b> Automatically skip non-music intros, promotional spots, and silence segments.
+• <b>Sine Share QR Code:</b> Instant, offline device-to-device playlist and track sharing via camera scanner.

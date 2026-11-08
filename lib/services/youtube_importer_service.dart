@@ -106,6 +106,9 @@ class YouTubeImporterService {
   static void invalidateCache(String videoId) {
     final cleanId = videoId.replaceFirst('yt_', '').trim();
     _streamCache.remove(cleanId);
+    _streamCache.remove('${cleanId}_high');
+    _streamCache.remove('${cleanId}_medium');
+    _streamCache.remove('${cleanId}_dataSaver');
     _streamCache.remove('${cleanId}_mp4');
   }
 
@@ -359,7 +362,7 @@ class YouTubeImporterService {
           cleanId,
           ytClients: clients,
           requireWatchPage: false,
-        ).timeout(const Duration(seconds: 6));
+        ).timeout(const Duration(seconds: 4));
 
         final candidates = <String>[];
 
@@ -367,44 +370,21 @@ class YouTubeImporterService {
         final mp4Audio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'mp4').toList();
         final webmAudio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'webm').toList();
 
-        // Sort candidates based on user's preferred quality preset:
-        // 'high'      -> Standalone MP4 AAC (128 kbps), Progressive MP4 (AAC), then WebM Opus
-        // 'medium'    -> Progressive Muxed MP4 (360p container with AAC, fastest start), MP4 AAC, then WebM Opus
-        // 'dataSaver' -> Lowest bitrate audio stream (50-70 kbps), Progressive MP4, then remaining
-        if (preferProgressiveMp4 || preferredQuality == 'medium') {
-          if (muxedMp4.isNotEmpty) {
-            candidates.add(muxedMp4.withHighestBitrate().url.toString());
-          }
-          if (mp4Audio.isNotEmpty) {
-            candidates.add(mp4Audio.withHighestBitrate().url.toString());
-          }
-          if (webmAudio.isNotEmpty) {
-            candidates.add(webmAudio.withHighestBitrate().url.toString());
-          }
-        } else if (preferredQuality == 'high') {
-          if (mp4Audio.isNotEmpty) {
-            candidates.add(mp4Audio.withHighestBitrate().url.toString());
-          }
-          if (muxedMp4.isNotEmpty) {
-            candidates.add(muxedMp4.withHighestBitrate().url.toString());
-          }
-          if (webmAudio.isNotEmpty) {
-            candidates.add(webmAudio.withHighestBitrate().url.toString());
-          }
-        } else if (preferredQuality == 'dataSaver') {
-          final allAudio = [...mp4Audio, ...webmAudio];
-          if (allAudio.isNotEmpty) {
-            allAudio.sort((a, b) => a.bitrate.compareTo(b.bitrate));
-            candidates.add(allAudio.first.url.toString());
-          }
-          if (muxedMp4.isNotEmpty) {
-            candidates.add(muxedMp4.withHighestBitrate().url.toString());
-          }
-          if (mp4Audio.isNotEmpty) {
-            candidates.add(mp4Audio.withHighestBitrate().url.toString());
-          }
+        // 1. Primary (Fastest & Most Reliable): Progressive Muxed MP4 (itag 18, 360p progressive container with AAC audio)
+        // Instant hardware decoding on Android ExoPlayer, immune to DASH cipher throttling, starts in ~0.5s - 1.0s
+        if (muxedMp4.isNotEmpty) {
+          candidates.add(muxedMp4.withHighestBitrate().url.toString());
         }
 
+        // 2. Secondary Fallback: Standalone MP4 AAC (itag 140, 128 kbps)
+        if (mp4Audio.isNotEmpty) {
+          candidates.add(mp4Audio.withHighestBitrate().url.toString());
+        }
+
+        // 3. Tertiary Fallback: Standalone WebM Opus (itag 251, 160 kbps)
+        if (webmAudio.isNotEmpty) {
+          candidates.add(webmAudio.withHighestBitrate().url.toString());
+        }
         if (candidates.isNotEmpty) {
           LogService.stream('YouTubeEngine', 'InnerTube resolved ${candidates.length} candidate(s) via $clientName for $cleanId');
           _cacheStreams(cacheKey, candidates);
@@ -747,7 +727,7 @@ class YouTubeImporterService {
 
       try {
         final video = await _yt.videos.get(videoId);
-        final streamUrl = await getAudioStreamUrl(videoId) ?? '';
+        final streamUrl = 'https://www.youtube.com/watch?v=$videoId';
         final artwork = video.thumbnails.highResUrl.isNotEmpty
             ? video.thumbnails.highResUrl
             : video.thumbnails.standardResUrl;

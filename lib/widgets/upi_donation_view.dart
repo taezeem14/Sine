@@ -1,8 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../theme/ember_theme.dart';
 
 class UpiDonationView extends StatefulWidget {
@@ -108,7 +108,7 @@ class _UpiDonationViewState extends State<UpiDonationView> {
 
   @override
   Widget build(BuildContext context) {
-    final qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&bgcolor=0D1117&color=00D2FF&data=${Uri.encodeComponent('upi://pay?pa=$upiId&pn=$payeeName&tn=Donation%20for%20Sine%20Music&am=$_currentAmountString&cu=INR')}';
+
 
     return ListView(
       controller: widget.scrollController,
@@ -535,24 +535,19 @@ class _UpiDonationViewState extends State<UpiDonationView> {
                 child: Container(
                   width: 200,
                   height: 200,
-                  color: const Color(0xFF0D1117),
-                  child: CachedNetworkImage(
-                    imageUrl: qrUrl,
-                    placeholder: (context, url) => const Center(
-                      child: CircularProgressIndicator(color: EmberColors.primaryAmber, strokeWidth: 2),
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(8),
+                  child: QrImageView(
+                    data: _buildUpiUri(scheme: 'upi'),
+                    version: QrVersions.auto,
+                    size: 184,
+                    eyeStyle: const QrEyeStyle(
+                      eyeShape: QrEyeShape.square,
+                      color: Colors.black,
                     ),
-                    errorWidget: (context, url, error) => const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.qr_code_2_rounded, size: 64, color: EmberColors.primaryAmber),
-                          SizedBox(height: 8),
-                          Text(
-                            upiId,
-                            style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
+                    dataModuleStyle: const QrDataModuleStyle(
+                      dataModuleShape: QrDataModuleShape.square,
+                      color: Colors.black,
                     ),
                   ),
                 ),

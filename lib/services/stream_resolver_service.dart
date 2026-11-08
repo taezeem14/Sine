@@ -20,6 +20,7 @@ class StreamResolverService {
   static void invalidateCache(String key) {
     _resolvedCache.remove(key);
     _inFlightResolutions.remove(key);
+    YouTubeImporterService.invalidateCache(key);
   }
 
   /// Manually cache a verified working stream (e.g. from fallback proxy)
@@ -114,7 +115,7 @@ class StreamResolverService {
     }
 
     final future = _resolveCandidatesInternal(song, cacheKey)
-        .timeout(const Duration(seconds: 15), onTimeout: () => <String>[]);
+        .timeout(const Duration(seconds: 25), onTimeout: () => <String>[]);
     _inFlightResolutions[cacheKey] = future;
     return future.whenComplete(() {
       _inFlightResolutions.remove(cacheKey);

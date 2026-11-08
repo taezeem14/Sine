@@ -1,0 +1,48 @@
+Categories:
+  - Multimedia
+License: GPL-3.0-only
+SourceCode: https://github.com/taezeem14/Sine
+IssueTracker: https://github.com/taezeem14/Sine/issues
+Changelog: https://github.com/taezeem14/Sine/releases
+
+Name: Sine
+Summary: High-fidelity, telemetry-free music streaming powered by YouTube & Piped
+Description: |-
+  Sine is a high-fidelity, privacy-first Android music streaming client
+  built with NewPipe-inspired architecture.
+
+  Features:
+  * Zero ads, zero accounts, zero tracking or analytics
+  * Pure YouTube & Piped audio streaming up to 160 kbps Opus / 128 kbps AAC
+  * Native ExoPlayer hardware decoding with automatic stream failover
+  * Synchronized lyrics via LRCLIB with offset calibration
+  * Full offline downloads with embedded ID3 metadata and artwork
+  * 6-band graph equalizer with dynamic peak headroom limiter
+  * Smart sleep timer and gapless audio crossfade
+  * Offline QR code playlist and track sharing
+  * SponsorBlock segment skipping
+
+RepoType: git
+Repo: https://github.com/taezeem14/Sine.git
+
+AntiFeatures:
+  - NonFreeNet:
+      en-US: Streams audio and metadata from YouTube/Google and public web services.
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 1.1.9
+CurrentVersionCode: 21
+
+Builds:
+  - versionName: 1.1.9
+    versionCode: 21
+    commit: v1.1.9
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter@3.24.5
+    prebuild:
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    build:
+      - $$flutter$$/bin/flutter build apk --release --no-tree-shake-icons

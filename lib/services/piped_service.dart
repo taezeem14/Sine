@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'log_service.dart';
@@ -14,11 +14,11 @@ class PipedService {
   PipedService._();
 
   static const _instances = [
+    'https://api.piped.projectsegfau.lt',
+    'https://pipedapi.in.projectsegfau.lt',
+    'https://pipedapi.kavin.rocks',
     'https://pipedapi.adminforge.de',
-    'https://pipedapi.smnz.de',
     'https://piped-api.lunar.icu',
-    'https://pipedapi.leptons.xyz',
-    'https://pipedapi.ducks.party',
   ];
 
   static final Map<String, DateTime> _cooldowns = {};

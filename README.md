@@ -1,4 +1,4 @@
-# ⚡ SINE — The High-Fidelity YouTube Music Client (Zero Ads)
+# ⚡ SINE — High-Fidelity Music Streaming (100% Free & Open Source)
 
 <div align="center">
 
@@ -11,502 +11,208 @@
   ╚══════╝╚═╝╚═╝  ╚═══╝╚══════╝
 ```
 
-### *Streaming music hits different when you don't pay \$11/month for ads. Pure acoustics. Zero telemetry. 🎧✨*
+### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![GitHub Release](https://img.shields.io/github/v/release/taezeem14/Sine?color=00d2ff&style=for-the-badge&logo=github)](https://github.com/taezeem14/Sine/releases/latest)
-[![Platform](https://img.shields.io/badge/Platform-Android%208.0+-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
-[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
-[![Engine](https://img.shields.io/badge/Engine-NewPipe%20Extractor-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://github.com/TeamNewPipe/NewPipe)
-[![Startup Latency](https://img.shields.io/badge/Startup%20Latency-1.2s%20Instant-success?style=for-the-badge&logo=speedtest&logoColor=white)](https://github.com/taezeem14/Sine)
-[![Zero Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
-[![License](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
-[![Donate UPI](https://img.shields.io/badge/Donate-UPI%3A%207006616470%40fam-ff69b4?style=for-the-badge&logo=googlepay&logoColor=white)](#-10-direct-creator-support-upi)
+[![Version](https://img.shields.io/badge/Version-v1.1.9%20(Build%2021)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![F-Droid](https://img.shields.io/badge/F--Droid-Ready-3DDC84?style=for-the-badge&logo=f-droid&logoColor=white)](metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml)
+[![IzzyOnDroid](https://img.shields.io/badge/IzzyOnDroid-Ready-blueviolet?style=for-the-badge&logo=android&logoColor=white)](https://gitlab.com/IzzyOnDroid/repo)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
+[![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
+[![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
+[![Engine](https://img.shields.io/badge/Engine-ExoPlayer%20Hardware%20DSP-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://github.com/TeamNewPipe/NewPipe)
+[![Donate UPI](https://img.shields.io/badge/Donate-UPI%3A%207006616470%40fam-ff69b4?style=for-the-badge&logo=googlepay&logoColor=white)](#-support-the-project-upi)
 
 <br/>
 
 ### [👉 📲 DOWNLOAD LATEST APK (v1.1.9)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.9.apk) 👈
 
-*Tap above to download the APK, install on Android, and elevate your earholes immediately.*
+*Tap above to download the APK, install on Android 8.0+, and enjoy ad-free music instantly.*
 
 <br/>
 
-[🌐 Visit the Official Sine Product Website](https://taezeem14.github.io/Sine/)
+[🌐 Official Sine Website](https://taezeem14.github.io/Sine/) • [📦 F-Droid Recipe](metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml) • [🐛 Report Bug](https://github.com/taezeem14/Sine/issues) • [💬 Request Feature](https://github.com/taezeem14/Sine/issues)
 
 </div>
+
+---
+
+## 📖 Table of Contents
+- [What Is Sine?](#-what-is-sine)
+- [Key Features](#-key-features)
+- [Architecture & Playback Pipeline](#-architecture--playback-pipeline)
+- [FOSS & Privacy Guarantee](#-foss--privacy-guarantee)
+- [Installation Guide](#-installation-guide)
+  - [1. FOSS Stores (F-Droid & IzzyOnDroid)](#1-foss-stores-f-droid--izzyondroid)
+  - [2. Direct GitHub Release APK](#2-direct-github-release-apk)
+  - [3. ADB CLI Deployment](#3-adb-cli-deployment)
+- [Gestures & Quick Controls](#-gestures--quick-controls)
+- [Building from Source](#-building-from-source)
+- [Support the Project (UPI)](#-support-the-project-upi)
+- [Credits & License](#-credits--license)
 
 ---
 
 ## 💅 What Is Sine?
 
-Look, Spotify got greedy with \$11+/month subscription prices and YouTube Music serves 3 unskippable ads before a 2-minute song. **Sine** is the ultimate fusion of **Spotify's sleek obsidian midnight UI** and **NewPipe's raw, private YouTube extraction engine**.
+**Sine** is an independent, high-fidelity music streaming client for Android that merges **Spotify's obsidian design language** with **NewPipe's privacy-focused YouTube extraction engine**.
 
-- **No subscriptions.**
-- **No accounts or logins required.**
-- **No tracking or telemetry.**
-- **Zero ads. Ever.**
-- **Instant sub-1.2s playback** powered by native Android hardware DSP decoding.
-- **Offline vault** for saving tracks directly to `/storage/emulated/0/Sine-Music`.
-- **Real-Time Sound Shaping & 6-Band Graph Equalizer**: Electric Blue spline curve (60 Hz – 15 kHz) with draggable nodes.
-- **AI Sound Isolation**: Studio-grade Vocals-Only (acapella) and Instruments-Only (karaoke) real-time extraction.
-- **Spotify Content Cards**: Synced lyrics preview, dynamic "About the Artist" biography & realistic listener counts, and credits.
-- **Scannable Sine QR Codes**: Spotify-style audio wave QR codes for instant offline track and playlist sharing.
-- **App Lock Security**: 4-digit PIN protection safeguarding your library.
-- **Android Home Screen Widget (4x2)** with instant play/pause, track skip, and live song metadata.
-- **Spotify-Grade Smart Radio & Autoplay**: Infinite, algorithmic Song Radio and Artist Radio powered by YouTube Music's recommendation graph (RDAMVM/RD), featuring deduplication, anti-clustering, and seamless queue continuation.
-- Just pure, uninterrupted, audiophile-grade music streamed straight from YouTube & YouTube Music's global catalog.
-
-We cooked so you can vibe. Fr fr. 👨‍🍳🔥
+Commercial streaming platforms charge \$11+/month, clutter interfaces with video podcasts, and collect extensive user listening telemetries. Sine provides:
+- **Zero Subscriptions & Zero Ads**: Clean, direct audio streaming from YouTube & YouTube Music.
+- **No Logins or Accounts Required**: Zero account bans, zero tracking cookies, and zero Google/Spotify credentials.
+- **Pure Local Data**: Playlists, listening history, and cached media remain 100% on your device.
+- **Instant Playback**: Progressive hardware decoding starting audio in ~0.5s – 1.0s.
+- **Studio-Grade Audio Control**: 6-Band Graph Equalizer, Dynamic Headroom Peak Limiter, Sleep Timer, and Crossfade.
 
 ---
 
-## 🚀 What's New in v1.1.9 (Neural Stem Diagnostics, Audio Headroom Limiter & 120 FPS Telemetry)
-- 🔬 **Critical: Stem Pipeline Diagnostics & Benchmark Test Bench**:
-  - Live stage-by-stage diagnostic trace in Diagnostics Screen inspecting Tier 1 Disk Cache (0ms), Tier 2 SOTA AI Neural Spaces (BS-RoFormer 12.97 dB SDR & Demucs v4), Tier 3 YouTube Studio Matcher, and Tier 4 Hardware DSP.
-  - Logs HTTP statuses, Gradio upload payloads, candidate matching scores, duration deltas, and exact latency down to the millisecond.
-  - Interactive benchmark tester allowing instant on-demand stem isolation diagnostics for any YouTube song ID or title.
-- 🛡️ **Critical: Audio Clipping Protection & Digital Headroom Scaling**:
-  - Built-in dynamic digital headroom limiter in `SineAudioHandler` calculating real-time peak EQ boosts (+13.5dB Acapella resonance, +8.5dB Karaoke bass, Equalizer curve presets).
-  - Automatically attenuates pre-amp volume dynamically to guarantee the output signal never exceeds 0 dBFS or causes DAC oversaturation, distortion, or crackle.
-- ⚡ **High: Asynchronous Background Stem Processing**:
-  - Non-blocking FIFO background worker queue in `StemService` (`enqueueBackgroundSeparation`) separating vocal/instrumental stems in background threads without stuttering active audio or freezing UI.
-- 🔄 **High: Persistent Playback Recovery & Reliable Restarts**:
-  - Discrete, non-intrusive Spotify-style obsidian session recovery banner on Home screen: *"🎵 Resume session: [Track] ([mm:ss])"*, allowing one-tap resumption right to the exact second.
-  - Configurable recovery modes in Settings: Prompt (Recommended), Always Direct Restore, or Off (Clean Start Always).
-- 🗃️ **High: Queue State Management & Deduplication**:
-  - Hardened queue operations with atomic index tracking, zero out-of-bounds errors, and one-tap queue deduplication (*"Deduplicate Active Queue"*).
-- 🎚️ **Medium: Audio Quality & AI Model Selectors**:
-  - User-configurable audio streaming bitrates: High (Audiophile WebM Opus 160+ kbps & AAC), Medium (Balanced 128 kbps), and Data Saver (Eco Opus 50-70 kbps).
-  - Neural stem model selection in Settings: Automatic SOTA, Force BS-RoFormer, Force Demucs, YouTube Match Only, or DSP Hardware Only.
-- 📊 **Medium: Performance Monitoring & 120 FPS Dropped Frame Telemetry**:
-  - Flutter FrameTiming callback monitor tracking instantaneous FPS, rolling average FPS, 1% low FPS, and jank frames (>16.6ms / >8.3ms).
-  - Optional floating developer HUD overlay toggleable in Settings or Diagnostics.
+## 🚀 Key Features
+
+| Category | Capability | Technical Details |
+| :--- | :--- | :--- |
+| **Acoustics** | **Native ExoPlayer DSP Engine** | Multi-candidate stream cascade prioritizing Progressive Muxed MP4 (itag 18) for instant hardware decoding, with standalone AAC (128 kbps) and WebM Opus (160 kbps) fallbacks. |
+| **Acoustics** | **6-Band Graph Equalizer** | Bezier spline visualizer across `60 Hz`, `150 Hz`, `400 Hz`, `1 kHz`, `2.4 kHz`, `15 kHz` with 20 calibrated Spotify presets. |
+| **Acoustics** | **Dynamic Headroom Limiter** | Pre-amp attenuation preventing digital clipping (0 dBFS overshoot) during heavy bass/treble boost. |
+| **Playback** | **Smart Sleep Timer** | Drift-compensated countdown timer resilient to Android Doze mode, with "End of Track" sleep support. |
+| **Playback** | **Gapless Crossfade** | Configurable audio crossfade for smooth, continuous transitions between tracks. |
+| **Lyrics** | **Synchronized Karaoke Lyrics** | Auto-scrolling LRC lyrics from LRCLIB with millisecond tap-to-seek and tempo-modified guard. |
+| **Offline** | **Local Storage Vault** | Direct track downloads to `/storage/emulated/0/Sine-Music` with embedded ID3 metadata and artwork. |
+| **Sharing** | **Sine QR Code** | 100% offline, on-device QR generator & scanner for sharing tracks and playlists without internet. |
+| **Security** | **App Lock** | Local 4-digit PIN authentication securing your library and downloads. |
+| **Widgets** | **Home Screen Widget** | 4x2 responsive Android widget with real-time metadata, album art, and transport playback controls. |
 
 ---
 
-## 🚀 What's New in v1.1.9 (Clean Launch Player, Resilient Audio Isolation & 120 FPS Fluid Animations)
-- 🧹 **Clean Cold-Launch Player Architecture**:
-  - Eradicated the persistent cold-boot bug where the previously played track pre-populated the player and mini-player on startup.
-  - The player starts cleanly in a dormant state (currentIndex = -1, queue = []) with the mini-player hidden until the user explicitly selects a track or playlist.
-- 🎛️ **Bulletproof Audio Isolation & Resilient Stem Swapping**:
-  - Fixed audio separation stream swapping: now validates the ExoPlayer stream swap outcome and immediately falls back to high-impact hardware DSP filtering if an online stream expires or fails.
-  - Expanded studio backing track and acapella matching with broadened search queries (Sing King, KaraFun, Topic, Acapella, Vocal Stem), expanded delta thresholds (up to $\pm 18 for count-in intros), and lowered match thresholds.
-  - Tuned hardware DSP vocal isolation: dynamic bass boost cut (0.0) on acapella and heavy low-end bass boost (+0.85) on instrumental mode for powerful psychoacoustic vocal frequency masking.
-- 💫 **120 FPS Buttery UI & Tactile Micro-Interactions**:
-  - Added Spotify-style tactile spring-scale bounce to Now Playing album artwork (AnimatedScale from 0.94x when paused to 1.0x on play with Curves.easeOutBack).
-  - Added unified BouncingScrollPhysics across Settings, Home, Search, and Library for consistent, fluid kinetic scrolling on high-refresh-rate displays.
-- 🏷️ **Single Source of Truth Version Metadata**:
-  - Unified app version, release tag, and build number across AppConstants, settings_screen.dart, diagnostics_log_screen.dart, log_service.dart, and pubspec.yaml.
+## 📐 Architecture & Playback Pipeline
 
----
-
-## 🚀 What's New in v1.1.7 (BS-RoFormer SOTA AI Stems & High-Speed Studio Master Pipeline)
-- 🧠 **BS-RoFormer Neural Source Separation (World #1 SOTA 12.97 dB SDR)**:
-  - Integrated Band-Split RoFormer model architecture for pristine vocal extraction and vocal elimination. Eliminates hollow phase artifacts and high-frequency distortion.
-  - Multi-engine resilience: Automatically cascades through BS-RoFormer $\rightarrow$ Demucs v4 $\rightarrow$ Studio Master $\rightarrow$ Native DSP notch filtering.
-- ⚡ **Instant ~300ms Studio Master Backing Track Engine**:
-  - Reordered the stem resolution hierarchy: Prioritizes verified official studio instrumentals and backing tracks (from Sing King, KaraFun, and Official YouTube Music Topic releases) with strict duration matching ($\pm 6$s).
-  - Delivers **true 100% lossless studio master fidelity** in under 400ms without remote server queue delays.
-- 💾 **0ms Dual-Stem Local Disk Caching**:
-  - Once any stem is isolated or matched, both the vocal track (`_vocals.wav`) and backing instrumental (`_instrumental.wav`) are saved locally to sandboxed app storage.
-  - Subsequent toggles between Original, Acapella, and Karaoke execute in **0ms** without network latency.
-- 🎨 **Polished Audio Isolation Badges & UI**:
-  - Dynamically displays `'Studio Karaoke (Synced)'`, `'BS-RoFormer AI Karaoke'`, `'BS-RoFormer AI Acapella'`, and `'DSP Vocal Shaper'` badges.
-  - Restyled Sound Shaping sheet with `'AI SOTA & STUDIO STEM ISOLATION'` heading.
-
----
-
-## 🚀 What's New in v1.1.6 (Hugging Face Demucs v4 AI Stems & 120 FPS Fluid Motion)
-- 🧠 **Meta Demucs v4 AI Music Source Separation via Hugging Face Space**: Upgraded the sound shaper engine with direct integration into Hugging Face's high-speed Demucs v4 neural network (`abidlabs-music-separation.hf.space` via Gradio 6 SSE streaming). Delivers true studio-grade separation:
-  - **Demucs AI Karaoke**: Complete vocal stripping preserving bass, drums, and harmonic accompaniment without phase artifacts or muffling.
-  - **Demucs AI Acapella**: Pristine vocal track isolation with crisp intelligibility for remixing or vocal study.
-  - **Dual Stem Local Disk Caching**: Both extracted stems (`.wav`) are saved automatically to persistent local storage for instantaneous 0ms switching between Acapella, Karaoke, and Original audio on future playback.
-- ⚡ **120+ FPS Kinetic Motion & Micro-Interactions**:
-  - **Spring-Scale Transport Controls**: Wrapped Now Playing play/pause and transport buttons in `AnimatedScale` with `Curves.easeOutBack` spring physics for tactile haptic-like responsiveness.
-  - **Bottom Navigation Fluid Pill Selection**: Bottom tab bar items feature animated scale transforms (1.05x on active) coupled with luminous electric blue indicator containers (`Color(0x3300D4FF)`).
-  - **Spotify Modal Presentation**: Upgraded mini player tap transition to a combined ease-out cubic `SlideTransition` and `FadeTransition`, mimicking Spotify's bottom-to-top fluid expansion.
-  - **Luminous Glowing Sound Shaper Cards**: Restyled Sound Shaping & Isolation options with vibrant electric blue gradients, soft ambient box shadows (`Color(0x2200D4FF)`), and live `'AI ACTIVE'` badges.
-- 🔒 **Comprehensive Static Analysis & Multi-Track Resilience**: 0 analyzer warnings across the entire Flutter codebase; verified stem result caching, smart fallback to duration-matched backing tracks, and native DSP notch filters.
-
----
-
-## 🚀 What's New in v1.1.5 (QR Playlist Sharing, Curated Top Hits & 120 FPS RAM Optimization)
-- 📲 **Scannable QR Playlist Sharing & Importing**: Share entire custom playlists or YouTube collections using Spotify-style soundwave QR codes (`sine://playlist`). The built-in Sine scanner parses playlist metadata and track lists, displaying a dedicated Scanned Playlist Sheet with instant **Play Now** and **Save to Library** actions.
-- 🌟 **Replaced Trending with Curated "Today's Top Hits"**: Completely eliminated low-quality YouTube clickbait, 10-hour loops, and news compilations by transitioning the home feed to **"Today's Top Hits"** and **"Global Top 50"** backed by strict duration filtering (45s–12m) and spam keyword filtering.
-- ⚡ **95% RAM Reduction & 120+ FPS Fluidity**: Implemented `memCacheWidth` and `memCacheHeight` constraints on all `CachedNetworkImage` decoders across Home, Library, Search, Now Playing, and Queue screens. Bitmap memory usage drops from ~400 MB to under 30 MB, eradicating frame drops and background app eviction.
-- 🎨 **Canvas Isolation & Repaint Boundaries**: Wrapped the interactive Bezier spline graph equalizer in `RepaintBoundary`, ensuring dragging and equalizer animations never trigger redundant layout or repaint passes on the preset list or parent scaffold.
-- 💾 **Offline Download Vault Verification**: Hardened directory scanning and metadata sync, guaranteeing downloaded tracks instantly appear under the Downloads filter with zero delay.
-- 🔒 **App Lock & Security Stability**: Reinforced route hierarchy handling to ensure PIN entry gates cannot be bypassed during background app switches.
-
----
-
-## 🚀 What's New in v1.1.4 (Lyrics Streaming Reactivity & Offline Download Vault Engine)
-- 🎤 **Real-Time 120 FPS Synchronized Lyrics Pipeline**: Direct connection of `SynchronizedLyricsView` and `_SpotifyLyricsPreviewCard` to `activeLyricIndexNotifier` via `ValueListenableBuilder<int>`. Automatically centers active lyrics during playback without stalling or freezing. Negative caching for tracks without lyrics eliminates repeated network timeouts.
-- 💾 **Downloaded Songs Vault Fix**: Resolved offline library invisibility by ensuring existing disk cache hits immediately save to `StorageService.saveDownloads`. Added `syncDownloadsFromDisk` to scan and register offline `.m4a` / `.webm` files directly into your library. Selecting the **Downloads** filter chip now renders a direct playable song list with "Play All" and "Shuffle".
-- 🎚️ **Fluid Spotify Graph Equalizer Tuning**: Fixed ease-out cubic animation math by establishing a baseline `_startGains` snapshot for preset transitions. Locked `_activeDragBand` on pan start to prevent horizontal finger drift from jumping frequency bands. Fixed `_SpotifyEqPainter.shouldRepaint` using `listEquals` for crisp 120 FPS canvas repaints in Spotify obsidian electric blue (`#00D4FF` / `#2979FF`).
-- 📜 **Draggable Scrollable Sheets for Sleep Timer & Settings**: Converted both the Sleep Timer sheet and Track Options sheet to `DraggableScrollableSheet` with dedicated scroll controllers, eliminating gesture contention with modal sheet dismiss gestures. Added wall-clock `targetTime` countdown logic to prevent sleep timer drift in Android Doze mode.
-- 🔀 **Queue Drag-Handle Correction**: Resolved hardcoded drag index in `QueueDiscoveryScreen` (`ReorderableDragStartListener(index: index)`), restoring instant reordering to all upcoming queue tracks. Dynamically resolved song IDs in dismiss actions to prevent deleting incorrect songs after queue reordering.
-- 🏷️ **Smart YouTube Title / Artist Parsing**: Upgraded `parseYouTubeMetadata` with multi-segment pipe (`|`) artist extraction, movie/soundtrack detection, and collaborating artist parsing (`feat.`, `ft.`, `&`, `x`), eliminating inverted artist/title labels.
-- 🔒 **App Lock Security Reinforcement**: Enforced `popUntil((route) => route.isFirst)` when re-locking from background pause so `AppLockScreen` cannot be bypassed by child route stacks.
-- 💖 **Settings UI Clean-up**: Centered the UPI support button text and eliminated container overflow.
-
----
-
-## 🚀 What's New in v1.1.3 (Spotify 2026 Polish & 120 FPS Fluidity)
-- 🎚️ **Standalone Spotify-Grade Equalizer Screen**: Exact Spotify 2026 UI layout featuring a vibrant **Electric Blue Bezier spline curve** with 6 draggable frequency nodes (`60 Hz`, `150 Hz`, `400 Hz`, `1 kHz`, `2.4 kHz`, `15 kHz`), live ON/OFF toggle switch, and 20 calibrated Spotify presets with instant visual checkmark selection.
-- ⚡ **120 FPS Fluidity Engine**: Eliminated high-frequency 300ms/1s full-app widget tree rebuilds during playback by moving progress scrubbing, lyric tracking, and timer countdowns to scoped `ValueNotifier` pipelines (`positionNotifier`, `activeLyricIndexNotifier`, `sleepSecondsNotifier`).
-- 📱 **Android Home Widget Loop Throttle**: Decoupled widget updates from `playbackEventStream` network buffer packets (which were firing every 1–2s) and added strict dual-layer deduplication in Dart and Kotlin, preventing background IPC thrashing.
-- 🏷️ **Artist / Title Swap Reversal**: Re-engineered metadata extraction with deep multi-part pipe (`|`) handling and artist match scoring, ensuring song names and singers never swap places.
-- 💾 **Downloaded Songs Offline Fix**: Repaired ID prefix matching (`yt_` stripping) and cross-platform Windows path normalizer, guaranteeing offline downloaded tracks play reliably in airplane mode.
-- 🎤 **True Centered Synced Lyrics**: Expanded dynamic viewport bottom padding to 72% so end-of-track lines stay centered on screen instead of scrolling to the top.
-- 🛡️ **Double-Tap Route Protection**: Added navigation guards on MiniPlayer, Queue, and options sheets to prevent duplicate overlay routes from stacking on rapid taps.
-
----
-
-## 📊 Live Architecture & Flow Diagrams
-
-Sine is engineered from the ground up to eliminate playback latency, avoid Google CDN throttling, and prevent queue skips. Below are the architectural workflows powering the app:
-
-### 1. Multi-Tier Stream Resolution & Playback Engine
+Sine utilizes a robust multi-tier fallback architecture ensuring uninterrupted streaming even when YouTube applies throttling or signature cipher updates:
 
 ```mermaid
 flowchart TD
-    UserTap(["User Taps Track / Queue Advances"]) --> CheckCache{"In-Memory Cache Hit?<br/>(&lt; 30 Mins)"}
-    
-    CheckCache -- "YES (0ms)" --> InstantLoad["Instant Load from Memory"]
-    CheckCache -- "NO" --> ExtractYT["Extract YouTube Video ID<br/>(or Dynamic Clean Search)"]
-    
-    ExtractYT --> InnerTube["Query InnerTube Manifest Client<br/>(Android SDK-less / iOS Cascade)"]
-    
-    InnerTube --> Candidates["Candidate Prioritization Engine"]
-    Candidates --> C1["Candidate #1: Progressive Muxed MP4 (itag 18)<br/>Instant Hardware DSP Launch ~0.5s - 1.2s<br/>★ Immune to DASH cipher throttling"]
-    Candidates --> C2["Candidate #2: Standalone AAC (itag 140)<br/>Secondary DASH AAC Audio Fallback"]
-    Candidates --> C3["Candidate #3: Standalone Opus (itag 251)<br/>Tertiary High-Fidelity Audiophile Fallback"]
-    
-    C1 --> ExoConnect["ExoPlayer HTTP DataSource<br/>(Clean Mobile Streaming Headers)"]
-    InstantLoad --> ExoConnect
-    
-    ExoConnect -- "Connects in ~1.2s" --> DSP["Android MediaCodec Hardware DSP<br/>(Demuxes AAC & Feeds DAC Directly)"]
-    DSP --> AudioOut(["🎶 Pure Audiophile Sound Output"])
-    
-    ExoConnect -- "On 12s Timeout / Socket Sever" --> FreshResolve["Invalidate Cache & Fetch Fresh Manifest"]
-    FreshResolve --> ExoConnect
-    FreshResolve -- "If All Direct Streams Exhausted" --> Piped["Tier-2: Piped API Cluster<br/>(smnz, adminforge, lunar, leptons)"]
-    Piped -- "If Piped Fails" --> Invidious["Tier-3: Live Invidious Audio Proxy<br/>(latest_version itag 140)"]
-    Piped --> DSP
-    Invidious --> DSP
+    A["Song Selected (UI / Queue / Widget)"] --> B["PlayerProvider.playSong()"]
+    B --> C{"Is Song Downloaded Locally?"}
+    C -- "Yes" --> D["ExoPlayer plays Local File (0ms latency)"]
+    C -- "No" --> E["StreamResolverService"]
+
+    E --> F["Check In-Memory Cache (30 min TTL)"]
+    F -- "Hit" --> G["YouTubeImporterService Candidates"]
+    F -- "Miss" --> H["InnerTube Multi-Client Manifest Query"]
+
+    H --> I["androidSdkless Client Profile"]
+    I --> J["Candidate #1: Progressive Muxed MP4 (itag 18, 0.5s start)"]
+    I --> K["Candidate #2: Standalone MP4 AAC (itag 140, 128 kbps)"]
+    I --> L["Candidate #3: Standalone WebM Opus (itag 251, 160 kbps)"]
+
+    J & K & L --> M["AudioHandler.playSong() with Native Android Headers"]
+    M --> N{"ExoPlayer Connection OK?"}
+    N -- "Success" --> O["Audio Streams via Native Hardware Decoders 🎵"]
+    N -- "Failure / 403" --> P["Clean Headers Retry"]
+    P -- "Failure" --> Q["Piped Public API Cluster Failover"]
+    Q -- "Failure" --> R["Dynamic YouTube Search & Next Candidate"]
 ```
 
 ---
 
-### 2. Sub-Second Playback Sequence & Background Prefetch
+## 🛡️ FOSS & Privacy Guarantee
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Listener as 🎧 Listener
-    participant UI as Sine UI
-    participant Resolver as Stream Resolver
-    participant YT as YouTube InnerTube
-    participant Exo as Android ExoPlayer
-    participant DSP as Hardware DSP (MediaCodec)
-
-    Listener->>UI: Selects Track ("ALWAYS BEEN YOU")
-    UI->>Resolver: Request Playable Streams
-    alt Memory Cache Hit
-        Resolver-->>UI: Return Cached itag 140 URL (0ms)
-    else First-Time Track Resolution
-        Resolver->>YT: Query Manifest (~300ms)
-        YT-->>Resolver: Return Manifest Streams
-        Resolver->>Resolver: Rank itag 140 as Primary #1
-        Resolver-->>UI: Return Stream Candidates
-    end
-
-    UI->>Exo: setUrl(Candidate #1: itag 140, headers)
-    Note over Exo: Buffer for Playback = 400ms
-    Exo->>DSP: Route Demuxed AAC Audio Stream
-    DSP-->>Listener: 🎶 Instant Audio Playback Starts (~1.2s)
-    
-    opt Background Next Track Prefetch (WINDOW_SIZE = 1)
-        UI->>Resolver: Prefetch Immediate Next Queue Item
-        Resolver->>YT: Pre-resolve & Warm Cache
-        Note over Resolver: Next track plays with 0ms transition!
-    end
-```
+Sine is built on strict Free & Open Source Software principles:
+1. **Zero Tracking SDKs**: No Google Firebase Analytics, Crashlytics, Sentry, Mixpanel, or Facebook Graph API.
+2. **100% Offline QR Rendering**: All QR code generation is performed locally on-device using vector canvas rendering (`qr_flutter`). No data is sent to external QR APIs.
+3. **No Account Association**: Audio streams are resolved anonymously via InnerTube and public proxy endpoints without logging into Google or Spotify accounts.
+4. **Local Data Persistence**: Playlists, favorites, and settings are saved to private app storage via SQLite / SharedPreferences.
 
 ---
 
-### 3. Latency & Performance Benchmark
+## 📲 Installation Guide
 
-```mermaid
-xychart-beta
-    title "Cold-Start Track Playback Latency in Seconds (Lower is Better)"
-    x-axis ["Sine v1.1.3", "Spotify Free", "YouTube Music", "Generic YT Scrapers"]
-    y-axis "Startup Latency (Seconds)" 0 --> 35
-    bar [1.2, 8.5, 6.2, 28.0]
-```
+### 1. FOSS Stores (F-Droid & IzzyOnDroid)
+Sine is fully compliant with F-Droid and IzzyOnDroid standards:
+- **IzzyOnDroid Repo**: Available for instant updates directly through F-Droid client apps (Neo Store, Droid-ify, F-Droid).
+- **F-Droid Build Recipe**: Available under [metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml](metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml).
 
-```
-Playback Latency Comparison:
-========================================================================
-Sine v1.1.3          [██] 1.2s (Hardware AAC DSP + itag 140 Prioritization)
-Spotify Free         [████████] 8.5s (Audio Ad Insertion + DRM Handshake)
-YouTube Music        [██████] 6.2s (Video Ad Ingestion + Player Handshake)
-Generic Scrapers     [████████████████████████████] 28.0s (DASH 403 Retries)
-========================================================================
-```
+### 2. Direct GitHub Release APK
+1. Download the latest release: [Sine-v1.1.9.apk](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.9.apk).
+2. On Android, tap the downloaded APK file.
+3. If prompted, allow *"Install unknown apps"* for your browser or file manager.
+4. Tap **Install** and open Sine.
 
----
-
-### 4. Audio Stream Pipeline Distribution
-
-| Stream Stream Protocol | Codec & Container | Target Hardware Decoder | Frequency Share | Latency |
-| :--- | :--- | :--- | :--- | :--- |
-| **Standalone AAC (itag 140)** | AAC-LC in MP4 container | Android MediaCodec Hardware AAC | **84%** | ~1.1s |
-| **Standalone Opus (itag 251)** | Opus in WebM container | Libopus Software Decoder | **11%** | ~1.3s |
-| **Progressive Muxed (itag 18)** | AAC + H.264 in MP4 | MediaCodec Direct Progressive | **4%** | ~0.9s |
-| **Piped / Invidious Proxy** | M4A HTTPS Stream | Regional Edge Failover Node | **1%** | ~1.8s |
-
----
-
-### 5. ExoPlayer Lifecycle & Runaway Skip Guard
-
-```mermaid
-stateDiagram-v2
-    [*] --> Idle
-    Idle --> Loading : playSong(track)
-    Loading --> Ready : Buffer >= 400ms (~1.2s)
-    Ready --> Playing : Audio Playback Starts
-    Playing --> Paused : User Pause
-    Paused --> Playing : User Resume
-    Playing --> EvaluatingCompletion : Track Nears End
-    
-    state EvaluatingCompletion {
-        [*] --> CheckDuration
-        CheckDuration --> IgnoreCompletion : total == null OR duration <= 5s (Decode/Network Error)
-        CheckDuration --> VerifiedCompletion : pos >= total - 4s OR pos/total >= 85%
-        IgnoreCompletion --> [*] : Prevent Skip Cascades
-        VerifiedCompletion --> NextTrack : Advance Queue Safely
-    }
-    
-    EvaluatingCompletion --> Idle : Track Finished Cleanly
-```
-
----
-
-## 🥊 Sine vs. The Competition
-
-| Feature | ⚡ **Sine v1.1.3** | 🟢 **Spotify Free** | 🔴 **YouTube Music** | 📺 **NewPipe** |
-| :--- | :---: | :---: | :---: | :---: |
-| **Monthly Cost** | **\$0 / Free Forever** | \$11.99/mo (Premium) | \$13.99/mo (Premium) | \$0 / Free |
-| **Audio Ads** | 🚫 **ZERO ADS** | 🔊 Unskippable 30s Ads | 🔊 Unskippable Video Ads | 🚫 ZERO ADS |
-| **Account Required** | ❌ **No Account Needed** | ✅ Mandatory Account | ✅ Mandatory Google Login | ❌ No Account Needed |
-| **Startup Latency** | ⚡ **~1.2 seconds** | ⏱️ 6–10 seconds | ⏱️ 5–8 seconds | ⚡ 1.5–3 seconds |
-| **Background & Lock Screen** | ✅ **Full Native Support** | ⚠️ Limited / Shuffled | 🔒 Locked Behind Paywall | ✅ Supported |
-| **SponsorBlock Integration** | ✅ **Auto-Skips Intros/Ads** | ❌ None | ❌ None | ✅ Optional |
-| **Hardware DSP Equalizer** | ✅ **Calibrated Multi-Band** | ⚠️ Basic 5-Band | ⚠️ Basic System EQ | ❌ None |
-| **Vocal / Instrumental Isolation** | ✅ **Hardware Real-Time** | ❌ None | ❌ None | ❌ None |
-| **Synced Karaoke Lyrics** | ✅ **Centered Auto-Scroll** | 🔒 Paywalled | ⚠️ Static Lyrics Only | ❌ None |
-| **Offline Storage Directory** | ✅ **/Sine-Music (Root)** | 🔒 DRM Encrypted | 🔒 DRM Encrypted | ✅ Media Download |
-| **Privacy & Telemetry** | 🛡️ **Zero Tracking / Private** | 👁️ Aggressive Ad Tracking | 👁️ Full Google Tracking | 🛡️ Private |
-
----
-
-## 🚀 The Feature Flex
-
-### ⚡ 1. Instant NewPipe Stream Engine (Zero-Delay Playback 🏎️💨)
-- **Sub-1.2s Instant Play**: Gone are the days of waiting 15–30 seconds for a song to load. Sine prioritizes standalone AAC audio streams (`itag 140`), pre-buffers in 400ms, and begins playback immediately via Android's hardware AAC decoder.
-- **Native ExoPlayer Stream Headers**: Injects clean mobile headers directly into Android ExoPlayer's HTTP DataSource, bypassing GoogleVideo CDN 403 blocks and preventing `(0) Source error`.
-- **Runaway Auto-Advance Defense**: Rock-solid completion guards prevent accidental runaway queue scrolling or chain-skipping when a track encounters network latency or transitions.
-- **Persistent Keep-Alive Connection Pooling**: Shared singleton HTTP clients retain active TLS 1.3 sessions and DNS caches across track requests, killing cold-start socket churn.
-- **Deep Background Prefetching**: The moment you tap play on a track or playlist, Sine pre-resolves the next queued song in the background with `WINDOW_SIZE = 1` precision.
-- **Microsecond Queue Advance**: Next-song transitions take **under 1 millisecond** from memory cache. True gapless playback back-to-back.
-
-### 🔍 2. In-App Diagnostic Log Extractor (NewPipe-Grade Telemetry 🛠️)
-- Built-in live diagnostic monitor in **Settings &rarr; Diagnostics & Error Log**.
-- Inspect active ExoPlayer hardware decoding states, resolved audio stream candidates (M4A/AAC vs WebM/Opus), and connection timings in real time.
-- Integrated stream sandbox tester to verify any YouTube video ID or stream candidate live on device.
-- One-tap formatted Markdown export for instant error debugging and community issue reporting.
-
-### 🎧 3. Pure YouTube Engine (Powered by NewPipe)
-- Streams direct Opus (160 kbps audiophile) and AAC audio streams straight from YouTube servers.
-- No Spotify audio leaks, no sketchy third-party backend scraping, no fake 320kbps MP3 transcode nonsense.
-- Instant search across billions of tracks, official artist uploads, live covers, lo-fi beats, unreleased tracks, and remixes.
-
-### 🚫 4. Zero Ads + Integrated SponsorBlock
-- You will literally never hear an ad. Ever.
-- Built-in **SponsorBlock** automatically detects and skips annoying podcast host sponsorships, intro skits, and outro sponsor plugs. It just stays on the music.
-
-### 🎚️ 5. Studio-Grade Hardware Multi-Band DSP Equalizer + Sound Shaping
-- No artificial gain blowouts or ear-splitting volume glitches.
-- Pure Android hardware DSP multi-band EQ calibrated for pristine frequency response.
-- **Vocal & Instrument Isolation Filters**:
-  - 🎙️ `Vocals Only`: Accentuates human vocal frequencies while attenuating background instruments (acapella extraction).
-  - 🎸 `Instruments Only`: Karaoke mode rolling off center vocal frequencies for pure instrumental enjoyment.
-- **Acoustic Presets**:
-  - 📻 `Warm Tape` — Analog vintage saturation & tape warmth
-  - ☕ `Lo-Fi` — Mid-focused nostalgic frequency roll-off
-  - 🔊 `Bass Boost` — Sub-harmonic low-end without distorting your speakers
-  - 🎙️ `Vocal Air` — High-shelf presence for crisp vocals
-  - 🎸 `Acoustic` — Balanced natural instrument dynamics
-  - 🎛️ `Flat` — Studio reference monitor profile
-- **Variable Playback Speed**: Smooth YouTube-style speed slider from 0.25x up to 2.0x with pitch-preservation.
-
-### ♾️ 6. Infinite YouTube Mixes & Endless Queue
-- Put on any YouTube Mix or Radio (`list=RD...`, `list=RDMM...`) and Sine paginates endlessly just like NewPipe.
-- Retrieves continuous 25-track batches on demand, expanding dynamically as you listen.
-- Auto-advance seamlessly prefetches the immediate next track for gapless transitions.
-
-### 🎤 7. Centered Real-Time Synced Karaoke Lyrics
-- Live synchronized karaoke lyrics with smooth vertical auto-centering on the actively playing line.
-- Third-party uploader lyric support: Smart title and artist normalization pulls lyrics even for unofficial lyric videos or re-uploads.
-- Tap any line to seek directly to that part of the track.
-
-### 🎨 8. Electric Blue & Obsidian Midnight Aesthetic
-- Built with a stunning dark UI tailored for OLED screens.
-- Electric blue accents, smooth gesture sliders, dynamic album art glow, vinyl spinning disc animation, and buttery 120Hz transitions.
-
-### 📥 9. Offline Download Vault (Direct to `/storage/emulated/0/Sine-Music`)
-- Save any track or video directly into `/storage/emulated/0/Sine-Music` — right in the parent storage directory alongside `Android` and `DCIM`.
-- Zero confusing nested subfolders in `Android/data`.
-- Dynamic runtime permission handling on Android 9/10/11+ ensures files are saved directly to public storage.
-- Full offline playback integration with instant offline vault access.
-
-### 💖 10. Direct Creator Support (UPI)
-- Built-in UPI donation tab in Settings supporting instant contributions to `7006616470@fam`.
-- Quick-tap contribution presets (₹50, ₹100, ₹250, ₹500, ₹1000) and scan-to-pay QR code generator.
-- Deep links directly launch Google Pay, PhonePe, Paytm, or BHIM.
-
-### 📱 11. Native Android Background Playback & Lock Screen
-- Fully integrated with Android `MediaSession` and `AudioService`.
-- Rich notification with album artwork, seekbar, next/previous buttons, and bluetooth headset integration with auto-pause on headphone unplug.
-
-### 🎛️ 12. Spotify-Style 6-Band Graph Equalizer (Electric Cyan-Blue Theme)
-- Interactive spline graph equalizer featuring 6 calibrated frequency nodes (60 Hz, 150 Hz, 400 Hz, 1 kHz, 2.4 kHz, 15 kHz).
-- Drag nodes freely across a ±12 dB curve with real-time gradient fill and haptic response.
-- Comprehensive presets: Flat, Bass Boost, Bass Reducer, Electronic, Dance, Acoustic, Hip-Hop, Pop, Rock, Classical, Jazz, Latin, and Spoken Word.
-
-### 📜 13. Dedicated Queue & Spotify-Style Content Cards
-- **Dedicated Queue Screen**: View upcoming tracks, reorder the queue with drag-and-drop handles, remove tracks, or clear upcoming songs.
-- **Scrollable Now Playing Cards**:
-  - 🎤 *Live Synced Lyrics Preview*: Embedded preview card with one-tap expansion.
-  - 👤 *About the Artist*: Dynamic artist hero banner, bio synopsis, realistic monthly listener telemetry, and instant Artist Radio shortcut.
-  - 🎼 *Song Credits*: Extracted performers, lyricists, composers, producers, and audio source details.
-  - ⏭️ *Next Up*: Live thumbnail and title preview of the upcoming song.
-
-### 🔐 14. App Lock Security & Scannable Sine QR Codes
-- **4-Digit PIN Security**: Lock your Sine music player with PIN verification, auto-lock on minimize, and biometric integration.
-- **Scannable Sine QR Codes**: Generate Spotify-style audio wave QR codes for any song to share instantly offline with friends.
-
-### 📱 15. Android Home Screen Playback Widget (4x2)
-- Sleek 4x2 home screen widget styled with the Sine aesthetic.
-- Displays live track title, artist name, and playback status.
-- Direct media button controls (Play/Pause, Next, Previous) with optimistic instant visual feedback.
-
-### 🧠 16. Smart Metadata Inversion Resolver & Modified-Tempo Lyrics Guard
-- **Automatic Title vs Artist Resolver**: Intelligently detects whether YouTube uploaders formatted a track as `"Song - Artist"` or `"Artist - Song"`, stripping `- Topic`, `VEVO`, and publisher noise.
-- **Modified-Tempo Lyric Guard**: Automatically disables lyrics for slowed + reverb, sped-up, nightcore, or pitched tracks to prevent audio timing mismatch.
-
----
-
-## ⚡ Installation (Super Easy)
-
-1. Head over to the **[Latest Releases](https://github.com/taezeem14/Sine/releases/latest)**.
-2. Download **`Sine-v1.1.3.apk`**.
-3. On your Android device, tap the downloaded APK.
-4. If prompted, toggle *"Allow install from unknown sources"* (it's open-source, safe, and completely transparent).
-5. Open Sine and start streaming! 🚀
-
-### Or Install via ADB:
+### 3. ADB CLI Deployment
+For developers and power users:
 ```bash
-adb install -r Sine-v1.1.3.apk
+adb install -r Sine-v1.1.9.apk
 ```
 
 ---
 
-## 🛠️ Tech Stack & Architecture
+## 🎮 Gestures & Quick Controls
 
-Sine is engineered with modern Flutter & Dart architecture:
-
-- **Framework**: [Flutter 3](https://flutter.dev) & Dart 3.11
-- **Audio Engine**: [`just_audio`](https://pub.dev/packages/just_audio) + Android ExoPlayer 2 / Media3
-- **Extraction Protocol**: Tier-1 InnerTube Direct Stream Extractor + [Team NewPipe](https://github.com/TeamNewPipe/NewPipe) extraction logic + [`youtube_explode_dart`](https://pub.dev/packages/youtube_explode_dart) + High-Performance Piped & Invidious REST Proxy Failover
-- **Connection Optimization**: Persistent HTTP/2 keep-alive socket reuse & ExoPlayer aggressive low-latency buffer tuning (`bufferForPlaybackDuration = 400ms`)
-- **DSP Audio FX**: Android native hardware `AndroidEqualizer` multi-band filter chain + Vocals / Instruments isolation filters
-- **Smart Metadata Cleaner**: Custom regex engine extracting true track titles & artist bylines from bloated YouTube video titles
-- **Sponsor Filtering**: Official [SponsorBlock API](https://sponsor.ajay.app/) integration
-- **State Management**: Reactive `Provider` pattern
-
----
-
-### 3. Spotify-Grade Smart Radio & Autoplay Architecture
-
-```mermaid
-flowchart TD
-    Trigger(["User Taps 'Start Song / Artist Radio'<br/>or Queue Reaches Tail with Autoplay ON"]) --> SeedCheck{"Station Type?"}
-    
-    SeedCheck -- "Song Radio" --> MLMix["Query InnerTube ML Radio (RDAMVM & RD)<br/>Fetches YouTube Music Collaborative Graph"]
-    SeedCheck -- "Artist Radio" --> ArtistHits["Query Artist Discography & Peer Artists<br/>Fetches Top Tracks & Collaborative Network"]
-    
-    MLMix --> Pool["Candidate Song Pool"]
-    ArtistHits --> Pool
-    
-    Pool --> Dedup["Spotify Deduplication Filter<br/>(Purges Duplicate IDs & Normalized Titles)"]
-    Dedup --> NoiseFilter["Anti-Noise Filter<br/>(Purges Karaoke, Synthesia Tutorials, 10-Hour Loops, Reactions)"]
-    NoiseFilter --> AntiCluster["Anti-Clustering & Pacing Shaper<br/>(Max 2 Consecutive Songs per Artist)"]
-    
-    AntiCluster --> InfiniteQueue["Queue Infinite Radio Station (25-50 Tracks)<br/>Retains Continuation Token for Automatic Auto-Paging"]
-    InfiniteQueue --> Playback(["🎶 Seamless Continuous Playback"])
-```
+| Gesture / Action | Screen / Area | Action Triggered |
+| :--- | :--- | :--- |
+| **Tap Mini-Player** | Bottom Navigation Bar | Expands full-screen Now Playing view |
+| **Swipe Down** | Now Playing Header | Dismisses Now Playing view back to browsing |
+| **Tap Album Artwork** | Now Playing View | Toggles between Vinyl / Cover Art and Synchronized Lyrics |
+| **Horizontal Swipe** | Now Playing Album Art | Skips to Next / Previous track |
+| **Tap Lyrics Line** | Synchronized Lyrics View | Seeks playback directly to that lyric timecode |
+| **Long Press Track** | Any Playlist / Search List | Opens Track Options (Add to playlist, download, share) |
+| **Draggable EQ Node** | Graph Equalizer Screen | Adjusts gain on any of the 6 calibrated audio bands |
 
 ---
 
-## 🧑‍💻 Building From Source
+## 🧑‍💻 Building from Source
 
-Wanna tweak the code or build your own APK? It's straightforward:
+### Prerequisites
+- [Flutter SDK](https://flutter.dev) (v3.24.0 or higher, stable channel)
+- [Android SDK](https://developer.android.com/studio) (API 34+ / Platform-tools installed)
+- [Java Development Kit (JDK)](https://adoptium.net) (Version 17)
 
+### Build Commands:
 ```bash
-# 1. Clone the repo
+# 1. Clone the repository
 git clone https://github.com/taezeem14/Sine.git
 cd Sine
 
-# 2. Get dependencies
+# 2. Fetch dependencies
 flutter pub get
 
-# 3. Run static analyzer (verify 0 lint errors)
+# 3. Verify static analysis (0 warnings)
 flutter analyze lib test
 
-# 4. Run tests
-flutter test
+# 4. Run automated test suite
+flutter test test/widget_test.dart
 
-# 5. Build optimized Android Release APK
+# 5. Build signed production APK
 flutter build apk --release --no-tree-shake-icons
 ```
 
-Your compiled APK will be located at:
-`build/app/outputs/flutter-apk/app-release.apk` (or `Sine-v1.1.3.apk`)
+The compiled release APK will be located at:
+```text
+build/app/outputs/flutter-apk/app-release.apk
+```
 
 ---
 
-## 👑 Credits & Shoutouts
+## 💖 Support the Project (UPI)
 
-### Created & Developed By
-- **Muhammad Taezeem Tariq** ([@taezeem14](https://github.com/taezeem14)) — *Project Architect, Lead Developer & Mastermind* 🔥
-- UPI: `7006616470@fam`
-
-### Special Thanks & Open Source Giants
-- **[Team NewPipe](https://github.com/TeamNewPipe/NewPipe)** — For pioneering private, tracker-free YouTube extraction.
-- **[YoutubeExplode](https://github.com/Hexer10/YoutubeExplode)** — Exceptional Dart YouTube metadata parser.
-- **[Ryan Heise](https://github.com/ryanheise)** — Creator of `just_audio` and `audio_service`.
-- **Open Source Audio Community** — Audio DSP filter design and acoustic engineering patterns.
-
----
-
-## 📜 License
-
-Sine is released under the **GNU General Public License v3.0 (GPL-3.0)**. Free as in freedom, forever.
+Sine is free, ad-free, and independently crafted with immense care. If Sine saves you from subscription costs, consider tipping the creator:
 
 <div align="center">
 
-**Made with 💙 by [taezeem14](https://github.com/taezeem14). If you love this project, drop a ⭐ on the repo!**
+**UPI ID**: `7006616470@fam`  
+**Beneficiary**: *Muhammad Taezeem Tariq*  
+*Supported across Google Pay, PhonePe, Paytm, BHIM, and FamPay.*
 
 </div>
+
+---
+
+## 👑 Credits & License
+
+- **Created & Maintained by**: **Muhammad Taezeem Tariq** ([@taezeem14](https://github.com/taezeem14))
+- **Special Thanks**:
+  - [Team NewPipe](https://github.com/TeamNewPipe/NewPipe) — The gold standard for tracker-free YouTube extraction.
+  - [YoutubeExplode](https://github.com/Hexer10/YoutubeExplode) — Robust Dart YouTube metadata parser.
+  - [Ryan Heise](https://github.com/ryanheise) — Audio engine pioneer behind `just_audio` & `audio_service`.
+  - [SponsorBlock](https://sponsor.ajay.app/) — Crowd-sourced database for skipping promotional segments.
+  - [LRCLIB](https://lrclib.net/) — Open-source synchronized lyrics archive.
+
+### ⚖️ License
+Sine is free software released under the **GNU General Public License v3.0 (GPL-3.0)**. You can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation. See [LICENSE](LICENSE) for details.

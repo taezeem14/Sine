@@ -44,7 +44,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.textMuted),
-              const SizedBox(height: 16),
+              const SizedBox(height: 6),
               const Text('No song playing', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               const Text('Playback has been stopped', style: TextStyle(color: EmberColors.textMuted, fontSize: 13)),
@@ -825,7 +825,7 @@ class _UtilityPillsRow extends StatelessWidget {
     final player = context.watch<PlayerProvider>();
 
     return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 4, top: 4),
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 2, top: 2),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),

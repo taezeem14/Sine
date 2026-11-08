@@ -1,0 +1,8 @@
+Sine v1.1.9 (Build 21):
+• Resolved ExoPlayer playback initialization bug on Android devices with preloaded source verification.
+• Prioritized progressive muxed MP4 streams for instant ~0.5s hardware playback and zero DASH cipher throttling.
+• Replaced external donation QR requests with completely offline local QR rendering.
+• Enhanced sleep timer with wall-clock drift compensation for Android Doze mode.
+• Calibrated 6-band graph equalizer with dynamic headroom peak limiter.
+• Eliminated bottom spacing on Now Playing screen for a cleaner, unified viewport.
+• Added full GNU GPLv3 license and F-Droid / IzzyOnDroid repository metadata.

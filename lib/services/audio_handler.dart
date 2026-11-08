@@ -107,7 +107,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   /// Never send web CORS headers (Origin/Referer/Sec-Fetch-*) on Android streams,
   /// nor hardcoded Range headers (Range: bytes=0-) which conflict with ExoPlayer's internal chunker.
   static const Map<String, String> _youtubeHeaders = {
-    'User-Agent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11)',
+    'User-Agent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip',
     'Accept': '*/*',
   };
 
@@ -139,6 +139,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
   SineAudioHandler() {
     _player = AudioPlayer(
+      useProxyForRequestHeaders: false,
       audioLoadConfiguration: const AudioLoadConfiguration(
         androidLoadControl: AndroidLoadControl(
           minBufferDuration: Duration(seconds: 15),
@@ -239,8 +240,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         final exProcessing = _player.processingState;
 
         AudioProcessingState mappedState;
-        if (exProcessing == ProcessingState.idle && currentProcessing == AudioProcessingState.loading && _currentSong != null) {
-          mappedState = AudioProcessingState.loading;
+        if (exProcessing == ProcessingState.idle && currentProcessing == AudioProcessingState.loading && _currentSong != null && !_currentTrackActive) {
+          mappedState = AudioProcessingState.idle;
         } else {
           mappedState = const {
             ProcessingState.idle: AudioProcessingState.idle,
@@ -447,7 +448,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             url,
             headers: isYouTubeStream ? _youtubeHeaders : null,
             initialPosition: resumePos,
-            preload: false,
+            preload: true,
           ).timeout(const Duration(seconds: 12));
 
           await _restorePlaybackParameters();
@@ -477,7 +478,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               pipedUrl,
               headers: _proxyHeaders,
               initialPosition: resumePos,
-              preload: false,
+              preload: true,
             ).timeout(const Duration(seconds: 7));
 
             await _player.play();
@@ -626,7 +627,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             url,
             headers: isYouTubeStream ? _youtubeHeaders : null,
             initialPosition: Duration.zero,
-            preload: false,
+            preload: true,
           ).timeout(const Duration(seconds: 12));
           if (currentRequestId != _playRequestId) {
             try { await _player.stop(); } catch (_) {}
@@ -650,7 +651,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 url,
                 headers: null,
                 initialPosition: Duration.zero,
-                preload: false,
+                preload: true,
               ).timeout(const Duration(seconds: 8));
               if (currentRequestId != _playRequestId) {
                 try { await _player.stop(); } catch (_) {}
@@ -688,7 +689,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 url,
                 headers: isYouTubeStream ? _youtubeHeaders : null,
                 initialPosition: Duration.zero,
-                preload: false,
+                preload: true,
               ).timeout(const Duration(seconds: 12));
               if (currentRequestId != _playRequestId) {
                 try { await _player.stop(); } catch (_) {}
@@ -710,7 +711,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                     url,
                     headers: null,
                     initialPosition: Duration.zero,
-                    preload: false,
+                    preload: true,
                   ).timeout(const Duration(seconds: 8));
                   if (currentRequestId != _playRequestId) {
                     try { await _player.stop(); } catch (_) {}
@@ -745,7 +746,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 pipedUrl,
                 headers: _proxyHeaders,
                 initialPosition: Duration.zero,
-                preload: false,
+                preload: true,
               ).timeout(const Duration(seconds: 12));
               if (currentRequestId != _playRequestId) {
                 try { await _player.stop(); } catch (_) {}
@@ -1167,14 +1168,14 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           await _player.setFilePath(
             localPath,
             initialPosition: targetPosition,
-            preload: false,
+            preload: true,
           ).timeout(const Duration(seconds: 10));
         } else {
           await _player.setUrl(
             candidateUrl,
             headers: headers,
             initialPosition: targetPosition,
-            preload: false,
+            preload: true,
           ).timeout(const Duration(seconds: 10));
         }
 
@@ -1237,7 +1238,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           await _player.setFilePath(
             _resolveFilePath(recoveryUrl),
             initialPosition: targetPosition,
-            preload: false,
+            preload: true,
           ).timeout(const Duration(seconds: 8));
         } else {
           final recHeaders = (recoveryUrl.contains('googlevideo.com') || recoveryUrl.contains('youtube.com'))
@@ -1247,7 +1248,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             recoveryUrl,
             headers: recHeaders,
             initialPosition: targetPosition,
-            preload: false,
+            preload: true,
           ).timeout(const Duration(seconds: 8));
         }
         await _restorePlaybackParameters();

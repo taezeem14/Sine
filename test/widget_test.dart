@@ -377,7 +377,7 @@ void main() {
       final playlist = Playlist(
         id: 'pl_123',
         title: 'Synthwave Night',
-        songs: [track1, track2],
+        songs: const [track1, track2],
         createdAt: DateTime.now(),
       );
 
