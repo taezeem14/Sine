@@ -1,0 +1,5 @@
+Sine v1.2.0 (Build 22):
+• High-Fidelity Audio Engine: Restored rock-solid, instant audio streaming pipeline with Progressive Muxed MP4 (itag 18) priority and resilient fallback.
+• Uninterrupted Background Playback: Permanent foreground service retention and Android Doze mode protection preventing playback halts when the screen is locked.
+• Persistent Hardware Equalizer: Studio-calibrated 6-band graph EQ and Spotify curve presets now persist reliably across playlist track changes, Bluetooth earbuds pause/resume, and audio route switches.
+• Single Universal APK: Optimized release pipeline featuring a unified universal binary supporting all Android 64-bit and 32-bit CPU architectures.

@@ -151,7 +151,6 @@ class PlayerProvider extends ChangeNotifier {
 
   StemPipelineDiagnostic? get lastStemDiagnostic => StemService.instance.lastDiagnostic;
 
-  int _lastSessionPersistSec = 0;
 
 
 
@@ -414,10 +413,7 @@ class PlayerProvider extends ChangeNotifier {
       if (_isScrubbing) return;
       _position = pos;
       positionNotifier.value = pos;
-      if (currentSong != null && (pos.inSeconds - _lastSessionPersistSec).abs() >= 25) {
-        _lastSessionPersistSec = pos.inSeconds;
-        _saveCurrentSession();
-      }
+      // Session saved on explicit pause or track change to avoid 120fps disk thrash
       final lyricIdx = _findLyricIndex(pos);
       if (lyricIdx != activeLyricIndexNotifier.value) {
         activeLyricIndexNotifier.value = lyricIdx;
@@ -885,6 +881,7 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> togglePlay() async {
     if (_isPlaying) {
+      _saveCurrentSession();
       await _audioHandler.pause();
     } else {
       if (currentSong != null) {

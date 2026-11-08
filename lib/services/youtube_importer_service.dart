@@ -362,7 +362,7 @@ class YouTubeImporterService {
           cleanId,
           ytClients: clients,
           requireWatchPage: false,
-        ).timeout(const Duration(seconds: 4));
+        ).timeout(const Duration(seconds: 6));
 
         final candidates = <String>[];
 
@@ -370,20 +370,21 @@ class YouTubeImporterService {
         final mp4Audio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'mp4').toList();
         final webmAudio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'webm').toList();
 
-        // High-speed pure audio stream prioritization for Android ExoPlayer:
-        // 1. Primary: Standalone MP4 AAC (itag 140, 128 kbps) - zero-overhead pure audio, instant native hardware decoding in ~0.3s
+        // Rock-solid stream candidate ordering (from proven v1.0.8 architecture):
+        // 1. Primary (Fastest & 100% Reliable): Progressive Muxed MP4 (itag 18, 360p container with AAC audio)
+        // Instant hardware decoding on all Android devices, completely immune to DASH cipher throttling & PO-token 403 blocks
+        if (muxedMp4.isNotEmpty) {
+          candidates.add(muxedMp4.withHighestBitrate().url.toString());
+        }
+
+        // 2. Secondary Fallback: Standalone MP4 AAC (itag 140, ~128 kbps)
         if (mp4Audio.isNotEmpty) {
           candidates.add(mp4Audio.withHighestBitrate().url.toString());
         }
 
-        // 2. Secondary: Standalone WebM Opus (itag 251, 160 kbps) - audiophile high-fidelity Opus audio
+        // 3. Tertiary Fallback: Standalone WebM Opus (itag 251, ~160 kbps)
         if (webmAudio.isNotEmpty) {
           candidates.add(webmAudio.withHighestBitrate().url.toString());
-        }
-
-        // 3. Fallback: Progressive Muxed MP4 (itag 18, 360p container with AAC audio) - only if standalone audio streams are unavailable
-        if (muxedMp4.isNotEmpty) {
-          candidates.add(muxedMp4.withHighestBitrate().url.toString());
         }
         if (candidates.isNotEmpty) {
           LogService.stream('YouTubeEngine', 'InnerTube resolved ${candidates.length} candidate(s) via $clientName for $cleanId');

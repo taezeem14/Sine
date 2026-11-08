@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.1.9%20(Build%2021)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.2.0%20(Build%2022)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![F-Droid](https://img.shields.io/badge/F--Droid-Ready-3DDC84?style=for-the-badge&logo=f-droid&logoColor=white)](metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml)
 [![IzzyOnDroid](https://img.shields.io/badge/IzzyOnDroid-Ready-blueviolet?style=for-the-badge&logo=android&logoColor=white)](https://codeberg.org/IzzyOnDroid/repodata)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
@@ -24,7 +24,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.1.9)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.9.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.2.0)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.0.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy ad-free music instantly.*
 
@@ -130,7 +130,7 @@ Sine is fully compliant with F-Droid and IzzyOnDroid standards:
 - **F-Droid Build Recipe**: Available under [metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml](metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml).
 
 ### 2. Direct GitHub Release APK
-1. Download the latest release: [Sine-v1.1.9.apk](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.1.9.apk).
+1. Download the latest release: [Sine-v1.2.0.apk](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.0.apk).
 2. On Android, tap the downloaded APK file.
 3. If prompted, allow *"Install unknown apps"* for your browser or file manager.
 4. Tap **Install** and open Sine.
@@ -138,7 +138,7 @@ Sine is fully compliant with F-Droid and IzzyOnDroid standards:
 ### 3. ADB CLI Deployment
 For developers and power users:
 ```bash
-adb install -r Sine-v1.1.9.apk
+adb install -r Sine-v1.2.0.apk
 ```
 
 ---
