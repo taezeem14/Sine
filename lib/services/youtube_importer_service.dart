@@ -370,20 +370,20 @@ class YouTubeImporterService {
         final mp4Audio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'mp4').toList();
         final webmAudio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'webm').toList();
 
-        // 1. Primary (Fastest & Most Reliable): Progressive Muxed MP4 (itag 18, 360p progressive container with AAC audio)
-        // Instant hardware decoding on Android ExoPlayer, immune to DASH cipher throttling, starts in ~0.5s - 1.0s
-        if (muxedMp4.isNotEmpty) {
-          candidates.add(muxedMp4.withHighestBitrate().url.toString());
-        }
-
-        // 2. Secondary Fallback: Standalone MP4 AAC (itag 140, 128 kbps)
+        // High-speed pure audio stream prioritization for Android ExoPlayer:
+        // 1. Primary: Standalone MP4 AAC (itag 140, 128 kbps) - zero-overhead pure audio, instant native hardware decoding in ~0.3s
         if (mp4Audio.isNotEmpty) {
           candidates.add(mp4Audio.withHighestBitrate().url.toString());
         }
 
-        // 3. Tertiary Fallback: Standalone WebM Opus (itag 251, 160 kbps)
+        // 2. Secondary: Standalone WebM Opus (itag 251, 160 kbps) - audiophile high-fidelity Opus audio
         if (webmAudio.isNotEmpty) {
           candidates.add(webmAudio.withHighestBitrate().url.toString());
+        }
+
+        // 3. Fallback: Progressive Muxed MP4 (itag 18, 360p container with AAC audio) - only if standalone audio streams are unavailable
+        if (muxedMp4.isNotEmpty) {
+          candidates.add(muxedMp4.withHighestBitrate().url.toString());
         }
         if (candidates.isNotEmpty) {
           LogService.stream('YouTubeEngine', 'InnerTube resolved ${candidates.length} candidate(s) via $clientName for $cleanId');

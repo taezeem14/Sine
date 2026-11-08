@@ -1634,10 +1634,16 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   // Equalizer
-  Future<void> setEqualizerPreset(String preset) async {
+  Future<void> setEqualizerPreset(String preset, {List<double>? presetGains}) async {
     _eqPreset = preset;
     if (preset != 'Vocals Only' && preset != 'Instruments Only') {
       _isolationMode = IsolationMode.none;
+    }
+    if (presetGains != null) {
+      for (int i = 0; i < presetGains.length; i++) {
+        _bandGains[i] = presetGains[i];
+      }
+      await _storageService.saveBandGains(_bandGains);
     }
     await _storageService.saveEqualizerPreset(preset);
     await _audioHandler.applyEqualizerPreset(preset);

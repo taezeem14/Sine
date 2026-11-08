@@ -121,10 +121,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
     _targetGains = List.from(preset.gains);
     _animController.forward(from: 0.0);
 
-    player.setEqualizerPreset(preset.name);
-    for (int i = 0; i < preset.gains.length; i++) {
-      player.setBandGain(i, preset.gains[i]);
-    }
+    player.setEqualizerPreset(preset.name, presetGains: preset.gains);
   }
 
   void _onPanStart(Offset localPos, Size size) {
