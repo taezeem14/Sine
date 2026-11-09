@@ -392,14 +392,12 @@ class PlayerProvider extends ChangeNotifier {
     // Apply saved EQ preset & settings
     _audioHandler.setEqualizerEnabled(_eqEnabled);
     _audioHandler.setBassBoost(_bassBoost);
+    if (_bandGains.isNotEmpty) {
+      _audioHandler.setCustomBandGains(_bandGains);
+    }
     _audioHandler.applyEqualizerPreset(_eqPreset);
     _audioHandler.setSpeed(_speed);
     _audioHandler.setPlayerRepeatMode(_repeatMode);
-    if (_eqPreset == 'Custom' && _bandGains.isNotEmpty) {
-      for (final entry in _bandGains.entries) {
-        _audioHandler.setBandGain(entry.key, entry.value);
-      }
-    }
 
     // Ensure all restored lists are completely free of legacy mock/placeholder tracks
     _favorites = _favorites.where((s) => !Song.isPlaceholder(s)).toList();
@@ -749,6 +747,14 @@ class PlayerProvider extends ChangeNotifier {
     }
     _isLoadingStream = false;
     notifyListeners();
+    if (_eqEnabled) {
+      _audioHandler.setEqualizerEnabled(true);
+      _audioHandler.setBassBoost(_bassBoost);
+      if (_bandGains.isNotEmpty) {
+        _audioHandler.setCustomBandGains(_bandGains);
+      }
+      _audioHandler.applyEqualizerPreset(_eqPreset);
+    }
     if (_isMixActive) {
       _fetchMoreMixTracksIfNeeded();
     }
@@ -1679,6 +1685,9 @@ class PlayerProvider extends ChangeNotifier {
       await _storageService.saveBandGains(_bandGains);
     }
     await _storageService.saveEqualizerPreset(preset);
+    if (preset == 'Custom' && _bandGains.isNotEmpty) {
+      _audioHandler.setCustomBandGains(_bandGains);
+    }
     await _audioHandler.applyEqualizerPreset(preset);
     notifyListeners();
   }
@@ -1827,6 +1836,7 @@ class PlayerProvider extends ChangeNotifier {
     _isolationMode = IsolationMode.none;
     await _storageService.saveBandGains(_bandGains);
     await _storageService.saveEqualizerPreset('Custom');
+    _audioHandler.setCustomBandGains(_bandGains);
     await _audioHandler.setBandGain(index, gain);
     notifyListeners();
   }
@@ -1841,6 +1851,7 @@ class PlayerProvider extends ChangeNotifier {
     await _storageService.saveBassBoost(0.0);
     await _storageService.saveEqualizerPreset('Flat');
     await _storageService.saveBandGains({});
+    _audioHandler.setCustomBandGains({0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0});
     await _audioHandler.setEqualizerEnabled(false);
     await _audioHandler.setBassBoost(0.0);
     await _audioHandler.applyEqualizerPreset('Flat');

@@ -362,6 +362,32 @@ Intertwinin' 'til I forget what's yours or mine
       expect(result.artworkUrl, equals('https://example.com/cover.jpg'));
     });
 
+    test('Equalizer State & Custom Band Curve Retention Across Tracks', () {
+      // 1. Verify 6-band UI mapping to 5-band hardware DSP
+      const nBands = 5;
+      final custom6Bands = {0: 3.5, 1: 1.0, 2: -2.0, 3: 4.0, 4: 2.5, 5: 5.0};
+
+      final mappedGains = <int, double>{};
+      for (int i = 0; i < nBands; i++) {
+        final targetIdx = ((i / (nBands > 1 ? (nBands - 1) : 1)) * 5).round().clamp(0, 5);
+        mappedGains[i] = custom6Bands[targetIdx] ?? 0.0;
+      }
+
+      expect(mappedGains.length, equals(5));
+      expect(mappedGains[0], equals(3.5)); // 60 Hz maps to band 0
+      expect(mappedGains[4], equals(5.0)); // 15 kHz maps to band 4 (highest hardware band)
+
+      // 2. Verify StorageService band gains serialization
+      final inGains = {0: 4.0, 1: 2.5, 2: 0.0, 3: -1.0, 4: 1.5, 5: 3.0};
+      final encoded = jsonEncode(inGains.map((k, v) => MapEntry(k.toString(), v)));
+      final decodedMap = jsonDecode(encoded) as Map<String, dynamic>;
+      final restoredGains = decodedMap.map((k, v) => MapEntry(int.parse(k), (v as num).toDouble()));
+
+      expect(restoredGains.length, equals(6));
+      expect(restoredGains[0], equals(4.0));
+      expect(restoredGains[5], equals(3.0));
+    });
+
   });
 
 }

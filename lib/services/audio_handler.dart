@@ -91,7 +91,14 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   bool _eqEnabled = false;
   double _bassBoost = 0.0;
   String _currentPreset = 'Flat';
-  final Map<int, double> _customBandGains = {};
+  final Map<int, double> _userCustomBandGains = {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0};
+  final Map<int, double> _appliedHardwareBandGains = {};
+
+  void setCustomBandGains(Map<int, double> gains) {
+    _userCustomBandGains.addAll(gains);
+  }
+
+  Map<int, double> get userCustomBandGains => Map.unmodifiable(_userCustomBandGains);
 
   bool _clippingProtectionEnabled = true;
   double _masterVolume = 1.0;
@@ -400,6 +407,22 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       },
       onError: (Object e, StackTrace st) {
         LogService.w('AudioHandler', 'positionStream error: $e');
+      },
+    );
+
+    // Re-apply DSP Equalizer and Bass Boost whenever a new Android AudioSession ID is bound
+    // (Crucial for track changes in playlist, Bluetooth headphone route changes, and earbud reconnects)
+    _player.androidAudioSessionIdStream.listen(
+      (sessionId) async {
+        if (sessionId != null) {
+          debugPrint('[AudioHandler] Android AudioSessionId bound ($sessionId). Re-applying Equalizer & DSP parameters...');
+          // Give ExoPlayer native audio sink a brief window to complete initialization
+          await Future<void>.delayed(const Duration(milliseconds: 60));
+          await _restorePlaybackParameters();
+        }
+      },
+      onError: (Object e) {
+        debugPrint('[AudioHandler] androidAudioSessionIdStream error: $e');
       },
     );
   }
@@ -866,11 +889,11 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
     double maxBoost = 0.0;
 
-    for (final gain in _customBandGains.values) {
-      if (gain > maxBoost) maxBoost = gain;
-    }
-
-    if (_spotifyPresetMap.containsKey(_currentPreset.toLowerCase())) {
+    if (_currentPreset.toLowerCase() == 'custom') {
+      for (final gain in _userCustomBandGains.values) {
+        if (gain > maxBoost) maxBoost = gain;
+      }
+    } else if (_spotifyPresetMap.containsKey(_currentPreset.toLowerCase())) {
       final curve = _spotifyPresetMap[_currentPreset.toLowerCase()]!;
       for (final g in curve) {
         if (g > maxBoost) maxBoost = g;
@@ -918,15 +941,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   }
 
   Future<void> setBandGain(int bandIndex, double gain) async {
-    _customBandGains[bandIndex] = gain;
-    try {
-      final params = await _equalizer.parameters;
-      if (bandIndex >= 0 && bandIndex < params.bands.length) {
-        final clamped = gain.clamp(params.minDecibels, params.maxDecibels);
-        await params.bands[bandIndex].setGain(clamped);
-      }
-      await _updateHeadroomGain();
-    } catch (_) {}
+    _userCustomBandGains[bandIndex] = gain;
+    _currentPreset = 'Custom';
+    await applyEqualizerPreset('Custom');
   }
 
   Future<void> applyEqualizerPreset(String preset) async {
@@ -935,18 +952,19 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       try {
         await _equalizer.setEnabled(false);
       } catch (_) {}
+      await _updateHeadroomGain();
       return;
     }
 
-    for (int attempt = 0; attempt < 3; attempt++) {
+    for (int attempt = 0; attempt < 5; attempt++) {
       try {
         await _equalizer.setEnabled(true);
         final params = await _equalizer.parameters;
         final bands = params.bands;
         final n = bands.length;
         if (n == 0) {
-          if (attempt < 2) {
-            await Future.delayed(const Duration(milliseconds: 100));
+          if (attempt < 4) {
+            await Future<void>.delayed(Duration(milliseconds: 60 * (attempt + 1)));
             continue;
           }
           return;
@@ -972,42 +990,51 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               g += lowMidAdd;
             }
             final finalGain = clampGain(g);
-            _customBandGains[i] = finalGain;
+            _appliedHardwareBandGains[i] = finalGain;
             await bands[i].setGain(finalGain);
           }
+          await _updateHeadroomGain();
+          debugPrint('[AudioHandler] Equalizer preset "$preset" applied successfully ($n hardware bands)');
           return;
         }
 
-        switch (preset) {
-          case 'Custom':
-            for (int i = 0; i < n; i++) {
-              final targetIdx = ((i / (n > 1 ? (n - 1) : 1)) * 5).round().clamp(0, 5);
-              final baseGain = _customBandGains[targetIdx] ?? 0.0;
-              if (i == 0) {
-                await bands[i].setGain(clampGain(baseGain + bassAdd));
-              } else if (i == 1) {
-                await bands[i].setGain(clampGain(baseGain + lowMidAdd));
-              } else {
-                await bands[i].setGain(clampGain(baseGain));
-              }
+        if (preset == 'Custom') {
+          for (int i = 0; i < n; i++) {
+            final targetIdx = ((i / (n > 1 ? (n - 1) : 1)) * 5).round().clamp(0, 5);
+            final baseGain = _userCustomBandGains[targetIdx] ?? 0.0;
+            var g = baseGain;
+            if (i == 0) {
+              g += bassAdd;
+            } else if (i == 1) {
+              g += lowMidAdd;
             }
-            break;
-          default:
-            for (int i = 0; i < n; i++) {
-              if (i == 0) {
-                await bands[i].setGain(clampGain(bassAdd));
-              } else if (i == 1) {
-                await bands[i].setGain(clampGain(lowMidAdd));
-              } else {
-                await bands[i].setGain(clampGain(0.0));
-              }
-            }
-            break;
+            final finalGain = clampGain(g);
+            _appliedHardwareBandGains[i] = finalGain;
+            await bands[i].setGain(finalGain);
+          }
+          await _updateHeadroomGain();
+          debugPrint('[AudioHandler] Equalizer Custom curve applied successfully ($n hardware bands)');
+          return;
         }
+
+        // Default / Flat
+        for (int i = 0; i < n; i++) {
+          var g = 0.0;
+          if (i == 0) {
+            g += bassAdd;
+          } else if (i == 1) {
+            g += lowMidAdd;
+          }
+          final finalGain = clampGain(g);
+          _appliedHardwareBandGains[i] = finalGain;
+          await bands[i].setGain(finalGain);
+        }
+        await _updateHeadroomGain();
+        debugPrint('[AudioHandler] Equalizer Flat preset applied successfully ($n hardware bands)');
         return;
       } catch (e) {
-        if (attempt < 2) {
-          await Future.delayed(const Duration(milliseconds: 100));
+        if (attempt < 4) {
+          await Future<void>.delayed(Duration(milliseconds: 60 * (attempt + 1)));
         } else {
           debugPrint('[AudioHandler] applyEqualizerPreset error: $e');
         }
@@ -1252,7 +1279,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> play() async {
     await _player.play();
     // Maintain hardware DSP equalizer, bass boost, and headroom limiter after pause/earbud resume
-    _restorePlaybackParameters();
+    await _restorePlaybackParameters();
   }
 
   @override
@@ -1379,16 +1406,18 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       }
     } catch (_) {}
     try {
-      if (_eqEnabled && _currentPreset != 'Vocals Only' && _currentPreset != 'Instruments Only') {
-        await applyEqualizerPreset(_currentPreset).catchError((_) {});
-      } else if (!_eqEnabled) {
-        await _equalizer.setEnabled(false).catchError((_) {});
-      }
-    } catch (_) {}
-    try {
       if (_bassBoost > 0.0) {
         await _loudnessEnhancer.setEnabled(true).catchError((_) {});
         await _loudnessEnhancer.setTargetGain(_bassBoost * 0.35).catchError((_) {});
+      } else {
+        await _loudnessEnhancer.setEnabled(false).catchError((_) {});
+      }
+    } catch (_) {}
+    try {
+      if (_eqEnabled && _currentPreset != 'Vocals Only' && _currentPreset != 'Instruments Only') {
+        await applyEqualizerPreset(_currentPreset);
+      } else if (!_eqEnabled) {
+        await _equalizer.setEnabled(false).catchError((_) {});
       }
     } catch (_) {}
     try {
