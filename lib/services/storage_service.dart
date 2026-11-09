@@ -35,7 +35,6 @@ class StorageService {
   static const String _searchesLegacyKey = 'ember_recent_searches_v1';
   static const String _crossfadeKey = 'sine_crossfade_seconds';
   static const String _gaplessKey = 'sine_gapless_playback';
-  static const String _audioQualityKey = 'sine_audio_quality_preset';
   static const String _clippingProtectionKey = 'sine_clipping_protection';
   static const String _recoveryModeKey = 'sine_playback_recovery_mode';
   static const String _savedSessionKey = 'sine_saved_playback_session';
@@ -453,13 +452,6 @@ class StorageService {
   }
 
   // Audio Quality Preset (high, medium, dataSaver)
-  String loadAudioQualityPreset() {
-    return _prefs?.getString(_audioQualityKey) ?? 'high';
-  }
-
-  Future<void> saveAudioQualityPreset(String preset) async {
-    await _prefs?.setString(_audioQualityKey, preset);
-  }
 
   // Audio Clipping Protection
   bool loadClippingProtection() {
@@ -547,8 +539,8 @@ class StorageService {
   String exportBackupJson() {
     final payload = {
       'format': 'SINE_BACKUP',
-      'version': '1.2.7',
-      'versionCode': 25,
+      'version': '1.2.8',
+      'versionCode': 26,
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
       'playlists': loadPlaylists().map((p) => p.toMap()).toList(),
       'favorites': loadFavorites().map((s) => s.toMap()).toList(),
@@ -557,7 +549,6 @@ class StorageService {
         'speed': loadPlaybackSpeed(),
         'crossfade': loadCrossfadeSeconds(),
         'gapless': loadGaplessPlayback(),
-        'audioQuality': loadAudioQualityPreset(),
         'clippingProtection': loadClippingProtection(),
         'recoveryMode': loadPlaybackRecoveryMode(),
         'stemEngine': loadStemEnginePreference(),
@@ -665,7 +656,6 @@ class StorageService {
         if (settings['speed'] != null) await savePlaybackSpeed((settings['speed'] as num).toDouble());
         if (settings['crossfade'] != null) await saveCrossfadeSeconds((settings['crossfade'] as num).toInt());
         if (settings['gapless'] != null) await saveGaplessPlayback(settings['gapless'] == true);
-        if (settings['audioQuality'] != null) await saveAudioQualityPreset(settings['audioQuality'].toString());
         if (settings['clippingProtection'] != null) await saveClippingProtection(settings['clippingProtection'] == true);
         if (settings['recoveryMode'] != null) await savePlaybackRecoveryMode(settings['recoveryMode'].toString());
         if (settings['stemEngine'] != null) await saveStemEnginePreference(settings['stemEngine'].toString());

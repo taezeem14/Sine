@@ -238,7 +238,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                           const FaIcon(FontAwesomeIcons.bolt, size: 11, color: EmberColors.primaryBlue),
                           const SizedBox(width: 5),
                           const Text(
-                            'Opus HD',
+                            'Sine Hi-Fi',
                             style: TextStyle(
                               color: EmberColors.primaryBlue,
                               fontSize: 11,

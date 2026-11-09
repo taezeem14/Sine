@@ -857,173 +857,123 @@ class _SignatureState {
 // ---------------------------------------------------------------------------
 
 class ShazamClient {
+  static const String _baseUrl = "https://amp.shazam.com/discovery/v5/en/US/android/-/tag";
 
-  static const String _baseUrl = "https://amp.shazam.com/discovery/v5/en-US/US/android/-/tag";
+  static const List<String> _userAgents = [
+    "Dalvik/2.1.0 (Linux; U; Android 6.0.1; SM-G920F Build/MMB29K)",
+    "Dalvik/2.1.0 (Linux; U; Android 5.1.1; SM-P905V Build/LMY47X)",
+    "Dalvik/2.1.0 (Linux; U; Android 5.0.2; VS980 4G Build/LRX22G)",
+    "Dalvik/2.1.0 (Linux; U; Android 5.0; SM-G900F Build/LRX21T)",
+  ];
+
+  static const List<String> _timezones = [
+    "America/New_York",
+    "America/Los_Angeles",
+    "Europe/London",
+    "Europe/Paris",
+    "Asia/Tokyo",
+  ];
 
   static String _generateUuidV4() {
-
     final rnd = math.Random();
-
     final bytes = List<int>.generate(16, (_) => rnd.nextInt(256));
-
     bytes[6] = (bytes[6] & 0x0f) | 0x40; // Version 4
-
     bytes[8] = (bytes[8] & 0x3f) | 0x80; // Variant 10
-
     final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-
     return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}';
-
   }
 
   static Future<MusicDetectionResult?> recognize(
-
     String signature,
-
     int sampleDurationMs, {
-
     http.Client? client,
-
   }) async {
-
+    final rnd = math.Random();
+    final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final uuid1 = _generateUuidV4().toUpperCase();
-
     final uuid2 = _generateUuidV4();
+    final url = Uri.parse("$_baseUrl/$uuid1/$uuid2?sync=true&webv3=true&sampling=true&connected=&shazamapiversion=v3&sharehub=true&video=v3");
 
-    final url = Uri.parse("$_baseUrl/$uuid1/$uuid2?sync=true&webv3=true&sampling=true&shazamapiversion=v3");
-
-    const headers = {
-
+    final headers = {
       "Content-Type": "application/json",
-
-      "User-Agent": "com.shazam.android/13.25.0-230413 (Android; SDK 33;)",
-
+      "User-Agent": _userAgents[rnd.nextInt(_userAgents.length)],
       "Content-Language": "en_US",
-
     };
 
     final body = jsonEncode({
-
+      "geolocation": {
+        "altitude": rnd.nextDouble() * 400 + 100,
+        "latitude": rnd.nextDouble() * 180 - 90,
+        "longitude": rnd.nextDouble() * 360 - 180,
+      },
       "signature": {
-
-        "uri": signature,
-
         "samplems": sampleDurationMs,
-
-      }
-
+        "timestamp": timestamp,
+        "uri": signature,
+      },
+      "timestamp": timestamp,
+      "timezone": _timezones[rnd.nextInt(_timezones.length)],
     });
 
     final c = client ?? http.Client();
-
     final shouldClose = client == null;
-
     try {
-
       final response = await c.post(url, headers: headers, body: body).timeout(const Duration(seconds: 10));
-
       if (response.statusCode != 200) {
-
         LogService.w('ShazamClient', 'Shazam HTTP ${response.statusCode}: ${response.body}');
-
         return null;
-
       }
 
       final data = jsonDecode(response.body);
-
       if (data is Map && data['track'] is Map) {
-
         final track = data['track'] as Map;
-
         final title = track['title']?.toString() ?? '';
-
         final artist = track['subtitle']?.toString() ?? '';
-
         final images = track['images'] as Map?;
-
         final cover = images?['coverart']?.toString() ?? images?['coverarthq']?.toString() ?? '';
-
         final sections = track['sections'] as List?;
-
         String album = 'Single';
-
         String? releaseDate;
 
         if (sections != null) {
-
           for (final s in sections) {
-
             if (s is Map && s['metadata'] is List) {
-
               for (final m in s['metadata']) {
-
                 if (m is Map) {
-
                   final titleField = m['title']?.toString().toLowerCase();
-
                   if (titleField == 'album') {
-
                     album = m['text']?.toString() ?? album;
-
                   } else if (titleField == 'released') {
-
                     releaseDate = m['text']?.toString();
-
                   }
-
                 }
-
               }
-
             }
-
           }
-
         }
 
         if (title.isNotEmpty) {
-
           return MusicDetectionResult(
-
             title: title,
-
             artist: artist,
-
             album: album,
-
             artworkUrl: cover,
-
             releaseDate: releaseDate,
-
             confidence: 0.98,
-
           );
-
         }
-
       }
-
     } catch (e) {
-
       LogService.w('ShazamClient', 'Recognition network error: $e');
-
     } finally {
-
       if (shouldClose) c.close();
-
     }
-
     return null;
-
   }
-
 }
 
 // ---------------------------------------------------------------------------
-
 // MUSIC DETECTION SERVICE (AUDILE RECOGNITION ARCHITECTURE)
-
 // ---------------------------------------------------------------------------
 
 class MusicDetectionService {
@@ -1102,7 +1052,7 @@ class MusicDetectionService {
 
         encoder: AudioEncoder.pcm16bits,
 
-        sampleRate: 44100,
+        sampleRate: 16000,
 
         numChannels: 1,
 
@@ -1228,11 +1178,12 @@ class MusicDetectionService {
 
       }
 
-      // 1. Resample raw 44.1kHz PCM to 16.0kHz Mono PCM
+            // 1. Native 16.0kHz Mono PCM Audio Sample (Audile & Metrolist standard)
+      final pcm16 = rawBytes.length >= 2000
+          ? rawBytes
+          : AudioResampler.resamplePcm16(rawBytes, 44100, 16000);
 
-      final resampledPcm = AudioResampler.resamplePcm16(rawBytes, 44100, 16000);
-
-      if (resampledPcm.length < 2000) {
+      if (pcm16.length < 2000) {
 
         statusNotifier.value = DetectionStatus.noMatch;
 
@@ -1244,9 +1195,9 @@ class MusicDetectionService {
 
       // 2. Compute Shazam acoustic signature (pure Dart Cooley-Tukey RFFT + peak spreading)
 
-      final signatureUri = ShazamSignatureGenerator.fromPcm16Mono16kHz(resampledPcm);
+      final signatureUri = ShazamSignatureGenerator.fromPcm16Mono16kHz(pcm16);
 
-      final sampleDurationMs = (resampledPcm.length ~/ 2) * 1000 ~/ 16000;
+      final sampleDurationMs = (pcm16.length ~/ 2) * 1000 ~/ 16000;
 
       // 3. Query Shazam recognition endpoint
 

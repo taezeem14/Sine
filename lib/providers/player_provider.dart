@@ -133,8 +133,6 @@ class PlayerProvider extends ChangeNotifier {
   final Map<String, String> _originalStreamCache = {};
 
   // Core Features: Settings, Headroom & Session Recovery
-  String _audioQuality = 'high';
-  String get audioQuality => _audioQuality;
 
   bool _clippingProtection = true;
   bool get clippingProtectionEnabled => _clippingProtection;
@@ -299,9 +297,6 @@ class PlayerProvider extends ChangeNotifier {
     _audioHandler.setCrossfadeSeconds(_crossfadeSeconds);
     _gaplessPlayback = _storageService.loadGaplessPlayback();
     _audioHandler.setGaplessPlayback(_gaplessPlayback);
-
-    _audioQuality = _storageService.loadAudioQualityPreset();
-    YouTubeImporterService.preferredQuality = _audioQuality;
 
     _clippingProtection = _storageService.loadClippingProtection();
     _audioHandler.setClippingProtection(_clippingProtection);
@@ -1261,14 +1256,7 @@ class PlayerProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> setAudioQuality(String quality) async {
-    _audioQuality = quality;
-    YouTubeImporterService.preferredQuality = quality;
-    await _storageService.saveAudioQualityPreset(quality);
-    StreamResolverService.clearAllCaches();
-    YouTubeImporterService.clearAllCaches();
-    notifyListeners();
-  }
+
 
   Future<void> setClippingProtection(bool enabled) async {
     _clippingProtection = enabled;

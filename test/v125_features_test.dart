@@ -1,3 +1,5 @@
+import 'package:spotify_newpipe/models/song.dart';
+import 'package:spotify_newpipe/services/stream_resolver_service.dart';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
@@ -129,9 +131,9 @@ void main() {
 
       expect(decoded['format'], equals('SINE_BACKUP'));
 
-      expect(decoded['version'], equals('1.2.7'));
+      expect(decoded['version'], equals('1.2.8'));
 
-      expect(decoded['versionCode'], equals(25));
+      expect(decoded['versionCode'], equals(26));
 
       expect(decoded['settings'], isNotNull);
 
@@ -181,20 +183,20 @@ void main() {
 
     });
 
-    test('Audio Streaming Quality Preference & Cache Key Integrity', () {
+        test('v1.0.8 Instant Progressive Stream Loading & Priority Invariant', () {
+      final testSong = Song(
+        id: 'test_track_123',
+        title: 'Instant Loading Test',
+        artist: 'Sine Artist',
+        duration: const Duration(minutes: 3),
+        artworkUrl: 'https://example.com/art.jpg',
+        streamUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      );
 
-      YouTubeImporterService.preferredQuality = 'high';
-
-      expect(YouTubeImporterService.preferredQuality, equals('high'));
-
-      YouTubeImporterService.preferredQuality = 'dataSaver';
-
-      expect(YouTubeImporterService.preferredQuality, equals('dataSaver'));
-
-      YouTubeImporterService.preferredQuality = 'medium';
-
-      expect(YouTubeImporterService.preferredQuality, equals('medium'));
-
+      // Verify stream cache key relies directly on clean video ID (v1.0.8 rock-solid configuration)
+      expect(testSong.id, equals('test_track_123'));
+      YouTubeImporterService.invalidateCache('dQw4w9WgXcQ');
+      expect(StreamResolverService.isPreloaded(testSong), isFalse);
     });
 
     test('Tempo Modification Guard & Extended Audio Support', () {

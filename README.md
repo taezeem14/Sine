@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.2.7%20(Build%2025)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.2.8%20(Build%2026)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.2.7)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.7.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.2.8)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.8.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy ad-free music instantly.*
 
@@ -125,7 +125,7 @@ Sine is built on strict Free & Open Source Software principles:
 ## 📲 Installation Guide
 
 ### 1. Direct GitHub Release APK
-1. Download the latest release: [Sine-v1.2.7.apk](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.7.apk).
+1. Download the latest release: [Sine-v1.2.8.apk](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.8.apk).
 2. On Android, tap the downloaded APK file.
 3. If prompted, allow *"Install unknown apps"* for your browser or file manager.
 4. Tap **Install** and open Sine.
@@ -133,7 +133,7 @@ Sine is built on strict Free & Open Source Software principles:
 ### 2. ADB CLI Deployment
 For developers and power users:
 ```bash
-adb install -r Sine-v1.2.7.apk
+adb install -r Sine-v1.2.8.apk
 ```
 
 ---
