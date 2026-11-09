@@ -296,7 +296,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
     // Auto-advance when song finishes (guarded to fire only when track genuinely started and completed playback)
     _player.playerStateStream.listen(
-      (state) {
+      (state) async {
         if (_isSwappingStream) {
           // CRITICAL: Block spurious completion/idle events during seamless stream swap
           return;
@@ -328,7 +328,10 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           _currentTrackActive = false;
           _completionHandled = true;
           _consecutiveReconnectAttempts = 0;
-          debugPrint('[AudioHandler] Track "${_currentSong?.title}" completed playback cleanly. Invoking onCompleted.');
+          debugPrint('[AudioHandler] Track "${_currentSong?.title}" completed playback cleanly. Gapless: $_gaplessPlayback. Invoking onCompleted.');
+          if (!_gaplessPlayback) {
+            await Future<void>.delayed(const Duration(milliseconds: 250));
+          }
           _onCompleted?.call().catchError((e) {
             debugPrint('[AudioHandler] Error in _onCompleted callback: $e');
           });
@@ -342,10 +345,18 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       },
     );
 
-    // SponsorBlock: auto-skip promotional/intro segments during YouTube playback
+    // Crossfade & SponsorBlock handling
     _player.positionStream.listen(
       (pos) {
         _lastKnownPosition = pos;
+        final total = _player.duration;
+        if (_crossfadeSeconds > 0 && total != null && total.inSeconds > _crossfadeSeconds) {
+          final remaining = total - pos;
+          if (remaining <= Duration(seconds: _crossfadeSeconds) && remaining > Duration.zero) {
+            final fadeMultiplier = (remaining.inMilliseconds / (_crossfadeSeconds * 1000.0)).clamp(0.05, 1.0);
+            setSleepFadeMultiplier(fadeMultiplier);
+          }
+        }
         if (_activeSponsorSegments.isNotEmpty && !_isSkippingSponsor) {
           final currentSec = pos.inMilliseconds / 1000.0;
           final totalSec = (_player.duration?.inMilliseconds ?? 0) / 1000.0;
@@ -1294,6 +1305,18 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> resetSleepFade() async {
     _sleepFadeMultiplier = 1.0;
     await _updateHeadroomGain();
+  }
+
+  int _crossfadeSeconds = 0;
+  bool _gaplessPlayback = true;
+  bool get gaplessPlayback => _gaplessPlayback;
+
+  Future<void> setCrossfadeSeconds(int seconds) async {
+    _crossfadeSeconds = seconds.clamp(0, 12);
+  }
+
+  Future<void> setGaplessPlayback(bool enabled) async {
+    _gaplessPlayback = enabled;
   }
 
   Future<void> updateSongMediaItem(Song song) async {

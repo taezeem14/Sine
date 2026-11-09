@@ -371,21 +371,47 @@ class YouTubeImporterService {
         final mp4Audio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'mp4').toList();
         final webmAudio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'webm').toList();
 
-        // Rock-solid stream candidate ordering (from proven v1.0.8 architecture):
-        // 1. Primary (Fastest & 100% Reliable): Progressive Muxed MP4 (itag 18, 360p container with AAC audio)
-        // Instant hardware decoding on all Android devices, completely immune to DASH cipher throttling & PO-token 403 blocks
-        if (muxedMp4.isNotEmpty) {
-          candidates.add(muxedMp4.withHighestBitrate().url.toString());
-        }
-
-        // 2. Secondary Fallback: Standalone MP4 AAC (itag 140, ~128 kbps)
-        if (mp4Audio.isNotEmpty) {
-          candidates.add(mp4Audio.withHighestBitrate().url.toString());
-        }
-
-        // 3. Tertiary Fallback: Standalone WebM Opus (itag 251, ~160 kbps)
-        if (webmAudio.isNotEmpty) {
-          candidates.add(webmAudio.withHighestBitrate().url.toString());
+        // Select and order stream candidates strictly based on user's preferredQuality setting:
+        if (preferredQuality == 'high') {
+          // 1. Audiophile Opus (itag 251, ~160 kbps, 48 kHz high-fidelity)
+          if (webmAudio.isNotEmpty) {
+            candidates.add(webmAudio.withHighestBitrate().url.toString());
+          }
+          // 2. High-Bitrate AAC Audio-Only (itag 140, ~128 kbps)
+          if (mp4Audio.isNotEmpty) {
+            candidates.add(mp4Audio.withHighestBitrate().url.toString());
+          }
+          // 3. Fallback Progressive Muxed MP4 (itag 18, 360p container)
+          if (muxedMp4.isNotEmpty) {
+            candidates.add(muxedMp4.withHighestBitrate().url.toString());
+          }
+        } else if (preferredQuality == 'dataSaver') {
+          // Data Saver: Prefer lowest bitrate audio-only stream (~48-70 kbps Opus)
+          if (webmAudio.isNotEmpty) {
+            final sorted = List.of(webmAudio)..sort((a, b) => a.bitrate.compareTo(b.bitrate));
+            candidates.add(sorted.first.url.toString());
+          } else if (mp4Audio.isNotEmpty) {
+            final sorted = List.of(mp4Audio)..sort((a, b) => a.bitrate.compareTo(b.bitrate));
+            candidates.add(sorted.first.url.toString());
+          }
+          if (muxedMp4.isNotEmpty) {
+            final sorted = List.of(muxedMp4)..sort((a, b) => a.bitrate.compareTo(b.bitrate));
+            candidates.add(sorted.first.url.toString());
+          }
+        } else {
+          // 'medium' (default balanced):
+          // 1. Standalone MP4 AAC (itag 140, ~128 kbps)
+          if (mp4Audio.isNotEmpty) {
+            candidates.add(mp4Audio.withHighestBitrate().url.toString());
+          }
+          // 2. Progressive Muxed MP4 (itag 18)
+          if (muxedMp4.isNotEmpty) {
+            candidates.add(muxedMp4.withHighestBitrate().url.toString());
+          }
+          // 3. Standalone WebM Opus (itag 251)
+          if (webmAudio.isNotEmpty) {
+            candidates.add(webmAudio.withHighestBitrate().url.toString());
+          }
         }
         if (candidates.isNotEmpty) {
           final unthrottled = <String>[];

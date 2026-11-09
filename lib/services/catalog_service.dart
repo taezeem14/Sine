@@ -89,6 +89,8 @@ class CatalogService {
     _categoryCache[key] = songs;
   }
 
+  static List<Song>? getCachedCategory(String key) => _categoryCache[key];
+
   static bool _isValidMusicTrack(Song song) {
     final secs = song.duration.inSeconds;
     if (secs > 0 && (secs < 45 || secs > 720)) {

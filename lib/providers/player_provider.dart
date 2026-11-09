@@ -16,6 +16,7 @@ import '../services/stem_service.dart';
 import '../services/smart_radio_service.dart';
 import '../services/widget_service.dart';
 import '../services/performance_service.dart';
+import '../services/metadata_correction_service.dart';
 
 
 class SavedPlaybackSession {
@@ -295,7 +296,9 @@ class PlayerProvider extends ChangeNotifier {
     _bandGains = _storageService.loadBandGains();
     _isAutoplayEnabled = _storageService.loadAutoplayEnabled();
     _crossfadeSeconds = _storageService.loadCrossfadeSeconds();
+    _audioHandler.setCrossfadeSeconds(_crossfadeSeconds);
     _gaplessPlayback = _storageService.loadGaplessPlayback();
+    _audioHandler.setGaplessPlayback(_gaplessPlayback);
 
     _audioQuality = _storageService.loadAudioQualityPreset();
     YouTubeImporterService.preferredQuality = _audioQuality;
@@ -693,6 +696,27 @@ class PlayerProvider extends ChangeNotifier {
       }
     }
 
+    // Correct swapped or mistaken artist/title metadata asynchronously via API
+    unawaited(
+      MetadataCorrectionService.correctMetadata(song.title, song.artist).then((corrected) {
+        if (_playSessionId == thisSession && currentSong?.id == song.id) {
+          if (corrected.wasSwapped || (corrected.isVerified && (corrected.cleanTitle != song.title || corrected.cleanArtist != song.artist))) {
+            if (_queue.isNotEmpty && _currentIndex >= 0 && _currentIndex < _queue.length) {
+              final updated = _queue[_currentIndex].copyWith(
+                title: corrected.cleanTitle,
+                artist: corrected.cleanArtist,
+              );
+              _queue[_currentIndex] = updated;
+              _audioHandler.updateSongMediaItem(updated);
+              notifyListeners();
+              // Re-fetch lyrics with verified canonical title and artist
+              _loadLyrics(updated);
+            }
+          }
+        }
+      }).catchError((_) {}),
+    );
+
     // Defer lyrics metadata until after song playback has initiated
     // (giving 100% network bandwidth to the initial audio chunks)
     Future.delayed(const Duration(milliseconds: 1200), () {
@@ -757,7 +781,11 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final res = await LyricsService.fetchLyrics(song.title, song.artist);
+      final res = await LyricsService.fetchLyrics(
+        song.title,
+        song.artist,
+        trackDuration: song.duration,
+      );
       if (currentSong?.id == song.id) {
         _lyrics = res;
         _isLoadingLyrics = false;
@@ -1231,6 +1259,8 @@ class PlayerProvider extends ChangeNotifier {
     _audioQuality = quality;
     YouTubeImporterService.preferredQuality = quality;
     await _storageService.saveAudioQualityPreset(quality);
+    StreamResolverService.clearAllCaches();
+    YouTubeImporterService.clearAllCaches();
     notifyListeners();
   }
 
@@ -1847,6 +1877,13 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> loadYouTubeCategory(String categoryKey) async {
+    final cached = CatalogService.getCachedCategory(categoryKey);
+    if (cached != null && cached.isNotEmpty) {
+      _youtubeTracks = cached;
+      notifyListeners();
+      return;
+    }
+
     _isLoadingYouTube = true;
     notifyListeners();
 
@@ -1966,12 +2003,14 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> setCrossfadeSeconds(int seconds) async {
     _crossfadeSeconds = seconds.clamp(0, 12);
     await _storageService.saveCrossfadeSeconds(_crossfadeSeconds);
+    await _audioHandler.setCrossfadeSeconds(_crossfadeSeconds);
     notifyListeners();
   }
 
   Future<void> setGaplessPlayback(bool enabled) async {
     _gaplessPlayback = enabled;
     await _storageService.saveGaplessPlayback(enabled);
+    await _audioHandler.setGaplessPlayback(enabled);
     notifyListeners();
   }
 

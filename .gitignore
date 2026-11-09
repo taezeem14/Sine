@@ -53,3 +53,5 @@ app.*.map.json
 
 /.ref_repos/
 
+.kotlin/
+**/android/.kotlin/

@@ -487,7 +487,7 @@ class _SettingsContentState extends State<SettingsContent> {
                   Text('• Playlists: ${player.playlists.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
                   Text('• Favorites: ${player.favorites.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
                   Text('• History Tracks: ${player.history.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
-                  const Text('• Format: SINE_BACKUP v1.2.5', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.bold)),
+                  const Text('• Format: SINE_BACKUP v1.2.6', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -891,7 +891,11 @@ class _SettingsContentState extends State<SettingsContent> {
         _SettingsTile(
           icon: FontAwesomeIcons.gaugeHigh,
           title: 'Audio Streaming Quality',
-          subtitle: 'Bitrate: ${player.audioQuality.toUpperCase()} • High-res WebM Opus & AAC',
+          subtitle: player.audioQuality == 'high'
+              ? 'High Bitrate: 160+ kbps WebM Opus & AAC'
+              : (player.audioQuality == 'dataSaver'
+                  ? 'Data Saver: Low-bandwidth ~50-70 kbps Opus'
+                  : 'Medium Bitrate: 128 kbps AAC & Muxed MP4'),
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
@@ -899,7 +903,12 @@ class _SettingsContentState extends State<SettingsContent> {
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: EmberColors.outlineVariant),
             ),
-            child: Text(player.audioQuality.toUpperCase(), style: const TextStyle(color: EmberColors.primaryBlue, fontSize: 11, fontWeight: FontWeight.bold)),
+            child: Text(
+              player.audioQuality == 'high'
+                  ? 'HIGH'
+                  : (player.audioQuality == 'dataSaver' ? 'SAVER' : 'MEDIUM'),
+              style: const TextStyle(color: EmberColors.primaryBlue, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
           ),
           onTap: () => _showAudioQualitySheet(context, player),
         ),

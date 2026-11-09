@@ -130,7 +130,7 @@ class LyricsService {
   static bool isTempoModified(String title, [String? artist]) {
     final combined = '$title ${artist ?? ''}'.toLowerCase();
     final regex = RegExp(
-      r'(slowed(\s*down)?|reverb|sped\s*up|speed\s*up|speedup|nightcore|daycore|pitched|fast\s*version|slow\s*version|chopped)',
+      r'\b(slowed(\s*(down|and|\+|&)?\s*reverb)?|reverb|sped\s*up|speed\s*up|speedup|nightcore|daycore|pitched(\s*(up|down))?|fast\s*(version|song|audio)?|slow\s*(version|song|audio)?|chopped(\s*(&|and)?\s*screwed)?|8d(\s*audio)?|16d|bass\s*boost(ed)?)\b',
       caseSensitive: false,
     );
     return regex.hasMatch(combined);
@@ -218,14 +218,20 @@ class LyricsService {
 
       if (partA.isNotEmpty && partB.isNotEmpty) {
         addCandidate(partB, partA);
-      }
-      if (partB.isNotEmpty && partA.isNotEmpty) {
         addCandidate(partA, partB);
       }
     }
 
     if (!isCuratorChannel(cleanedA) && cleanedA.isNotEmpty) {
       addCandidate(cleanedT, cleanedA);
+      // Inverted candidate to resolve "Author - Title" mistaking author as title
+      addCandidate(cleanedA, cleanedT);
+    }
+
+    final strippedT = cleanedT.replaceAll(RegExp(r'\s*[\(\[].*?[\)\]]'), '').trim();
+    if (strippedT.isNotEmpty && strippedT != cleanedT) {
+      addCandidate(strippedT, cleanedA);
+      if (cleanedA.isNotEmpty) addCandidate(cleanedA, strippedT);
     }
 
     if (delimiterMatch != null) {
@@ -236,6 +242,7 @@ class LyricsService {
     }
 
     addCandidate(cleanedT, cleanedA);
+    addCandidate(cleanedA, cleanedT);
     addCandidate(cleanedT, '');
 
     return candidates;
@@ -393,6 +400,42 @@ class LyricsService {
     _cache[key] = result;
   }
 
+  /// When only plain unsynchronized lyrics are available for a foreign or indie track,
+  /// this method calculates intelligent line-by-line estimated timestamps distributed
+  /// across the track duration, allowing synchronized auto-scrolling and tap-to-seek.
+  static List<LyricLine> synthesizeTimedLyrics(String plainText, Duration totalDuration) {
+    if (plainText.trim().isEmpty || totalDuration.inSeconds < 15) return const [];
+
+    final rawLines = plainText
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty && !l.startsWith('[') && !l.endsWith(':'))
+        .toList();
+
+    if (rawLines.isEmpty) return const [];
+
+    final totalSec = totalDuration.inSeconds.toDouble();
+    final introSec = (totalSec * 0.08).clamp(5.0, 20.0);
+    final outroSec = (totalSec * 0.05).clamp(4.0, 15.0);
+    final vocalSec = (totalSec - introSec - outroSec).clamp(10.0, totalSec);
+
+    final stepSec = vocalSec / rawLines.length;
+    final lines = <LyricLine>[];
+
+    for (int i = 0; i < rawLines.length; i++) {
+      final ts = Duration(milliseconds: ((introSec + i * stepSec) * 1000).toInt());
+      final dur = Duration(milliseconds: (stepSec * 1000).toInt());
+      lines.add(LyricLine(
+        timestamp: ts,
+        duration: dur,
+        text: rawLines[i],
+        isWordSynced: false,
+      ));
+    }
+
+    return lines;
+  }
+
   /// Master fetch lyrics method with multi-provider cascade:
   /// Tier 1: LRCLib exact API
   /// Tier 2: LRCLib search API
@@ -401,6 +444,7 @@ class LyricsService {
   static Future<LyricsResult> fetchLyrics(
     String title,
     String artist, {
+    Duration? trackDuration,
     bool forceRefresh = false,
   }) async {
     if (isTempoModified(title, artist)) {
@@ -414,21 +458,26 @@ class LyricsService {
     }
 
     const headers = {
-      'User-Agent': 'Sine/1.2.5 (https://github.com/taezeem14/Sine)',
+      'User-Agent': 'Sine/1.2.6 (https://github.com/taezeem14/Sine)',
       'Accept': 'application/json',
     };
 
     final candidates = generateCandidates(title, artist);
+    LyricsResult? fallbackPlainResult;
 
     // -----------------------------------------------------------------
     // Tier 1: Exact / High-Precision LRCLib match (/api/get)
     // -----------------------------------------------------------------
     for (final cand in candidates.where((c) => c.artist.isNotEmpty && c.title.isNotEmpty)) {
       try {
-        final getUrl = Uri.https('lrclib.net', '/api/get', {
+        final queryParams = <String, String>{
           'track_name': cand.title,
           'artist_name': cand.artist,
-        });
+        };
+        if (trackDuration != null && trackDuration.inSeconds > 0) {
+          queryParams['duration'] = trackDuration.inSeconds.toString();
+        }
+        final getUrl = Uri.https('lrclib.net', '/api/get', queryParams);
         final resp = await http.get(getUrl, headers: headers).timeout(const Duration(seconds: 3));
 
         if (resp.statusCode == 200) {
@@ -478,19 +527,21 @@ class LyricsService {
               }
             }
 
-            for (final rawItem in decodedList) {
-              if (rawItem is! Map) continue;
-              final item = Map<String, dynamic>.from(rawItem);
-              final plainStr = item['plainLyrics'] as String?;
-              if (plainStr != null && plainStr.trim().isNotEmpty) {
-                final res = LyricsResult(
-                  syncedLyrics: const [],
-                  plainLyrics: plainStr.trim(),
-                  hasSynced: false,
-                  hasWordSync: false,
-                );
-                _cacheLyrics(cacheKey, res);
-                return res;
+            // Save first plain lyric candidate as fallback without prematurely halting search for synced lyrics
+            if (fallbackPlainResult == null) {
+              for (final rawItem in decodedList) {
+                if (rawItem is! Map) continue;
+                final item = Map<String, dynamic>.from(rawItem);
+                final plainStr = item['plainLyrics'] as String?;
+                if (plainStr != null && plainStr.trim().isNotEmpty) {
+                  fallbackPlainResult = LyricsResult(
+                    syncedLyrics: const [],
+                    plainLyrics: plainStr.trim(),
+                    hasSynced: false,
+                    hasWordSync: false,
+                  );
+                  break;
+                }
               }
             }
           }
@@ -536,6 +587,24 @@ class LyricsService {
           }
         }
       } catch (_) {}
+    }
+
+    if (fallbackPlainResult != null && fallbackPlainResult.plainLyrics.isNotEmpty) {
+      if (trackDuration != null && trackDuration.inSeconds >= 20) {
+        final synthesizedLines = synthesizeTimedLyrics(fallbackPlainResult.plainLyrics, trackDuration);
+        if (synthesizedLines.isNotEmpty) {
+          final enriched = LyricsResult(
+            syncedLyrics: synthesizedLines,
+            plainLyrics: fallbackPlainResult.plainLyrics,
+            hasSynced: true,
+            hasWordSync: false,
+          );
+          _cacheLyrics(cacheKey, enriched);
+          return enriched;
+        }
+      }
+      _cacheLyrics(cacheKey, fallbackPlainResult);
+      return fallbackPlainResult;
     }
 
     _cacheLyrics(cacheKey, LyricsResult.empty);

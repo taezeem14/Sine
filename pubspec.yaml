@@ -2,7 +2,7 @@ name: spotify_newpipe
 description: "Sine: High-fidelity music streaming client powered purely by YouTube via NewPipe architecture for Android."
 publish_to: 'none'
 
-version: 1.2.5+23
+version: 1.2.6+24
 
 environment:
   sdk: ^3.11.1
@@ -28,6 +28,7 @@ dependencies:
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.5.0
   crypto: ^3.0.3
+  record: ^6.2.1
 
 dev_dependencies:
   flutter_test:

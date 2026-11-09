@@ -41,14 +41,14 @@ class StreamResolverService {
 
   /// Checks if a song has already been pre-resolved into memory cache (valid for 30 minutes)
   static bool isPreloaded(Song song) {
-    final cacheKey = song.id.isNotEmpty ? song.id : song.streamUrl;
+    final cacheKey = '${song.id.isNotEmpty ? song.id : song.streamUrl}_${YouTubeImporterService.preferredQuality}';
     final cached = _resolvedCache[cacheKey];
     return cached != null && cached.streams.isNotEmpty && DateTime.now().difference(cached.cachedAt).inMinutes < 30;
   }
 
   /// Prefetch playable audio stream for a track in the background (WINDOW_SIZE = 1)
   static void prefetchPlayableStreams(Song song) {
-    final cacheKey = song.id.isNotEmpty ? song.id : song.streamUrl;
+    final cacheKey = '${song.id.isNotEmpty ? song.id : song.streamUrl}_${YouTubeImporterService.preferredQuality}';
     if (isPreloaded(song) || _currentlyPreloading.contains(cacheKey)) return;
     _currentlyPreloading.add(cacheKey);
     resolvePlayableStreamCandidates(song).catchError((e) {
@@ -106,7 +106,7 @@ class StreamResolverService {
   /// 3. Piped REST audio proxy failover
   /// 4. Dynamic YouTube search & stream extraction if only title/artist is known
   static Future<List<String>> resolvePlayableStreamCandidates(Song song) {
-    final cacheKey = song.id.isNotEmpty ? song.id : song.streamUrl;
+    final cacheKey = '${song.id.isNotEmpty ? song.id : song.streamUrl}_${YouTubeImporterService.preferredQuality}';
     final cached = _resolvedCache[cacheKey];
     if (cached != null && cached.streams.isNotEmpty && DateTime.now().difference(cached.cachedAt).inMinutes < 30) {
       LogService.stream('StreamResolver', 'Cache HIT for "${song.title}": ${cached.streams.length} candidate(s)');

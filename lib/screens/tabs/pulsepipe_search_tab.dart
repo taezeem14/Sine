@@ -1,3 +1,5 @@
+import '../../widgets/music_detector_sheet.dart';
+import '../../widgets/category_detail_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
@@ -175,9 +177,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
   }
 
   void _onCategoryTap(GenreBrowseCardData category, PlayerProvider player) {
-    _controller.text = category.query;
-    _saveRecentSearch(category.query);
-    player.search(category.query);
+    CategoryDetailSheet.show(context, category);
   }
 
 
@@ -192,6 +192,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
+          key: const PageStorageKey<String>('sine_search_scroll'),
           physics: const BouncingScrollPhysics(),
           slivers: [
             // 1. Header Title "Search"
@@ -210,6 +211,11 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                       ),
                     ),
                     const Spacer(),
+                    IconButton(
+                      icon: const FaIcon(FontAwesomeIcons.microphoneLines, color: EmberColors.primaryBlue, size: 18),
+                      tooltip: 'Audile Music Detector',
+                      onPressed: () => MusicDetectorSheet.show(context),
+                    ),
                     IconButton(
                       icon: const FaIcon(FontAwesomeIcons.camera, color: EmberColors.textPrimary, size: 18),
                       tooltip: 'Scan QR Code',
@@ -584,12 +590,17 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final cat = _browseCategories[index];
-                      return _GenreCard(
-                        category: cat,
-                        onTap: () => _onCategoryTap(cat, player),
+                      return RepaintBoundary(
+                        key: ValueKey(cat.title),
+                        child: _GenreCard(
+                          category: cat,
+                          onTap: () => _onCategoryTap(cat, player),
+                        ),
                       );
                     },
                     childCount: _browseCategories.length,
+                    addAutomaticKeepAlives: true,
+                    addRepaintBoundaries: true,
                   ),
                 ),
               ),
@@ -653,19 +664,19 @@ class _GenreCard extends StatelessWidget {
                 ),
               ),
               Positioned(
-                bottom: -4,
-                right: -4,
+                bottom: 2,
+                right: 2,
                 child: Transform.rotate(
                   angle: 0.35,
                   child: Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.22),
                       shape: BoxShape.circle,
                     ),
                     child: FaIcon(
                       category.icon,
-                      size: 26,
+                      size: 24,
                       color: Colors.white.withValues(alpha: 0.9),
                     ),
                   ),

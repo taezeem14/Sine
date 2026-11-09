@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.2.5%20(Build%2023)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.2.6%20(Build%2024)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.2.5)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.5.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.2.6)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.6.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy ad-free music instantly.*
 
@@ -76,6 +76,9 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 | **Sharing** | **Sine QR Code** | 100% offline, on-device QR generator & scanner for sharing tracks and playlists without internet. |
 | **Security** | **App Lock** | Local 4-digit PIN authentication securing your library and downloads. |
 | **Widgets** | **Home Screen Widget** | 4x2 responsive Android widget with real-time metadata, album art, and transport playback controls. |
+| **Discovery** | **Audile Music Detection** | Live microphone acoustic recognition radar with real-time waveform visualization, AudD/Shazam multi-provider matching, and instant 1-tap playback & library save. |
+| **Discovery** | **Category & Genre Deep Explorer** | Dedicated modal sheet browsing with instant 'Play All', 'Shuffle', and glitch-free smooth scrolling across Spotify genres. |
+| **Streaming** | **Audio Streaming Quality Engine** | User-selected bitrate presets: High (160+ kbps WebM Opus / 128 kbps AAC), Medium (balanced hardware MP4), and Data Saver (~50-70 kbps Opus) with immediate stream cache invalidation. |
 
 ---
 
@@ -122,7 +125,7 @@ Sine is built on strict Free & Open Source Software principles:
 ## 📲 Installation Guide
 
 ### 1. Direct GitHub Release APK
-1. Download the latest release: [Sine-v1.2.5.apk](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.5.apk).
+1. Download the latest release: [Sine-v1.2.6.apk](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.6.apk).
 2. On Android, tap the downloaded APK file.
 3. If prompted, allow *"Install unknown apps"* for your browser or file manager.
 4. Tap **Install** and open Sine.
@@ -130,7 +133,7 @@ Sine is built on strict Free & Open Source Software principles:
 ### 2. ADB CLI Deployment
 For developers and power users:
 ```bash
-adb install -r Sine-v1.2.5.apk
+adb install -r Sine-v1.2.6.apk
 ```
 
 ---

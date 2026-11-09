@@ -1,3 +1,4 @@
+import '../../widgets/music_detector_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -60,6 +61,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
     return Scaffold(
       backgroundColor: EmberColors.obsidianBase,
       body: CustomScrollView(
+        key: const PageStorageKey<String>('sine_home_scroll'),
         physics: const BouncingScrollPhysics(),
         slivers: [
           // 1. Top Bar with Greeting & Quick Actions
@@ -82,6 +84,11 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
               ),
             ),
             actions: [
+              IconButton(
+                icon: const FaIcon(FontAwesomeIcons.microphoneLines, size: 16, color: EmberColors.primaryBlue),
+                tooltip: 'Audile Music Detector',
+                onPressed: () => MusicDetectorSheet.show(context),
+              ),
               IconButton(
                 icon: const FaIcon(FontAwesomeIcons.sliders, size: 16, color: EmberColors.textPrimary),
                 tooltip: 'Audiophile Equalizer',
@@ -197,11 +204,16 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
 
           // 2. Filter Pills Row (YouTube Music Genres)
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: SingleChildScrollView(
+                    key: const PageStorageKey<String>('sine_home_genre_pills'),
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
                   children: ['All', 'Top Hits', 'Pop', 'Hip-Hop', 'Electronic', 'Lo-Fi', 'Rock'].map((pill) {
                     final isSelected = _selectedPill == pill;
                     return Padding(
@@ -238,8 +250,19 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                       ),
                     );
                   }).toList(),
+                    ),
+                  ),
                 ),
-              ),
+                if (player.isLoadingYouTube)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                    child: LinearProgressIndicator(
+                      minHeight: 2,
+                      backgroundColor: Colors.transparent,
+                      color: EmberColors.primaryBlue,
+                    ),
+                  ),
+              ],
             ),
           ),
 
@@ -319,10 +342,12 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
           SliverToBoxAdapter(
             child: SizedBox(
               height: 200,
-              child: player.isLoadingYouTube
+              child: player.youtubeTracks.isEmpty
                   ? const Center(child: CircularProgressIndicator(color: EmberColors.primaryBlue))
                   : ListView.builder(
+                      key: const PageStorageKey<String>('sine_home_carousel'),
                       scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: player.youtubeTracks.length,
                       itemBuilder: (context, index) {
@@ -356,8 +381,10 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                   final track = player.youtubeTracks[index];
                   final isCurrent = player.currentSong?.id == track.id;
 
-                  return Container(
-                    margin: const EdgeInsets.symmetric(vertical: 2),
+                  return RepaintBoundary(
+                    key: ValueKey(track.id),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 2),
                     decoration: BoxDecoration(
                       color: isCurrent
                           ? EmberColors.primaryBlue.withValues(alpha: 0.12)
@@ -445,7 +472,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                         playingFrom: 'YouTube Music Top Tracks',
                       ),
                     ),
-                  );
+                  ));
                 },
                 childCount: player.youtubeTracks.isEmpty ? 1 : player.youtubeTracks.length,
               ),
@@ -598,10 +625,12 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
   }
 
   Widget _buildTrackCarouselCard(Song track, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 135,
+    return RepaintBoundary(
+      key: ValueKey(track.id),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 135,
         margin: const EdgeInsets.only(right: 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -669,6 +698,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
