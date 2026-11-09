@@ -1,8 +1,8 @@
 class AppConstants {
   static const String appName = 'Sine';
   static const String appTagline = 'High-Fidelity YouTube Music Client';
-  static const String version = '1.2.6';
-  static const int buildNumber = 24;
+  static const String version = '1.2.7';
+  static const int buildNumber = 25;
   static const String fullVersion = '$version+$buildNumber';
   static const String releaseTag = 'v$version';
   static const String releaseName = 'v$version (Release Build)';
