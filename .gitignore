@@ -50,3 +50,6 @@ app.*.map.json
 *.apk
 
 /android/build/
+
+/.ref_repos/
+

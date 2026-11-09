@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/player_provider.dart';
@@ -52,7 +52,7 @@ class LyricsSheet extends StatelessWidget {
                       Text(
                         'Lyrics',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: EmberColors.primaryAmber,
+                              color: EmberColors.primaryBlue,
                               fontWeight: FontWeight.bold,
                             ),
                       ),

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -169,6 +170,11 @@ class PlayerProvider extends ChangeNotifier {
   int _sleepSecondsRemaining = 0;
   bool _sleepAtTrackEnd = false;
   int _crossfadeSeconds = 0;
+  int _pitchSemitones = 0;
+  bool _volumeNormalizationEnabled = true;
+
+  int get pitchSemitones => _pitchSemitones;
+  bool get volumeNormalizationEnabled => _volumeNormalizationEnabled;
   bool _gaplessPlayback = true;
   Timer? _searchDebounce;
   bool _isSearching = false;
@@ -1922,9 +1928,18 @@ class PlayerProvider extends ChangeNotifier {
       if (remaining > 0) {
         _sleepSecondsRemaining = remaining;
         sleepSecondsNotifier.value = remaining;
+        // Metrolist & Audile smart fade-out curve over the last 20 seconds
+        if (remaining <= 20) {
+          final frac = (remaining / 20.0).clamp(0.0, 1.0);
+          final fadeMultiplier = frac * frac;
+          _audioHandler.setSleepFadeMultiplier(fadeMultiplier);
+        } else {
+          _audioHandler.setSleepFadeMultiplier(1.0);
+        }
       } else {
         cancelSleepTimer();
         _audioHandler.pause();
+        _audioHandler.resetSleepFade();
       }
     });
   }
@@ -1944,6 +1959,7 @@ class PlayerProvider extends ChangeNotifier {
     _sleepSecondsRemaining = 0;
     sleepSecondsNotifier.value = 0;
     _sleepAtTrackEnd = false;
+    _audioHandler.resetSleepFade();
     notifyListeners();
   }
 
@@ -1957,6 +1973,59 @@ class PlayerProvider extends ChangeNotifier {
     _gaplessPlayback = enabled;
     await _storageService.saveGaplessPlayback(enabled);
     notifyListeners();
+  }
+
+  Future<void> setPitchSemitones(int semitones) async {
+    _pitchSemitones = semitones.clamp(-6, 6);
+    final pitchFactor = math.pow(2.0, _pitchSemitones / 12.0).toDouble();
+    await _audioHandler.setPitch(pitchFactor);
+    notifyListeners();
+  }
+
+  Future<void> setVolumeNormalizationEnabled(bool enabled) async {
+    _volumeNormalizationEnabled = enabled;
+    await _audioHandler.setNormalizationGain(enabled ? 0.85 : 1.0);
+    notifyListeners();
+  }
+
+  Future<void> updateSongMetadata(Song updatedSong) async {
+    for (int i = 0; i < _queue.length; i++) {
+      if (_queue[i].id == updatedSong.id) {
+        _queue[i] = updatedSong;
+      }
+    }
+    if (currentSong?.id == updatedSong.id) {
+      await _audioHandler.updateSongMediaItem(updatedSong);
+    }
+    final favIdx = _favorites.indexWhere((s) => s.id == updatedSong.id);
+    if (favIdx != -1) {
+      _favorites[favIdx] = updatedSong;
+      await _storageService.saveFavorites(_favorites);
+    }
+    final histIdx = _history.indexWhere((s) => s.id == updatedSong.id);
+    if (histIdx != -1) {
+      _history[histIdx] = updatedSong;
+      await _storageService.saveHistory(_history);
+    }
+    notifyListeners();
+  }
+
+  String exportLibraryBackup() {
+    return _storageService.exportBackupJson();
+  }
+
+  Future<({int playlistsCount, int favoritesCount, int historyCount})?> importLibraryBackup(
+    String jsonStr, {
+    bool merge = true,
+  }) async {
+    final result = await _storageService.importBackupJson(jsonStr, merge: merge);
+    if (result != null) {
+      _playlists = _storageService.loadPlaylists();
+      _favorites = _storageService.loadFavorites();
+      _history = _storageService.loadHistory();
+      notifyListeners();
+    }
+    return result;
   }
 
   @override

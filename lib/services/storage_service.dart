@@ -542,4 +542,153 @@ class StorageService {
   Future<void> savePerformanceHudEnabled(bool enabled) async {
     await _prefs?.setBool(_performanceHudKey, enabled);
   }
+
+  /// Exports full database backup into portable JSON format (Audile & Metrolist architecture)
+  String exportBackupJson() {
+    final payload = {
+      'format': 'SINE_BACKUP',
+      'version': '1.2.5',
+      'versionCode': 23,
+      'exportedAt': DateTime.now().toUtc().toIso8601String(),
+      'playlists': loadPlaylists().map((p) => p.toMap()).toList(),
+      'favorites': loadFavorites().map((s) => s.toMap()).toList(),
+      'history': loadHistory().map((s) => s.toMap()).toList(),
+      'settings': {
+        'speed': loadPlaybackSpeed(),
+        'crossfade': loadCrossfadeSeconds(),
+        'gapless': loadGaplessPlayback(),
+        'audioQuality': loadAudioQualityPreset(),
+        'clippingProtection': loadClippingProtection(),
+        'recoveryMode': loadPlaybackRecoveryMode(),
+        'stemEngine': loadStemEnginePreference(),
+        'eqPreset': loadEqualizerPreset(),
+        'eqEnabled': loadEqualizerEnabled(),
+        'eqBassBoost': loadBassBoost(),
+        'eqBandGains': loadBandGains(),
+      },
+    };
+    return const JsonEncoder.withIndent('  ').convert(payload);
+  }
+
+  /// Imports and validates backup JSON, merging or restoring library data safely
+  Future<({int playlistsCount, int favoritesCount, int historyCount})?> importBackupJson(
+    String jsonString, {
+    bool merge = true,
+  }) async {
+    try {
+      final decoded = jsonDecode(jsonString);
+      if (decoded is! Map) return null;
+      final map = Map<String, dynamic>.from(decoded);
+
+      if (map['format'] != 'SINE_BACKUP') {
+        if (!map.containsKey('playlists') && !map.containsKey('favorites')) {
+          return null;
+        }
+      }
+
+      int pCount = 0;
+      final rawPlaylists = map['playlists'] as List?;
+      if (rawPlaylists != null) {
+        final importedPlaylists = <Playlist>[];
+        for (final p in rawPlaylists) {
+          if (p is Map) {
+            try {
+              importedPlaylists.add(Playlist.fromMap(Map<String, dynamic>.from(p)));
+            } catch (_) {}
+          }
+        }
+        if (importedPlaylists.isNotEmpty) {
+          final existing = merge ? loadPlaylists() : <Playlist>[];
+          final existingIds = existing.map((p) => p.id).toSet();
+          for (final p in importedPlaylists) {
+            if (!existingIds.contains(p.id)) {
+              existing.add(p);
+            }
+          }
+          await savePlaylists(existing);
+          pCount = importedPlaylists.length;
+        }
+      }
+
+      int fCount = 0;
+      final rawFavorites = map['favorites'] as List?;
+      if (rawFavorites != null) {
+        final importedFavs = <Song>[];
+        for (final s in rawFavorites) {
+          if (s is Map) {
+            try {
+              final song = Song.fromMap(Map<String, dynamic>.from(s));
+              if (!Song.isPlaceholder(song)) importedFavs.add(song);
+            } catch (_) {}
+          }
+        }
+        if (importedFavs.isNotEmpty) {
+          final existing = merge ? loadFavorites() : <Song>[];
+          final existingIds = existing.map((s) => s.id).toSet();
+          for (final s in importedFavs) {
+            if (!existingIds.contains(s.id)) {
+              existing.add(s);
+            }
+          }
+          await saveFavorites(existing);
+          fCount = importedFavs.length;
+        }
+      }
+
+      int hCount = 0;
+      final rawHistory = map['history'] as List?;
+      if (rawHistory != null) {
+        final importedHistory = <Song>[];
+        for (final s in rawHistory) {
+          if (s is Map) {
+            try {
+              final song = Song.fromMap(Map<String, dynamic>.from(s));
+              if (!Song.isPlaceholder(song)) importedHistory.add(song);
+            } catch (_) {}
+          }
+        }
+        if (importedHistory.isNotEmpty) {
+          final existing = merge ? loadHistory() : <Song>[];
+          final existingIds = existing.map((s) => s.id).toSet();
+          for (final s in importedHistory) {
+            if (!existingIds.contains(s.id)) {
+              existing.add(s);
+            }
+          }
+          await saveHistory(existing);
+          hCount = importedHistory.length;
+        }
+      }
+
+      final settings = map['settings'] as Map?;
+      if (settings != null) {
+        if (settings['speed'] != null) await savePlaybackSpeed((settings['speed'] as num).toDouble());
+        if (settings['crossfade'] != null) await saveCrossfadeSeconds((settings['crossfade'] as num).toInt());
+        if (settings['gapless'] != null) await saveGaplessPlayback(settings['gapless'] == true);
+        if (settings['audioQuality'] != null) await saveAudioQualityPreset(settings['audioQuality'].toString());
+        if (settings['clippingProtection'] != null) await saveClippingProtection(settings['clippingProtection'] == true);
+        if (settings['recoveryMode'] != null) await savePlaybackRecoveryMode(settings['recoveryMode'].toString());
+        if (settings['stemEngine'] != null) await saveStemEnginePreference(settings['stemEngine'].toString());
+        if (settings['eqPreset'] != null) await saveEqualizerPreset(settings['eqPreset'].toString());
+        if (settings['eqEnabled'] != null) await saveEqualizerEnabled(settings['eqEnabled'] == true);
+        if (settings['eqBassBoost'] != null) await saveBassBoost((settings['eqBassBoost'] as num).toDouble());
+        if (settings['eqBandGains'] is Map) {
+          final gains = <int, double>{};
+          for (final entry in (settings['eqBandGains'] as Map).entries) {
+            final k = int.tryParse(entry.key.toString());
+            final v = (entry.value as num?)?.toDouble();
+            if (k != null && v != null) {
+              gains[k] = v;
+            }
+          }
+          await saveBandGains(gains);
+        }
+      }
+
+      return (playlistsCount: pCount, favoritesCount: fCount, historyCount: hCount);
+    } catch (e) {
+      debugPrint('[StorageService] Backup import error: $e');
+      return null;
+    }
+  }
 }

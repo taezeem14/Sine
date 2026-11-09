@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/song.dart';
 import 'youtube_importer_service.dart';
+import 'youtube_cipher_service.dart';
+import 'dart:async';
 import 'log_service.dart';
 
 class StreamResolverService {
@@ -21,6 +23,7 @@ class StreamResolverService {
     _resolvedCache.remove(key);
     _inFlightResolutions.remove(key);
     YouTubeImporterService.invalidateCache(key);
+    unawaited(YouTubeCipherService.forceRefreshConfigs());
   }
 
   /// Manually cache a verified working stream (e.g. from fallback proxy)

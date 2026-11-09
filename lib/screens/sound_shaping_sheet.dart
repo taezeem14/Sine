@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
@@ -67,10 +68,10 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: EmberColors.primaryAmber.withValues(alpha: 0.15),
+                            color: EmberColors.primaryBlue.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
-                          child: const FaIcon(FontAwesomeIcons.sliders, size: 16, color: EmberColors.primaryAmber),
+                          child: const FaIcon(FontAwesomeIcons.sliders, size: 16, color: EmberColors.primaryBlue),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -78,7 +79,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Sound Shaping & EQ',
+                                'Sound Shaping & DSP',
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                       color: EmberColors.textPrimary,
                                       fontWeight: FontWeight.bold,
@@ -87,7 +88,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
-                                'Analog Warmth & Multi-Band DSP',
+                                'Acoustic Limiter, Hardware EQ & Pitch',
                                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                       color: EmberColors.textMuted,
                                     ),
@@ -108,6 +109,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                             _localBassBoost = null;
                           });
                           player.resetEqualizer();
+                          player.setPitchSemitones(0);
                         },
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -119,7 +121,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       const SizedBox(width: 8),
                       Switch(
                         value: player.eqEnabled,
-                        activeTrackColor: EmberColors.primaryAmber,
+                        activeTrackColor: EmberColors.primaryBlue,
                         onChanged: (val) => player.setEqualizerEnabled(val),
                       ),
                     ],
@@ -128,7 +130,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
               ),
               const SizedBox(height: 20),
 
-              // Hugging Face Demucs AI & Studio Stem Isolation
+              // AI SOTA & Studio Stem Isolation
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -226,7 +228,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.restore_rounded, size: 14, color: EmberColors.primaryAmber),
+                          Icon(Icons.restore_rounded, size: 14, color: EmberColors.primaryBlue),
                           SizedBox(width: 6),
                           Text(
                             'Revert to Original Studio Track',
@@ -244,19 +246,19 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
               ],
               const SizedBox(height: 18),
 
-              // Bass Boost / Sub-Warmth Slider (Throttled 50ms & instant local UI feedback)
+              // Bass Boost / Sub-Warmth Slider
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Hearth Bass Boost', style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
-                  Text('${((_localBassBoost ?? player.bassBoost) * 100).toInt()}%', style: const TextStyle(color: EmberColors.primaryAmber, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('${((_localBassBoost ?? player.bassBoost) * 100).toInt()}%', style: const TextStyle(color: EmberColors.primaryBlueHi, fontSize: 13, fontWeight: FontWeight.bold)),
                 ],
               ),
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   trackHeight: 4,
-                  activeTrackColor: EmberColors.primaryAmber,
-                  thumbColor: EmberColors.primaryAmberHi,
+                  activeTrackColor: EmberColors.primaryBlue,
+                  thumbColor: EmberColors.primaryBlueHi,
                   inactiveTrackColor: EmberColors.surfaceContainerHigh,
                 ),
                 child: Slider(
@@ -284,9 +286,103 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
 
               // Spotify-Style Interactive Graph Equalizer & Presets
               const SpotifyGraphEqualizer(),
+
               const SizedBox(height: 16),
               const Divider(color: EmberColors.outlineVariant, height: 1),
               const SizedBox(height: 16),
+
+              // Pitch Transpose Section (Metrolist -6 to +6 semitones)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: EmberColors.primaryBlue.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const FaIcon(FontAwesomeIcons.music, size: 13, color: EmberColors.primaryBlue),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Pitch Transpose (${player.pitchSemitones > 0 ? "+${player.pitchSemitones}" : "${player.pitchSemitones}"} st)',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: EmberColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ],
+                  ),
+                  TextButton(
+                    onPressed: player.pitchSemitones == 0 ? null : () => player.setPitchSemitones(0),
+                    child: Text(
+                      'Original Key',
+                      style: TextStyle(
+                        color: player.pitchSemitones == 0 ? EmberColors.textMuted : EmberColors.primaryBlue,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: EmberColors.primaryBlue,
+                  inactiveTrackColor: EmberColors.surfaceContainerHigh,
+                  thumbColor: EmberColors.primaryBlueHi,
+                  trackHeight: 3.5,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                ),
+                child: Slider(
+                  value: player.pitchSemitones.toDouble().clamp(-6.0, 6.0),
+                  min: -6.0,
+                  max: 6.0,
+                  divisions: 12,
+                  label: player.pitchSemitones == 0 ? 'Original (0 st)' : '${player.pitchSemitones > 0 ? "+${player.pitchSemitones}" : "${player.pitchSemitones}"} st',
+                  onChanged: (val) {
+                    player.setPitchSemitones(val.round());
+                    HapticFeedback.selectionClick();
+                  },
+                ),
+              ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [-3, -2, -1, 0, 1, 2, 3].map((st) {
+                    final isSelected = player.pitchSemitones == st;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ChoiceChip(
+                        label: Text(st == 0 ? '0 (Key)' : (st > 0 ? '+$st' : '$st')),
+                        selected: isSelected,
+                        selectedColor: EmberColors.primaryBlue.withValues(alpha: 0.25),
+                        backgroundColor: EmberColors.surfaceContainerLow,
+                        labelStyle: TextStyle(
+                          color: isSelected ? EmberColors.primaryBlue : EmberColors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        ),
+                        side: BorderSide(
+                          color: isSelected ? EmberColors.primaryBlue : EmberColors.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                        onSelected: (_) {
+                          player.setPitchSemitones(st);
+                          HapticFeedback.lightImpact();
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+              const Divider(color: EmberColors.outlineVariant, height: 1),
+              const SizedBox(height: 16),
+
               // Playback Speed Section
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -296,10 +392,10 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: EmberColors.primaryAmber.withValues(alpha: 0.15),
+                          color: EmberColors.primaryBlue.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: const FaIcon(FontAwesomeIcons.gaugeHigh, size: 14, color: EmberColors.primaryAmber),
+                        child: const FaIcon(FontAwesomeIcons.gaugeHigh, size: 14, color: EmberColors.primaryBlue),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -321,7 +417,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                     child: Text(
                       'Normal',
                       style: TextStyle(
-                        color: player.speed == 1.0 ? EmberColors.textMuted : EmberColors.primaryAmber,
+                        color: player.speed == 1.0 ? EmberColors.textMuted : EmberColors.primaryBlue,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -335,9 +431,9 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                   Expanded(
                     child: SliderTheme(
                       data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: EmberColors.primaryAmber,
+                        activeTrackColor: EmberColors.primaryBlue,
                         inactiveTrackColor: EmberColors.outlineVariant.withValues(alpha: 0.4),
-                        thumbColor: EmberColors.primaryAmberHi,
+                        thumbColor: EmberColors.primaryBlueHi,
                         trackHeight: 3,
                         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
                       ),
@@ -355,6 +451,61 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                   ),
                   const Text('2.0x', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
                 ],
+              ),
+
+              const SizedBox(height: 16),
+              const Divider(color: EmberColors.outlineVariant, height: 1),
+              const SizedBox(height: 16),
+
+              // ReplayGain Volume Normalization Card (Metrolist / Audile EBU R128 standard)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: EmberColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: EmberColors.primaryBlue.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.equalizer_rounded, color: EmberColors.primaryBlue, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'ReplayGain Volume Leveler',
+                            style: TextStyle(
+                              color: EmberColors.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Target: -14 LUFS (EBU R128) • Seamless volume balance without digital distortion',
+                            style: TextStyle(
+                              color: EmberColors.textMuted.withValues(alpha: 0.9),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: player.volumeNormalizationEnabled,
+                      activeTrackColor: EmberColors.primaryBlue,
+                      onChanged: (val) => player.setVolumeNormalizationEnabled(val),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

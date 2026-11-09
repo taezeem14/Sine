@@ -1,0 +1,6 @@
+Sine v1.2.5 (Build 23):
+• Open Source & GPL-3.0 Compliance: Added formal attributions and upstream architectural credits for Audile, zemer-cipher, BetterLyrics, and Metrolist.
+• Stream Extraction & Cipher Resilience: Fortified audio stream resolver and signature cipher extraction pipeline for rock-solid playback stability.
+• Precision Synced Lyrics: Enhanced real-time LRC karaoke lyrics rendering with millisecond offset synchronization and auto-scroll smoothing.
+• Queue & Cache Optimization: Streamlined playlist queue deduplication, caching pipelines, and offline download integrity.
+• Acoustic Sound Shaper: Further calibrated 6-band graph hardware EQ and dynamic headroom peak limiter for zero digital distortion.

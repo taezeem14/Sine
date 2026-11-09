@@ -31,10 +31,13 @@ AntiFeatures:
 
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
-CurrentVersion: 1.2.0
-CurrentVersionCode: 22
+CurrentVersion: 1.2.5
+CurrentVersionCode: 23
 
 Builds:
+  - versionName: 1.2.5
+    versionCode: 23
+    commit: v1.2.5
   - versionName: 1.2.0
     versionCode: 22
     commit: v1.2.0

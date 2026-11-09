@@ -6,6 +6,7 @@ import '../providers/player_provider.dart';
 import '../theme/ember_theme.dart';
 import '../widgets/sine_qr_code_sheet.dart';
 import 'sound_shaping_sheet.dart';
+import '../widgets/track_metadata_sheet.dart';
 
 class TrackOptionsSheet extends StatelessWidget {
   final Song song;
@@ -59,7 +60,7 @@ class TrackOptionsSheet extends StatelessWidget {
                           ),
                     ),
                     IconButton(
-                      icon: const FaIcon(FontAwesomeIcons.plus, size: 16, color: EmberColors.primaryAmber),
+                      icon: const FaIcon(FontAwesomeIcons.plus, size: 16, color: EmberColors.primaryBlue),
                       onPressed: () {
                         showDialog(
                           context: ctx,
@@ -81,7 +82,7 @@ class TrackOptionsSheet extends StatelessWidget {
                                 child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
                               ),
                               ElevatedButton(
-                                style: ElevatedButton.styleFrom(backgroundColor: EmberColors.primaryAmber),
+                                style: ElevatedButton.styleFrom(backgroundColor: EmberColors.primaryBlue),
                                 onPressed: () {
                                   if (titleController.text.trim().isNotEmpty) {
                                     player.createPlaylist(titleController.text.trim());
@@ -107,7 +108,7 @@ class TrackOptionsSheet extends StatelessWidget {
                           const Text('No playlists yet', style: TextStyle(color: EmberColors.textMuted)),
                           const SizedBox(height: 10),
                           ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: EmberColors.primaryAmber),
+                            style: ElevatedButton.styleFrom(backgroundColor: EmberColors.primaryBlue),
                             onPressed: () {
                               player.createPlaylist('My Favorites');
                               Navigator.pop(ctx);
@@ -130,7 +131,7 @@ class TrackOptionsSheet extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Center(
-                          child: FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryAmber),
+                          child: FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryBlue),
                         ),
                       ),
                       title: Text(p.title, style: const TextStyle(color: EmberColors.textPrimary, fontWeight: FontWeight.w600)),
@@ -141,7 +142,7 @@ class TrackOptionsSheet extends StatelessWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             backgroundColor: EmberColors.surfaceContainerHigh,
-                            content: Text('Added to "${p.title}"', style: const TextStyle(color: EmberColors.primaryAmberHi)),
+                            content: Text('Added to "${p.title}"', style: const TextStyle(color: EmberColors.primaryBlueHi)),
                           ),
                         );
                       },
@@ -163,7 +164,7 @@ class TrackOptionsSheet extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            const FaIcon(FontAwesomeIcons.circleInfo, size: 18, color: EmberColors.primaryAmber),
+            const FaIcon(FontAwesomeIcons.circleInfo, size: 18, color: EmberColors.primaryBlue),
             const SizedBox(width: 10),
             Text('Track Tech Specs', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.bold)),
           ],
@@ -187,7 +188,7 @@ class TrackOptionsSheet extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close', style: TextStyle(color: EmberColors.primaryAmber, fontWeight: FontWeight.bold)),
+            child: const Text('Close', style: TextStyle(color: EmberColors.primaryBlue, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -233,8 +234,8 @@ class TrackOptionsSheet extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: song.artworkUrl.isNotEmpty
-                      ? Image.network(song.artworkUrl, width: 48, height: 48, fit: BoxFit.cover, errorBuilder: (_, _, _) => const FaIcon(FontAwesomeIcons.music, size: 20, color: EmberColors.primaryAmber))
-                      : const FaIcon(FontAwesomeIcons.music, size: 20, color: EmberColors.primaryAmber),
+                      ? Image.network(song.artworkUrl, width: 48, height: 48, fit: BoxFit.cover, errorBuilder: (_, _, _) => const FaIcon(FontAwesomeIcons.music, size: 20, color: EmberColors.primaryBlue))
+                      : const FaIcon(FontAwesomeIcons.music, size: 20, color: EmberColors.primaryBlue),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -322,7 +323,7 @@ class TrackOptionsSheet extends StatelessWidget {
                   messenger.showSnackBar(
                     SnackBar(
                       backgroundColor: EmberColors.surfaceContainerHigh,
-                      content: Text('Downloading "${song.title}" audio...', style: const TextStyle(color: EmberColors.primaryAmber)),
+                      content: Text('Downloading "${song.title}" audio...', style: const TextStyle(color: EmberColors.primaryBlue)),
                     ),
                   );
                   final path = await player.downloadAudio(song);
@@ -330,7 +331,7 @@ class TrackOptionsSheet extends StatelessWidget {
                     messenger.showSnackBar(
                       const SnackBar(
                         backgroundColor: EmberColors.surfaceContainerHigh,
-                        content: Text('Saved to Sine-Music folder!', style: TextStyle(color: EmberColors.primaryAmberHi)),
+                        content: Text('Saved to Sine-Music folder!', style: TextStyle(color: EmberColors.primaryBlueHi)),
                       ),
                     );
                   } else {
@@ -353,7 +354,7 @@ class TrackOptionsSheet extends StatelessWidget {
                 messenger.showSnackBar(
                   SnackBar(
                     backgroundColor: EmberColors.surfaceContainerHigh,
-                    content: Text('Downloading MP4 video for "${song.title}"...', style: const TextStyle(color: EmberColors.primaryAmber)),
+                    content: Text('Downloading MP4 video for "${song.title}"...', style: const TextStyle(color: EmberColors.primaryBlue)),
                   ),
                 );
                 final path = await player.downloadVideo(song);
@@ -361,7 +362,7 @@ class TrackOptionsSheet extends StatelessWidget {
                   messenger.showSnackBar(
                     const SnackBar(
                       backgroundColor: EmberColors.surfaceContainerHigh,
-                      content: Text('Video saved to Sine-Music folder!', style: TextStyle(color: EmberColors.primaryAmberHi)),
+                      content: Text('Video saved to Sine-Music folder!', style: TextStyle(color: EmberColors.primaryBlueHi)),
                     ),
                   );
                 } else {
@@ -385,7 +386,7 @@ class TrackOptionsSheet extends StatelessWidget {
                 messenger.showSnackBar(
                   SnackBar(
                     backgroundColor: EmberColors.surfaceContainerHigh,
-                    content: Text('Started Song Radio based on "${song.title}"', style: const TextStyle(color: EmberColors.primaryAmberHi)),
+                    content: Text('Started Song Radio based on "${song.title}"', style: const TextStyle(color: EmberColors.primaryBlueHi)),
                   ),
                 );
               },
@@ -401,7 +402,7 @@ class TrackOptionsSheet extends StatelessWidget {
                 messenger.showSnackBar(
                   SnackBar(
                     backgroundColor: EmberColors.surfaceContainerHigh,
-                    content: Text('Started Artist Radio for "${song.artist}"', style: const TextStyle(color: EmberColors.primaryAmberHi)),
+                    content: Text('Started Artist Radio for "${song.artist}"', style: const TextStyle(color: EmberColors.primaryBlueHi)),
                   ),
                 );
               },
@@ -417,7 +418,7 @@ class TrackOptionsSheet extends StatelessWidget {
                 messenger.showSnackBar(
                   SnackBar(
                     backgroundColor: EmberColors.surfaceContainerHigh,
-                    content: Text('"${song.title}" will play next', style: const TextStyle(color: EmberColors.primaryAmberHi)),
+                    content: Text('"${song.title}" will play next', style: const TextStyle(color: EmberColors.primaryBlueHi)),
                   ),
                 );
               },
@@ -433,7 +434,7 @@ class TrackOptionsSheet extends StatelessWidget {
                 messenger.showSnackBar(
                   SnackBar(
                     backgroundColor: EmberColors.surfaceContainerHigh,
-                    content: Text('Added "${song.title}" to queue', style: const TextStyle(color: EmberColors.primaryAmberHi)),
+                    content: Text('Added "${song.title}" to queue', style: const TextStyle(color: EmberColors.primaryBlueHi)),
                   ),
                 );
               },
@@ -446,6 +447,17 @@ class TrackOptionsSheet extends StatelessWidget {
                 Navigator.pop(context);
                 Future.microtask(() {
                   if (context.mounted) SoundShapingSheet.show(context);
+                });
+              },
+            ),
+            _OptionTile(
+              icon: FontAwesomeIcons.penToSquare,
+              title: 'Edit Track Metadata',
+              subtitle: 'Clean up YouTube tags or edit title & artist',
+              onTap: () {
+                Navigator.pop(context);
+                Future.microtask(() {
+                  if (context.mounted) TrackMetadataSheet.show(context, song);
                 });
               },
             ),
@@ -489,7 +501,7 @@ class _OptionTile extends StatelessWidget {
     return ListTile(
       dense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-      leading: FaIcon(icon, size: 18, color: iconColor ?? EmberColors.primaryAmber),
+      leading: FaIcon(icon, size: 18, color: iconColor ?? EmberColors.primaryBlue),
       title: Text(title, style: const TextStyle(color: EmberColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
       subtitle: Text(subtitle, style: const TextStyle(color: EmberColors.textMuted, fontSize: 11)),
       onTap: onTap,

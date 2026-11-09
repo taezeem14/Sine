@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.2.0%20(Build%2022)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.2.5%20(Build%2023)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.2.0)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.0.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.2.5)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.5.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy ad-free music instantly.*
 
@@ -122,7 +122,7 @@ Sine is built on strict Free & Open Source Software principles:
 ## 📲 Installation Guide
 
 ### 1. Direct GitHub Release APK
-1. Download the latest release: [Sine-v1.2.0.apk](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.0.apk).
+1. Download the latest release: [Sine-v1.2.5.apk](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.5.apk).
 2. On Android, tap the downloaded APK file.
 3. If prompted, allow *"Install unknown apps"* for your browser or file manager.
 4. Tap **Install** and open Sine.
@@ -130,7 +130,7 @@ Sine is built on strict Free & Open Source Software principles:
 ### 2. ADB CLI Deployment
 For developers and power users:
 ```bash
-adb install -r Sine-v1.2.0.apk
+adb install -r Sine-v1.2.5.apk
 ```
 
 ---
@@ -199,12 +199,26 @@ Sine is free, ad-free, and independently crafted with immense care. If Sine save
 ## 👑 Credits & License
 
 - **Created & Maintained by**: **Muhammad Taezeem Tariq** ([@taezeem14](https://github.com/taezeem14))
-- **Special Thanks**:
-  - [Team NewPipe](https://github.com/TeamNewPipe/NewPipe) — The gold standard for tracker-free YouTube extraction.
-  - [YoutubeExplode](https://github.com/Hexer10/YoutubeExplode) — Robust Dart YouTube metadata parser.
-  - [Ryan Heise](https://github.com/ryanheise) — Audio engine pioneer behind `just_audio` & `audio_service`.
-  - [SponsorBlock](https://sponsor.ajay.app/) — Crowd-sourced database for skipping promotional segments.
-  - [LRCLIB](https://lrclib.net/) — Open-source synchronized lyrics archive.
+
+---
+
+## 📜 Open Source Credits & Attribution (GPL-3.0)
+
+Sine is proud to be built upon and inspired by the global Free and Open Source Software (FOSS) ecosystem. In strict adherence to the **GNU General Public License v3.0 (GPL-3.0)**, we gratefully acknowledge and attribute the following outstanding open-source projects whose code, algorithms, and architectural concepts have directly contributed to or inspired Sine:
+
+| Project | Authors / Organization | License | Repository | Role & Architectural Contribution |
+| :--- | :--- | :--- | :--- | :--- |
+| **Audile** | [AudileTeam](https://github.com/AudileTeam) | **GPL-3.0** | [AudileTeam/Audile](https://github.com/AudileTeam/Audile) | Open-source Android music player and recognition client. Inspires Sine's persistent foreground audio playback service and media notification lifecycle. |
+| **zemer-cipher** | [ZemerTeam](https://github.com/ZemerTeam) | **GPL-3.0** | [ZemerTeam/zemer-cipher](https://github.com/ZemerTeam/zemer-cipher) | Specialized YouTube signature cipher solver and stream signature de-obfuscation algorithms, providing resilient stream extraction fallback. |
+| **BetterLyrics** | [boidushya](https://github.com/boidushya) / [better-lyrics](https://github.com/better-lyrics) | **GPL-3.0** | [boidushya/better-lyrics](https://github.com/boidushya/better-lyrics) | High-fidelity synchronized lyrics engine. Inspires Sine's real-time karaoke LRC lyrics renderer, metadata normalization, and millisecond offset calibration. |
+| **Metrolist** | [MetrolistGroup](https://github.com/MetrolistGroup) | **GPL-3.0** | [MetrolistGroup/Metrolist](https://github.com/MetrolistGroup/Metrolist) | Modern Material YouTube Music client for Android. Inspires Sine's queue management, offline track caching pipelines, and playlist storage architecture. |
+
+### Additional Upstream FOSS Acknowledgments
+- **[Team NewPipe](https://github.com/TeamNewPipe/NewPipe)** (GPL-3.0) — The gold standard for tracker-free, privacy-first YouTube extraction.
+- **[YoutubeExplode](https://github.com/Hexer10/YoutubeExplode)** (LGPL-3.0) — High-performance Dart YouTube metadata parser and stream extraction engine.
+- **[just_audio](https://github.com/ryanheise/just_audio) & [audio_service](https://github.com/ryanheise/audio_service)** by Ryan Heise — Professional background audio playback engine for Flutter.
+- **[LRCLIB](https://lrclib.net/)** — Open crowd-sourced synchronized lyrics database.
+- **[SponsorBlock](https://sponsor.ajay.app/)** — Open-source crowd-sourced database for skipping promotional segments.
 
 ### ⚖️ License
 Sine is free software released under the **GNU General Public License v3.0 (GPL-3.0)**. You can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation. See [LICENSE](LICENSE) for details.

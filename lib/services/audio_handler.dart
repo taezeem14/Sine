@@ -847,7 +847,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     if (!_clippingProtectionEnabled) {
       _headroomAttenuation = 1.0;
       if (!_isDucked) {
-        await _player.setVolume(_masterVolume);
+        final vol = (_masterVolume * _normalizationGain * _sleepFadeMultiplier).clamp(0.0, 1.0);
+        await _player.setVolume(vol).catchError((_) {});
       }
       return;
     }
@@ -878,7 +879,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
     if (!_isDucked) {
       try {
-        final targetVol = (_masterVolume * _headroomAttenuation).clamp(0.01, 1.0);
+        final targetVol = (_masterVolume * _headroomAttenuation * _normalizationGain * _sleepFadeMultiplier).clamp(0.0, 1.0);
         await _player.setVolume(targetVol).catchError((_) {});
       } catch (_) {}
     }
@@ -1258,12 +1259,54 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   }
 
   double _activeSpeed = 1.0;
+  double _activePitch = 1.0;
+  double _normalizationGain = 1.0;
+  double _sleepFadeMultiplier = 1.0;
+
+  double get activePitch => _activePitch;
+  double get normalizationGain => _normalizationGain;
+  double get sleepFadeMultiplier => _sleepFadeMultiplier;
   String _activeRepeatMode = 'off';
 
   @override
   Future<void> setSpeed(double speed) async {
     _activeSpeed = speed;
     await _player.setSpeed(speed);
+  }
+
+  Future<void> setPitch(double pitch) async {
+    _activePitch = pitch.clamp(0.5, 2.0);
+    try {
+      await _player.setPitch(_activePitch).catchError((_) {});
+    } catch (_) {}
+  }
+
+  Future<void> setNormalizationGain(double gain) async {
+    _normalizationGain = gain.clamp(0.2, 1.0);
+    await _updateHeadroomGain();
+  }
+
+  Future<void> setSleepFadeMultiplier(double multiplier) async {
+    _sleepFadeMultiplier = multiplier.clamp(0.0, 1.0);
+    await _updateHeadroomGain();
+  }
+
+  Future<void> resetSleepFade() async {
+    _sleepFadeMultiplier = 1.0;
+    await _updateHeadroomGain();
+  }
+
+  Future<void> updateSongMediaItem(Song song) async {
+    final current = mediaItem.value;
+    if (current != null && current.id == song.id) {
+      mediaItem.add(
+        current.copyWith(
+          title: song.title,
+          artist: song.artist,
+          artUri: song.artworkUrl.isNotEmpty ? Uri.tryParse(song.artworkUrl) : current.artUri,
+        ),
+      );
+    }
   }
 
   @override
@@ -1300,6 +1343,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     try {
       if (_activeSpeed != 1.0) {
         await _player.setSpeed(_activeSpeed).catchError((_) {});
+      }
+      if (_activePitch != 1.0) {
+        await _player.setPitch(_activePitch).catchError((_) {});
       }
     } catch (_) {}
     try {
