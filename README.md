@@ -14,8 +14,6 @@
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
 [![Version](https://img.shields.io/badge/Version-v1.2.0%20(Build%2022)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
-[![F-Droid](https://img.shields.io/badge/F--Droid-Ready-3DDC84?style=for-the-badge&logo=f-droid&logoColor=white)](metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml)
-[![IzzyOnDroid](https://img.shields.io/badge/IzzyOnDroid-Ready-blueviolet?style=for-the-badge&logo=android&logoColor=white)](https://codeberg.org/IzzyOnDroid/repodata)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -30,7 +28,7 @@
 
 <br/>
 
-[🌐 Official Sine Website](https://taezeem14.github.io/Sine/) • [📦 F-Droid Recipe](metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml) • [🐛 Report Bug](https://github.com/taezeem14/Sine/issues) • [💬 Request Feature](https://github.com/taezeem14/Sine/issues)
+[🌐 Official Sine Website](https://taezeem14.github.io/Sine/) • [🐛 Report Bug](https://github.com/taezeem14/Sine/issues) • [💬 Request Feature](https://github.com/taezeem14/Sine/issues)
 
 </div>
 
@@ -42,9 +40,8 @@
 - [Architecture & Playback Pipeline](#-architecture--playback-pipeline)
 - [FOSS & Privacy Guarantee](#-foss--privacy-guarantee)
 - [Installation Guide](#-installation-guide)
-  - [1. FOSS Stores (F-Droid & IzzyOnDroid)](#1-foss-stores-f-droid--izzyondroid)
-  - [2. Direct GitHub Release APK](#2-direct-github-release-apk)
-  - [3. ADB CLI Deployment](#3-adb-cli-deployment)
+  - [1. Direct GitHub Release APK](#1-direct-github-release-apk)
+  - [2. ADB CLI Deployment](#2-adb-cli-deployment)
 - [Gestures & Quick Controls](#-gestures--quick-controls)
 - [Building from Source](#-building-from-source)
 - [Support the Project (UPI)](#-support-the-project-upi)
@@ -124,18 +121,13 @@ Sine is built on strict Free & Open Source Software principles:
 
 ## 📲 Installation Guide
 
-### 1. FOSS Stores (F-Droid & IzzyOnDroid)
-Sine is fully compliant with F-Droid and IzzyOnDroid standards:
-- **IzzyOnDroid Repo**: Available for instant updates directly through F-Droid client apps (Neo Store, Droid-ify, F-Droid).
-- **F-Droid Build Recipe**: Available under [metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml](metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml).
-
-### 2. Direct GitHub Release APK
+### 1. Direct GitHub Release APK
 1. Download the latest release: [Sine-v1.2.0.apk](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.2.0.apk).
 2. On Android, tap the downloaded APK file.
 3. If prompted, allow *"Install unknown apps"* for your browser or file manager.
 4. Tap **Install** and open Sine.
 
-### 3. ADB CLI Deployment
+### 2. ADB CLI Deployment
 For developers and power users:
 ```bash
 adb install -r Sine-v1.2.0.apk
