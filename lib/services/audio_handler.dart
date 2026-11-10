@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:audio_service/audio_service.dart';
@@ -94,6 +95,12 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   final Map<int, double> _userCustomBandGains = {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0};
   final Map<int, double> _appliedHardwareBandGains = {};
 
+  int _lastEqSyncedPlayRequestId = -1;
+  bool _isSyncingDsp = false;
+  bool _pendingDspSync = false;
+  bool _pendingForceRebind = false;
+  Completer<void>? _activeSyncCompleter;
+
   void setCustomBandGains(Map<int, double> gains) {
     _userCustomBandGains.addAll(gains);
   }
@@ -164,6 +171,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           _equalizer,
           _loudnessEnhancer,
         ],
+      ),
+      androidAudioOffloadPreferences: const AndroidAudioOffloadPreferences(
+        audioOffloadMode: AndroidAudioOffloadMode.disabled,
       ),
     );
     _initAudioStreams();
@@ -289,6 +299,16 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       },
     );
 
+    // just_audio 0.10.x delivers native ExoPlayer errors on errorStream
+    _player.errorStream.listen(
+      (PlayerException e) {
+        LogService.w('AudioHandler', 'errorStream error (${e.code}): ${e.message}');
+        if (_currentTrackActive && _currentSong != null && !_isReconnecting && !_isSwappingStream) {
+          _handleMidStreamNetworkDrop();
+        }
+      },
+    );
+
     // Synchronize mediaItem duration dynamically when ExoPlayer resolves stream duration
     _player.durationStream.listen(
       (dur) {
@@ -314,7 +334,16 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           _currentTrackActive = true;
           _completionHandled = false;
           // Re-arm hardware equalizer, bass boost, and headroom limiter on the active AudioTrack
-          _restorePlaybackParameters();
+          if (_lastEqSyncedPlayRequestId != _playRequestId) {
+            _lastEqSyncedPlayRequestId = _playRequestId;
+            final int capturedReqId = _playRequestId;
+            _restorePlaybackParameters(forceRebindEq: true);
+            Future<void>.delayed(const Duration(milliseconds: 220), () {
+              if (_playRequestId == capturedReqId && _player.playing && _eqEnabled) {
+                _scheduleDspSync(forceRebind: false);
+              }
+            });
+          }
         }
 
         if (state.processingState == ProcessingState.completed && _currentTrackActive && !_completionHandled) {
@@ -384,7 +413,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 _currentTrackActive = false;
                 _completionHandled = true;
                 _lastKnownPosition = _player.duration ?? Duration(seconds: totalSec.toInt());
-                _player.stop().catchError((_) {});
+                _player.pause().catchError((_) {});
                 _onCompleted?.call();
                 return;
               }
@@ -418,7 +447,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           debugPrint('[AudioHandler] Android AudioSessionId bound ($sessionId). Re-applying Equalizer & DSP parameters...');
           // Give ExoPlayer native audio sink a brief window to complete initialization
           await Future<void>.delayed(const Duration(milliseconds: 60));
-          await _restorePlaybackParameters();
+          await _restorePlaybackParameters(forceRebindEq: true);
         }
       },
       onError: (Object e) {
@@ -486,7 +515,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             preload: true,
           ).timeout(const Duration(seconds: 12));
 
-          await _restorePlaybackParameters();
+          await _restorePlaybackParameters(forceRebindEq: true);
           await _player.play();
           reconnected = true;
           _isReconnecting = false;
@@ -496,7 +525,6 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           LogService.stream('AudioHandler', 'Successfully resumed "${targetSong.title}" from ${resumePos.inSeconds}s!');
           return;
         } catch (e) {
-          try { await _player.stop(); } catch (_) {}
           if (e.toString().contains('403')) break; // Fast bypass to proxy
         }
       }
@@ -517,7 +545,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             ).timeout(const Duration(seconds: 7));
 
             await _player.play();
-            await _restorePlaybackParameters();
+            await _restorePlaybackParameters(forceRebindEq: true);
             _isReconnecting = false;
             _consecutiveReconnectAttempts = 0;
             _currentTrackActive = true;
@@ -559,9 +587,13 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     _isSkippingSponsor = false;
     _skippedSegmentKeys.clear();
 
-    // Flush ExoPlayer pipeline before loading new track to avoid stale playback events
+    // Pause current source smoothly instead of calling _player.stop().
+    // _player.stop() in just_audio disposes ExoPlayer and releases native Android AudioEffects,
+    // which causes the hardware Equalizer to detach on subsequent playlist songs.
     try {
-      await _player.stop();
+      if (_player.playing) {
+        await _player.pause();
+      }
     } catch (_) {}
 
     if (currentRequestId != _playRequestId) return;
@@ -625,10 +657,10 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           _activeStreamUrl = localPath;
           await _player.setFilePath(localPath, initialPosition: Duration.zero, preload: true);
           if (currentRequestId != _playRequestId) {
-            try { await _player.stop(); } catch (_) {}
+            try { await _player.pause(); } catch (_) {}
             return;
           }
-          await _restorePlaybackParameters();
+          await _restorePlaybackParameters(forceRebindEq: true);
           await _player.play();
           return;
         } else {
@@ -665,7 +697,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             preload: true,
           ).timeout(const Duration(seconds: 12));
           if (currentRequestId != _playRequestId) {
-            try { await _player.stop(); } catch (_) {}
+            try { await _player.pause(); } catch (_) {}
             return;
           }
           await _player.play();
@@ -674,7 +706,6 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           debugPrint('Successfully playing "${song.title}" via candidate #${i + 1}');
           break;
         } catch (e) {
-          try { await _player.stop(); } catch (_) {}
           LogService.w('AudioHandler', 'Candidate #${i + 1} connection failed: $e');
 
           // Resilient fallback: Retry candidate with clean ExoPlayer headers if custom headers triggered Source error / 403
@@ -689,7 +720,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 preload: true,
               ).timeout(const Duration(seconds: 8));
               if (currentRequestId != _playRequestId) {
-                try { await _player.stop(); } catch (_) {}
+                try { await _player.pause(); } catch (_) {}
                 return;
               }
               await _player.play();
@@ -698,7 +729,6 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               debugPrint('Successfully playing "${song.title}" via candidate #${i + 1} (clean headers)');
               break;
             } catch (retryErr) {
-              try { await _player.stop(); } catch (_) {}
               LogService.w('AudioHandler', 'Candidate #${i + 1} retry failed: $retryErr');
             }
           }
@@ -727,7 +757,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 preload: true,
               ).timeout(const Duration(seconds: 12));
               if (currentRequestId != _playRequestId) {
-                try { await _player.stop(); } catch (_) {}
+                try { await _player.pause(); } catch (_) {}
                 return;
               }
               await _player.play();
@@ -736,7 +766,6 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               debugPrint('Successfully playing "${song.title}" via fresh candidate #${i + 1}');
               break;
             } catch (e) {
-              try { await _player.stop(); } catch (_) {}
               LogService.w('AudioHandler', 'Fresh candidate #${i + 1} failed: $e');
               if (isYouTubeStream) {
                 try {
@@ -749,7 +778,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                     preload: true,
                   ).timeout(const Duration(seconds: 8));
                   if (currentRequestId != _playRequestId) {
-                    try { await _player.stop(); } catch (_) {}
+                    try { await _player.pause(); } catch (_) {}
                     return;
                   }
                   await _player.play();
@@ -784,7 +813,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 preload: true,
               ).timeout(const Duration(seconds: 12));
               if (currentRequestId != _playRequestId) {
-                try { await _player.stop(); } catch (_) {}
+                try { await _player.pause(); } catch (_) {}
                 return;
               }
               await _player.play();
@@ -794,7 +823,6 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               debugPrint('Successfully playing "${song.title}" via Piped proxy fallback');
             }
           } catch (e) {
-            try { await _player.stop(); } catch (_) {}
             LogService.w('AudioHandler', 'Piped proxy fallback error: $e');
             debugPrint('[AudioHandler] Piped proxy fallback error for "${song.title}": $e');
           }
@@ -802,7 +830,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       }
 
       if (started) {
-        await _restorePlaybackParameters();
+        await _restorePlaybackParameters(forceRebindEq: true);
       }
 
       if (!started) {
@@ -849,23 +877,15 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   }
 
   // Equalizer & Audio Shaping Controls (Pure Hardware Multi-Band DSP, No Artificial Gain Blowout)
-  Future<void> _updateAudioEffects() async {
-    try {
-      await _equalizer.setEnabled(_eqEnabled);
-    } catch (e) {
-      debugPrint('Error updating equalizer enabled state: $e');
-    }
-  }
-
   Future<void> setEqualizerEnabled(bool enabled) async {
     _eqEnabled = enabled;
-    await _updateAudioEffects();
-    if (_eqEnabled) {
-      await applyEqualizerPreset(_currentPreset);
-    }
+    await _scheduleDspSync(forceRebind: enabled);
   }
 
-  
+  Future<void> ensureEqualizerSynced({bool forceRebind = false}) async {
+    await _scheduleDspSync(forceRebind: forceRebind);
+  }
+
   Future<void> setClippingProtection(bool enabled) async {
     _clippingProtectionEnabled = enabled;
     await _updateHeadroomGain();
@@ -889,19 +909,21 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
     double maxBoost = 0.0;
 
-    if (_currentPreset.toLowerCase() == 'custom') {
-      for (final gain in _userCustomBandGains.values) {
-        if (gain > maxBoost) maxBoost = gain;
+    if (_eqEnabled) {
+      if (_currentPreset.toLowerCase() == 'custom') {
+        for (final gain in _userCustomBandGains.values) {
+          if (gain > maxBoost) maxBoost = gain;
+        }
+      } else if (_spotifyPresetMap.containsKey(_currentPreset.toLowerCase())) {
+        final curve = _spotifyPresetMap[_currentPreset.toLowerCase()]!;
+        for (final g in curve) {
+          if (g > maxBoost) maxBoost = g;
+        }
       }
-    } else if (_spotifyPresetMap.containsKey(_currentPreset.toLowerCase())) {
-      final curve = _spotifyPresetMap[_currentPreset.toLowerCase()]!;
-      for (final g in curve) {
-        if (g > maxBoost) maxBoost = g;
-      }
-    }
 
-    if (_bassBoost > 0) {
-      maxBoost += (_bassBoost * 4.5);
+      if (_bassBoost > 0) {
+        maxBoost += (_bassBoost * 4.5);
+      }
     }
 
     if (maxBoost > 1.0) {
@@ -921,34 +943,73 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
   Future<void> setBassBoost(double gain) async {
     _bassBoost = gain.clamp(0.0, 1.0);
-    try {
-      if (_bassBoost > 0.0 && !_eqEnabled) {
-        _eqEnabled = true;
-        await _equalizer.setEnabled(true);
-      }
-      try {
-        await _loudnessEnhancer.setEnabled(_bassBoost > 0.0);
-        await _loudnessEnhancer.setTargetGain(_bassBoost * 0.35);
-      } catch (_) {}
-      if (_eqEnabled) {
-        await _equalizer.setEnabled(true);
-        await applyEqualizerPreset(_currentPreset);
-      }
-      await _updateHeadroomGain();
-    } catch (e) {
-      debugPrint('[AudioHandler] setBassBoost error: $e');
+    if (_bassBoost > 0.0 && !_eqEnabled) {
+      _eqEnabled = true;
     }
+    await _scheduleDspSync(forceRebind: false);
   }
 
   Future<void> setBandGain(int bandIndex, double gain) async {
     _userCustomBandGains[bandIndex] = gain;
     _currentPreset = 'Custom';
-    await applyEqualizerPreset('Custom');
+    await _scheduleDspSync(forceRebind: false);
   }
 
   Future<void> applyEqualizerPreset(String preset) async {
     _currentPreset = preset;
-    if (!_eqEnabled) {
+    await _scheduleDspSync(forceRebind: false);
+  }
+
+  /// Serialized single-writer DSP sync queue. Prevents concurrent track/session/UI calls
+  /// from interleaving or overriding newer EQ curves with stale futures.
+  Future<void> _scheduleDspSync({bool forceRebind = false}) {
+    _pendingDspSync = true;
+    if (forceRebind) _pendingForceRebind = true;
+
+    if (_isSyncingDsp) {
+      return _activeSyncCompleter?.future ?? Future<void>.value();
+    }
+
+    final completer = Completer<void>();
+    _activeSyncCompleter = completer;
+    _isSyncingDsp = true;
+
+    () async {
+      try {
+        while (_pendingDspSync) {
+          final doRebind = _pendingForceRebind;
+          _pendingDspSync = false;
+          _pendingForceRebind = false;
+          await _applyDspEffectsNow(forceRebind: doRebind);
+        }
+      } finally {
+        _isSyncingDsp = false;
+        if (!completer.isCompleted) completer.complete();
+        _activeSyncCompleter = null;
+      }
+    }();
+
+    return completer.future;
+  }
+
+  Future<void> _applyDspEffectsNow({required bool forceRebind}) async {
+    final bool shouldEnableEq = _eqEnabled &&
+        _currentPreset != 'Vocals Only' &&
+        _currentPreset != 'Instruments Only';
+
+    // 1. Update LoudnessEnhancer (just_audio 0.10.x takes true dB, converted *100 to millibels)
+    try {
+      if (_bassBoost > 0.0 && shouldEnableEq) {
+        await _loudnessEnhancer.setEnabled(true).catchError((_) {});
+        await _loudnessEnhancer.setTargetGain(_bassBoost * 3.5).catchError((_) {});
+      } else {
+        await _loudnessEnhancer.setTargetGain(0.0).catchError((_) {});
+        await _loudnessEnhancer.setEnabled(false).catchError((_) {});
+      }
+    } catch (_) {}
+
+    // 2. If disabled, push disabled state and recalculate headroom
+    if (!shouldEnableEq) {
       try {
         await _equalizer.setEnabled(false);
       } catch (_) {}
@@ -956,10 +1017,26 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       return;
     }
 
-    for (int attempt = 0; attempt < 5; attempt++) {
+    // 3. Before any audio session is created, persist desired enabled flag on AudioEffect without blocking on .parameters
+    if (_player.processingState == ProcessingState.idle && _player.androidAudioSessionId == null) {
       try {
         await _equalizer.setEnabled(true);
-        final params = await _equalizer.parameters;
+      } catch (_) {}
+      await _updateHeadroomGain();
+      return;
+    }
+
+    for (int attempt = 0; attempt < 5; attempt++) {
+      try {
+        // On track switch or audio session change, toggle off->on cleanly so Android AudioFlinger
+        // forcibly re-binds hardware DSP filters onto the active AudioTrack.
+        if (forceRebind && attempt == 0) {
+          await _equalizer.setEnabled(false).catchError((_) {});
+          await Future<void>.delayed(const Duration(milliseconds: 12));
+        }
+
+        await _equalizer.setEnabled(true);
+        final params = await _equalizer.parameters.timeout(const Duration(seconds: 2));
         final bands = params.bands;
         final n = bands.length;
         if (n == 0) {
@@ -978,7 +1055,10 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         final bassAdd = _bassBoost * 9.0;
         final lowMidAdd = _bassBoost * 4.5;
 
-        final lowerPreset = preset.toLowerCase().trim();
+        // Read live state fields rather than a stale closure parameter
+        final activePreset = _currentPreset;
+        final lowerPreset = activePreset.toLowerCase().trim();
+
         if (_spotifyPresetMap.containsKey(lowerPreset)) {
           final targetList = _spotifyPresetMap[lowerPreset]!;
           for (int i = 0; i < n; i++) {
@@ -993,12 +1073,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             _appliedHardwareBandGains[i] = finalGain;
             await bands[i].setGain(finalGain);
           }
-          await _updateHeadroomGain();
-          debugPrint('[AudioHandler] Equalizer preset "$preset" applied successfully ($n hardware bands)');
-          return;
-        }
-
-        if (preset == 'Custom') {
+        } else if (activePreset == 'Custom') {
           for (int i = 0; i < n; i++) {
             final targetIdx = ((i / (n > 1 ? (n - 1) : 1)) * 5).round().clamp(0, 5);
             final baseGain = _userCustomBandGains[targetIdx] ?? 0.0;
@@ -1012,31 +1087,29 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             _appliedHardwareBandGains[i] = finalGain;
             await bands[i].setGain(finalGain);
           }
-          await _updateHeadroomGain();
-          debugPrint('[AudioHandler] Equalizer Custom curve applied successfully ($n hardware bands)');
-          return;
+        } else {
+          // Default / Flat
+          for (int i = 0; i < n; i++) {
+            var g = 0.0;
+            if (i == 0) {
+              g += bassAdd;
+            } else if (i == 1) {
+              g += lowMidAdd;
+            }
+            final finalGain = clampGain(g);
+            _appliedHardwareBandGains[i] = finalGain;
+            await bands[i].setGain(finalGain);
+          }
         }
 
-        // Default / Flat
-        for (int i = 0; i < n; i++) {
-          var g = 0.0;
-          if (i == 0) {
-            g += bassAdd;
-          } else if (i == 1) {
-            g += lowMidAdd;
-          }
-          final finalGain = clampGain(g);
-          _appliedHardwareBandGains[i] = finalGain;
-          await bands[i].setGain(finalGain);
-        }
         await _updateHeadroomGain();
-        debugPrint('[AudioHandler] Equalizer Flat preset applied successfully ($n hardware bands)');
+        debugPrint('[AudioHandler] Equalizer preset "$activePreset" synced cleanly ($n hardware bands, session=${_player.androidAudioSessionId}, forceRebind=$forceRebind)');
         return;
       } catch (e) {
         if (attempt < 4) {
           await Future<void>.delayed(Duration(milliseconds: 60 * (attempt + 1)));
         } else {
-          debugPrint('[AudioHandler] applyEqualizerPreset error: $e');
+          debugPrint('[AudioHandler] _applyDspEffectsNow error: $e');
         }
       }
     }
@@ -1190,7 +1263,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       }
 
       // 4. Restore playback parameters (speed, repeat mode, DSP equalizer)
-      await _restorePlaybackParameters();
+      await _restorePlaybackParameters(forceRebindEq: true);
 
       // 5. Resume playback if requested or if previously playing
       if (shouldPlay) {
@@ -1389,7 +1462,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   }
 
   /// Re-applies active speed, loop, and DSP audio effects when a new audio source prepares
-  Future<void> _restorePlaybackParameters() async {
+  Future<void> _restorePlaybackParameters({bool forceRebindEq = false}) async {
     try {
       if (_activeSpeed != 1.0) {
         await _player.setSpeed(_activeSpeed).catchError((_) {});
@@ -1405,24 +1478,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         await _player.setLoopMode(LoopMode.off).catchError((_) {});
       }
     } catch (_) {}
-    try {
-      if (_bassBoost > 0.0) {
-        await _loudnessEnhancer.setEnabled(true).catchError((_) {});
-        await _loudnessEnhancer.setTargetGain(_bassBoost * 0.35).catchError((_) {});
-      } else {
-        await _loudnessEnhancer.setEnabled(false).catchError((_) {});
-      }
-    } catch (_) {}
-    try {
-      if (_eqEnabled && _currentPreset != 'Vocals Only' && _currentPreset != 'Instruments Only') {
-        await applyEqualizerPreset(_currentPreset);
-      } else if (!_eqEnabled) {
-        await _equalizer.setEnabled(false).catchError((_) {});
-      }
-    } catch (_) {}
-    try {
-      await _updateHeadroomGain().catchError((_) {});
-    } catch (_) {}
+    await _scheduleDspSync(forceRebind: forceRebindEq);
   }
 
   @override

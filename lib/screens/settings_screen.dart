@@ -450,7 +450,7 @@ class _SettingsContentState extends State<SettingsContent> {
                   Text('• Playlists: ${player.playlists.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
                   Text('• Favorites: ${player.favorites.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
                   Text('• History Tracks: ${player.history.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
-                  const Text('• Format: SINE_BACKUP v1.2.8', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.bold)),
+                  const Text('• Format: SINE_BACKUP v1.2.9', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),

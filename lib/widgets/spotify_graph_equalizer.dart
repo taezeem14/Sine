@@ -57,6 +57,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
   late List<double> _targetGains;
   late AnimationController _animController;
   int? _activeDragBand;
+  String? _lastSyncedPreset;
   DateTime _lastHaptic = DateTime.fromMillisecondsSinceEpoch(0);
 
   static const Color sineBlue = EmberColors.primaryBlue;
@@ -82,8 +83,19 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
       });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _syncFromPlayer();
+      if (mounted) _syncFromPlayer();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final player = Provider.of<PlayerProvider>(context, listen: false);
+    if (_activeDragBand == null && _lastSyncedPreset != null && _lastSyncedPreset != player.eqPreset) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _activeDragBand == null) _syncFromPlayer();
+      });
+    }
   }
 
   @override
@@ -106,6 +118,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
       gains = List.filled(6, 0.0);
     }
 
+    _lastSyncedPreset = presetName;
     setState(() {
       _currentGains = List.from(gains);
       _startGains = List.from(gains);
@@ -116,6 +129,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
   void _selectPreset(SpotifyEqPreset preset) {
     HapticFeedback.selectionClick();
     final player = context.read<PlayerProvider>();
+    _lastSyncedPreset = preset.name;
 
     _startGains = List.from(_currentGains);
     _targetGains = List.from(preset.gains);
@@ -161,6 +175,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
       HapticFeedback.lightImpact();
     }
 
+    _lastSyncedPreset = 'Custom';
     final player = context.read<PlayerProvider>();
     player.setBandGain(bandIndex, roundedGain);
   }
@@ -169,6 +184,11 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
   Widget build(BuildContext context) {
     final player = context.watch<PlayerProvider>();
     final activePreset = player.eqPreset;
+    if (_activeDragBand == null && _lastSyncedPreset != null && _lastSyncedPreset != activePreset) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _activeDragBand == null) _syncFromPlayer();
+      });
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

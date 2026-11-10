@@ -36,9 +36,10 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
       duration: const Duration(milliseconds: 1800),
     )..repeat();
 
-    // Auto-start listening when sheet opens if idle
+    // Auto-start listening when sheet opens (clear stale terminal match/error first)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final service = MusicDetectionService.instance;
+      service.resetIfTerminal();
       if (service.statusNotifier.value == DetectionStatus.idle) {
         service.startListening();
       }
@@ -428,7 +429,7 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
                 FaIcon(FontAwesomeIcons.bolt, size: 10, color: EmberColors.primaryBlue),
                 SizedBox(width: 4),
                 Text(
-                  '160 KBPS OPUS STREAM RESOLVED',
+                  'VERIFIED AUDIO MATCH',
                   style: TextStyle(
                     color: EmberColors.primaryBlueHi,
                     fontSize: 9.5,

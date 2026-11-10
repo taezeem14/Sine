@@ -166,6 +166,7 @@ class PlayerProvider extends ChangeNotifier {
   final ValueNotifier<int> sleepSecondsNotifier = ValueNotifier<int>(0);
 
   Timer? _sleepTimer;
+  Timer? _bandSaveTimer;
   int _sleepSecondsRemaining = 0;
   bool _sleepAtTrackEnd = false;
   int _crossfadeSeconds = 0;
@@ -384,11 +385,13 @@ class PlayerProvider extends ChangeNotifier {
     _stemStatusBadgeText = null;
     _isLoadingStem = false;
 
-    // Apply saved EQ preset & settings
-    _audioHandler.setEqualizerEnabled(_eqEnabled);
-    _audioHandler.setBassBoost(_bassBoost);
+    // Apply saved EQ preset & settings (custom band gains first so preset sync reads restored curve)
     if (_bandGains.isNotEmpty) {
       _audioHandler.setCustomBandGains(_bandGains);
+    }
+    _audioHandler.setEqualizerEnabled(_eqEnabled);
+    if (_bassBoost > 0.0) {
+      _audioHandler.setBassBoost(_bassBoost);
     }
     _audioHandler.applyEqualizerPreset(_eqPreset);
     _audioHandler.setSpeed(_speed);
@@ -743,12 +746,10 @@ class PlayerProvider extends ChangeNotifier {
     _isLoadingStream = false;
     notifyListeners();
     if (_eqEnabled) {
-      _audioHandler.setEqualizerEnabled(true);
-      _audioHandler.setBassBoost(_bassBoost);
       if (_bandGains.isNotEmpty) {
         _audioHandler.setCustomBandGains(_bandGains);
       }
-      _audioHandler.applyEqualizerPreset(_eqPreset);
+      _audioHandler.ensureEqualizerSynced(forceRebind: false);
     }
     if (_isMixActive) {
       _fetchMoreMixTracksIfNeeded();
@@ -1822,11 +1823,14 @@ class PlayerProvider extends ChangeNotifier {
     _bandGains[index] = gain;
     _eqPreset = 'Custom';
     _isolationMode = IsolationMode.none;
-    await _storageService.saveBandGains(_bandGains);
-    await _storageService.saveEqualizerPreset('Custom');
     _audioHandler.setCustomBandGains(_bandGains);
-    await _audioHandler.setBandGain(index, gain);
     notifyListeners();
+    _bandSaveTimer?.cancel();
+    _bandSaveTimer = Timer(const Duration(milliseconds: 150), () {
+      _storageService.saveBandGains(_bandGains);
+      _storageService.saveEqualizerPreset('Custom');
+    });
+    await _audioHandler.setBandGain(index, gain);
   }
 
   Future<void> resetEqualizer() async {
@@ -2078,6 +2082,7 @@ class PlayerProvider extends ChangeNotifier {
     _durSub?.cancel();
     _stateSub?.cancel();
     _sleepTimer?.cancel();
+    _bandSaveTimer?.cancel();
     _searchDebounce?.cancel();
     super.dispose();
   }
