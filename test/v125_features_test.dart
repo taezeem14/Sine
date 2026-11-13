@@ -133,9 +133,9 @@ void main() {
 
       expect(decoded['format'], equals('SINE_BACKUP'));
 
-      expect(decoded['version'], equals('1.2.9'));
+      expect(decoded['version'], equals('1.2.10'));
 
-      expect(decoded['versionCode'], equals(27));
+      expect(decoded['versionCode'], equals(28));
 
       expect(decoded['settings'], isNotNull);
 
@@ -185,8 +185,8 @@ void main() {
 
     });
 
-        test('v1.0.8 Instant Progressive Stream Loading & Priority Invariant', () {
-      final testSong = Song(
+    test('v1.0.8 Instant Progressive Stream Loading & Priority Invariant', () {
+      const testSong = Song(
         id: 'test_track_123',
         title: 'Instant Loading Test',
         artist: 'Sine Artist',
@@ -521,6 +521,39 @@ Intertwinin' 'til I forget what's yours or mine
       expect(loadedGains[0], equals(4.5));
       expect(loadedGains[2], equals(-1.5));
       expect(loadedGains[5], equals(6.0));
+    });
+
+    test('AudioResampler.extractCentered12Seconds Audile zero-padding & centering spec', () {
+      // 1. Shorter audio (< 12 seconds, e.g. 3.5s = 56,000 samples = 112,000 bytes)
+      final shortBytes = Uint8List(112000);
+      for (int i = 0; i < shortBytes.length; i++) {
+        shortBytes[i] = (i & 0x7F) + 1; // non-zero values
+      }
+      final padded = AudioResampler.extractCentered12Seconds(shortBytes);
+      expect(padded.length, equals(384000)); // Exactly 12s * 16000 * 2 bytes
+      // Verify prefix matches original audio
+      expect(padded.sublist(0, 112000), equals(shortBytes));
+      // Verify trailing bytes are zero-padded to flush 49-pass lookahead
+      expect(padded[112000], equals(0));
+      expect(padded[383999], equals(0));
+
+      // 2. Exact 12 seconds audio (192,000 samples = 384,000 bytes)
+      final exactBytes = Uint8List(384000);
+      final exactResult = AudioResampler.extractCentered12Seconds(exactBytes);
+      expect(exactResult.length, equals(384000));
+
+      // 3. Longer audio (> 12 seconds, e.g. 15s = 240,000 samples = 480,000 bytes)
+      final longBytes = Uint8List(480000);
+      // Fill samples with identifiable pattern
+      final bd = ByteData.sublistView(longBytes);
+      for (int s = 0; s < 240000; s++) {
+        bd.setInt16(s * 2, s & 0x7FFF, Endian.little);
+      }
+      final centered = AudioResampler.extractCentered12Seconds(longBytes);
+      expect(centered.length, equals(384000));
+      final centeredBd = ByteData.sublistView(centered);
+      // Start sample should be (240000 - 192000) ~/ 2 = 24000
+      expect(centeredBd.getInt16(0, Endian.little), equals(24000 & 0x7FFF));
     });
 
   });

@@ -206,6 +206,29 @@ class AudioResampler {
     }
     return out;
   }
+
+  /// Extracts exactly a 12-second sample from 16kHz PCM audio (192,000 samples = 384,000 bytes).
+  /// Replicates Audile's DecodedAudio.extractCentered12Seconds() & SongRec SignatureGenerator.
+  /// If shorter -> pads with zeros at the end so the 49-pass lookahead delay flushes all peaks.
+  /// If longer -> takes 12 seconds from the middle.
+  static Uint8List extractCentered12Seconds(Uint8List pcm16kBytes) {
+    const targetSamples = 12 * ShazamSignatureGenerator.sampleRate; // 192,000 samples
+    const targetBytes = targetSamples * 2; // 384,000 bytes
+    final totalSamples = pcm16kBytes.length ~/ 2;
+
+    if (totalSamples == targetSamples) return pcm16kBytes;
+
+    final result = Uint8List(targetBytes);
+    if (totalSamples < targetSamples) {
+      result.setRange(0, pcm16kBytes.length, pcm16kBytes);
+      return result;
+    }
+
+    final startSample = (totalSamples - targetSamples) ~/ 2;
+    final startByte = startSample * 2;
+    result.setRange(0, targetBytes, pcm16kBytes, startByte);
+    return result;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -570,7 +593,8 @@ class _RecognizePayload {
     ShazamSignatureGenerator.sampleRate,
   );
   final normalized = AudioResampler.normalizeQuietMicPcm16(resampled);
-  final sig = ShazamSignatureGenerator.fromPcm16Mono16kHz(normalized);
+  final centered12s = AudioResampler.extractCentered12Seconds(normalized);
+  final sig = ShazamSignatureGenerator.fromPcm16Mono16kHz(centered12s);
   final durationMs = (normalized.length ~/ 2) * 1000 ~/ ShazamSignatureGenerator.sampleRate;
   return (signature: sig, sampleDurationMs: durationMs);
 }
@@ -595,7 +619,19 @@ class ShazamClient {
     'Europe/Amsterdam',
     'Europe/Madrid',
     'Europe/Rome',
-    'America/New_York',
+    'Europe/Brussels',
+    'Europe/Vienna',
+    'Europe/Dublin',
+    'Europe/Copenhagen',
+    'Europe/Stockholm',
+    'Europe/Oslo',
+    'Europe/Helsinki',
+    'Europe/Zurich',
+    'Europe/Warsaw',
+    'Europe/Prague',
+    'Europe/Budapest',
+    'Europe/Athens',
+    'Europe/Lisbon',
   ];
 
   static String _generateUuidV4() {
@@ -629,9 +665,9 @@ class ShazamClient {
 
     final body = jsonEncode({
       'geolocation': {
-        'altitude': 300.0 + rnd.nextDouble() * 50,
-        'latitude': 48.8566 + (rnd.nextDouble() - 0.5) * 0.2,
-        'longitude': 2.3522 + (rnd.nextDouble() - 0.5) * 0.2,
+        'altitude': 100.0 + rnd.nextDouble() * 400.0,
+        'latitude': rnd.nextDouble() * 180.0 - 90.0,
+        'longitude': rnd.nextDouble() * 360.0 - 180.0,
       },
       'signature': {
         'samplems': sampleDurationMs,
@@ -712,7 +748,9 @@ class ShazamClient {
 
 class MusicDetectionService {
   static const String _tag = 'MusicDetection';
-  static const int _captureSampleRate = 44100;
+  static const int _preferredCaptureSampleRate = 48000;
+  static const int _fallbackCaptureSampleRate = 44100;
+  int _activeCaptureSampleRate = _preferredCaptureSampleRate;
   static http.Client? customClient;
 
   static final MusicDetectionService _instance = MusicDetectionService._internal();
@@ -723,11 +761,12 @@ class MusicDetectionService {
   AudioRecorder? _audioRecorder;
   StreamSubscription<Uint8List>? _audioStreamSub;
   BytesBuilder _pcmChunksBuffer = BytesBuilder(copy: false);
-  Timer? _quickProbeTimer;
+  Timer? _firstProbeTimer;
+  Timer? _secondProbeTimer;
   Timer? _recordingTimeoutTimer;
 
   int _sessionCounter = 0;
-  bool _isQuickProbing = false;
+  bool _isProbing = false;
   bool _matchedDuringProbe = false;
 
   final ValueNotifier<DetectionStatus> statusNotifier = ValueNotifier<DetectionStatus>(DetectionStatus.idle);
@@ -749,7 +788,7 @@ class MusicDetectionService {
   }
 
   /// Starts listening to ambient audio through microphone via zero-interruption PCM stream
-  Future<void> startListening({Duration duration = const Duration(seconds: 9)}) async {
+  Future<void> startListening({Duration duration = const Duration(milliseconds: 9500)}) async {
     final st = statusNotifier.value;
     if (st == DetectionStatus.requestingPermission ||
         st == DetectionStatus.listening ||
@@ -776,25 +815,21 @@ class MusicDetectionService {
       if (thisSession != _sessionCounter) return;
 
       _pcmChunksBuffer = BytesBuilder(copy: false);
-      _isQuickProbing = false;
+      _isProbing = false;
       _matchedDuringProbe = false;
       resultNotifier.value = null;
 
       _audioRecorder = AudioRecorder();
 
-      // Critical Android capture configuration:
-      // 1. sampleRate 44100 + AudioSource.mic preserves full 250-5500Hz musical bandwidth (avoids telephony 16kHz voice DSP)
-      // 2. audioInterruption = none prevents pausing music currently playing on the device
-      // 3. manageBluetooth = false prevents startBluetoothSco() from muting Bluetooth speakers/headphones
-      const recordConfig = RecordConfig(
+      RecordConfig buildRecordConfig(int sampleRate) => RecordConfig(
         encoder: AudioEncoder.pcm16bits,
-        sampleRate: _captureSampleRate,
+        sampleRate: sampleRate,
         numChannels: 1,
         autoGain: false,
         echoCancel: false,
         noiseSuppress: false,
         audioInterruption: AudioInterruptionMode.none,
-        androidConfig: AndroidRecordConfig(
+        androidConfig: const AndroidRecordConfig(
           audioSource: AndroidAudioSource.mic,
           manageBluetooth: false,
           muteAudio: false,
@@ -802,7 +837,16 @@ class MusicDetectionService {
         ),
       );
 
-      final pcmStream = await _audioRecorder!.startStream(recordConfig);
+      Stream<Uint8List> pcmStream;
+      try {
+        _activeCaptureSampleRate = _preferredCaptureSampleRate;
+        pcmStream = await _audioRecorder!.startStream(buildRecordConfig(_activeCaptureSampleRate));
+      } catch (e) {
+        LogService.w(_tag, '48kHz stream failed, falling back to 44.1kHz: $e');
+        _activeCaptureSampleRate = _fallbackCaptureSampleRate;
+        pcmStream = await _audioRecorder!.startStream(buildRecordConfig(_activeCaptureSampleRate));
+      }
+
       if (thisSession != _sessionCounter) {
         await _disposeRecorder();
         return;
@@ -822,17 +866,23 @@ class MusicDetectionService {
         },
       );
 
-      // Audile Stage 1: Quick background probe at 4.5s while continuing to record
-      _quickProbeTimer?.cancel();
-      if (duration.inMilliseconds >= 6500) {
-        _quickProbeTimer = Timer(const Duration(milliseconds: 4500), () {
-          if (thisSession == _sessionCounter && isListening) {
-            _attemptQuickProbe(thisSession);
-          }
-        });
-      }
+      // Audile Stage 1: Fast background probe at 3.5s while continuing to record
+      _firstProbeTimer?.cancel();
+      _firstProbeTimer = Timer(const Duration(milliseconds: 3500), () {
+        if (thisSession == _sessionCounter && isListening) {
+          _attemptProbe(thisSession, minSeconds: 3.0);
+        }
+      });
 
-      // Audile Stage 2: Full-window capture completion at duration (~9s)
+      // Audile Stage 2: Second background probe at 6.5s while continuing to record
+      _secondProbeTimer?.cancel();
+      _secondProbeTimer = Timer(const Duration(milliseconds: 6500), () {
+        if (thisSession == _sessionCounter && isListening) {
+          _attemptProbe(thisSession, minSeconds: 5.5);
+        }
+      });
+
+      // Audile Stage 3: Full-window capture completion at 9.5s
       _recordingTimeoutTimer?.cancel();
       _recordingTimeoutTimer = Timer(duration, () {
         if (thisSession == _sessionCounter && isListening) {
@@ -864,30 +914,35 @@ class MusicDetectionService {
     if (count == 0) return;
     final rms = math.sqrt(sumSq / count);
     if (rms <= 1e-6) {
-      amplitudeNotifier.value = 0.0;
+      if (amplitudeNotifier.value != 0.0) {
+        amplitudeNotifier.value = 0.0;
+      }
       return;
     }
     final db = (20.0 * math.log(rms) / math.ln10).clamp(-55.0, 0.0);
-    amplitudeNotifier.value = ((db + 55.0) / 55.0).clamp(0.0, 1.0);
+    final norm = ((db + 55.0) / 55.0).clamp(0.0, 1.0);
+    if ((norm - amplitudeNotifier.value).abs() >= 0.02) {
+      amplitudeNotifier.value = norm;
+    }
   }
 
-  Future<void> _attemptQuickProbe(int expectedSession) async {
-    if (_isQuickProbing || _matchedDuringProbe) return;
+  Future<void> _attemptProbe(int expectedSession, {required double minSeconds}) async {
+    if (_isProbing || _matchedDuringProbe) return;
     final snapshot = _pcmChunksBuffer.toBytes();
-    // Require at least 3.0 seconds of 44.1kHz PCM16
-    if (snapshot.length < _captureSampleRate * 2 * 3) return;
+    final minBytes = (_activeCaptureSampleRate * 2 * minSeconds).toInt();
+    if (snapshot.length < minBytes) return;
 
-    _isQuickProbing = true;
+    _isProbing = true;
     try {
       // Skip initial 120ms hardware click
-      const skipBytes = (_captureSampleRate * 120 ~/ 1000) * 2;
-      final trimmed = snapshot.length > skipBytes + (_captureSampleRate * 2 * 2)
+      final skipBytes = (_activeCaptureSampleRate * 120 ~/ 1000) * 2;
+      final trimmed = snapshot.length > skipBytes + (_activeCaptureSampleRate * 2 * 2)
           ? Uint8List.sublistView(snapshot, skipBytes)
           : snapshot;
 
       final prepared = await compute(
         _generateSignatureInIsolate,
-        _RecognizePayload(trimmed, _captureSampleRate),
+        _RecognizePayload(trimmed, _activeCaptureSampleRate),
       );
 
       if (expectedSession != _sessionCounter || !isListening) return;
@@ -900,7 +955,8 @@ class MusicDetectionService {
 
       if (match != null && expectedSession == _sessionCounter && isListening) {
         _matchedDuringProbe = true;
-        _quickProbeTimer?.cancel();
+        _firstProbeTimer?.cancel();
+        _secondProbeTimer?.cancel();
         _recordingTimeoutTimer?.cancel();
         statusNotifier.value = DetectionStatus.analyzing;
         statusMessageNotifier.value = 'Match found! Loading track...';
@@ -908,9 +964,9 @@ class MusicDetectionService {
         await _finalizeMatch(match, expectedSession);
       }
     } catch (e) {
-      LogService.w(_tag, 'Quick probe error (will continue listening): $e');
+      LogService.w(_tag, 'Probe error (will continue listening): $e');
     } finally {
-      _isQuickProbing = false;
+      _isProbing = false;
     }
   }
 
@@ -919,7 +975,8 @@ class MusicDetectionService {
     if (_matchedDuringProbe) return resultNotifier.value;
 
     final int thisSession = _sessionCounter;
-    _quickProbeTimer?.cancel();
+    _firstProbeTimer?.cancel();
+    _secondProbeTimer?.cancel();
     _recordingTimeoutTimer?.cancel();
 
     if (_audioRecorder == null && _pcmChunksBuffer.length == 0) return null;
@@ -927,30 +984,30 @@ class MusicDetectionService {
     statusNotifier.value = DetectionStatus.analyzing;
     statusMessageNotifier.value = 'Analyzing acoustic audio fingerprint...';
 
-    final raw44k = _pcmChunksBuffer.takeBytes();
+    final rawPcm = _pcmChunksBuffer.takeBytes();
     await _disposeRecorder();
 
     if (thisSession != _sessionCounter) return null;
 
-    // Require >= 1.5 seconds of PCM bytes at 44.1kHz mono 16-bit
-    if (raw44k.length < _captureSampleRate * 2 * 3 ~/ 2) {
+    // Require >= 1.5 seconds of PCM bytes
+    if (rawPcm.length < _activeCaptureSampleRate * 2 * 3 ~/ 2) {
       statusNotifier.value = DetectionStatus.noMatch;
-      statusMessageNotifier.value = raw44k.isEmpty
+      statusMessageNotifier.value = rawPcm.isEmpty
           ? 'No audio captured from microphone. Check mic access or try closing other recording apps.'
-          : 'Sample too short (${(raw44k.length / (_captureSampleRate * 2)).toStringAsFixed(1)}s). Hold closer to music longer.';
+          : 'Sample too short (${(rawPcm.length / (_activeCaptureSampleRate * 2)).toStringAsFixed(1)}s). Hold closer to music longer.';
       return null;
     }
 
     try {
       // Discard first 150ms ADC startup click if we have plenty of audio
-      const skipBytes = (_captureSampleRate * 150 ~/ 1000) * 2;
-      final trimmed = raw44k.length > skipBytes + (_captureSampleRate * 2 * 2)
-          ? Uint8List.sublistView(raw44k, skipBytes)
-          : raw44k;
+      final skipBytes = (_activeCaptureSampleRate * 150 ~/ 1000) * 2;
+      final trimmed = rawPcm.length > skipBytes + (_activeCaptureSampleRate * 2 * 2)
+          ? Uint8List.sublistView(rawPcm, skipBytes)
+          : rawPcm;
 
       final prepared = await compute(
         _generateSignatureInIsolate,
-        _RecognizePayload(trimmed, _captureSampleRate),
+        _RecognizePayload(trimmed, _activeCaptureSampleRate),
       );
 
       if (thisSession != _sessionCounter) return null;
@@ -1018,7 +1075,8 @@ class MusicDetectionService {
   /// Cancels listening and cleans up recorder resources
   Future<void> cancel() async {
     _sessionCounter++;
-    _quickProbeTimer?.cancel();
+    _firstProbeTimer?.cancel();
+    _secondProbeTimer?.cancel();
     _recordingTimeoutTimer?.cancel();
     _pcmChunksBuffer.clear();
     await _disposeRecorder();
@@ -1068,6 +1126,13 @@ class MusicDetectionService {
   }
 
   Future<void> _disposeRecorder() async {
+    _firstProbeTimer?.cancel();
+    _firstProbeTimer = null;
+    _secondProbeTimer?.cancel();
+    _secondProbeTimer = null;
+    _recordingTimeoutTimer?.cancel();
+    _recordingTimeoutTimer = null;
+
     final sub = _audioStreamSub;
     _audioStreamSub = null;
     if (sub != null) {

@@ -539,8 +539,8 @@ class StorageService {
   String exportBackupJson() {
     final payload = {
       'format': 'SINE_BACKUP',
-      'version': '1.2.9',
-      'versionCode': 27,
+      'version': '1.2.10',
+      'versionCode': 28,
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
       'playlists': loadPlaylists().map((p) => p.toMap()).toList(),
       'favorites': loadFavorites().map((s) => s.toMap()).toList(),
