@@ -612,27 +612,36 @@ class ShazamClient {
     'Dalvik/2.1.0 (Linux; U; Android 6.0.1; SM-G930F Build/MMB29K)',
   ];
 
-  static const List<String> _timezones = [
-    'Europe/Paris',
-    'Europe/London',
-    'Europe/Berlin',
-    'Europe/Amsterdam',
-    'Europe/Madrid',
-    'Europe/Rome',
-    'Europe/Brussels',
-    'Europe/Vienna',
-    'Europe/Dublin',
-    'Europe/Copenhagen',
-    'Europe/Stockholm',
-    'Europe/Oslo',
-    'Europe/Helsinki',
-    'Europe/Zurich',
-    'Europe/Warsaw',
-    'Europe/Prague',
-    'Europe/Budapest',
-    'Europe/Athens',
-    'Europe/Lisbon',
-  ];
+  static (String timezone, double lat, double lon) _resolveGeoParams() {
+    final offset = DateTime.now().timeZoneOffset;
+    final rnd = math.Random();
+    // India / South Asia (UTC+5:00 to UTC+6:00)
+    if (offset.inHours >= 5 && offset.inHours <= 6) {
+      final tzs = ['Asia/Kolkata', 'Asia/Calcutta', 'Asia/Colombo'];
+      final lat = 20.5937 + (rnd.nextDouble() - 0.5) * 8.0;
+      final lon = 78.9629 + (rnd.nextDouble() - 0.5) * 8.0;
+      return (tzs[rnd.nextInt(tzs.length)], lat, lon);
+    }
+    // Middle East (UTC+3 to UTC+4)
+    if (offset.inHours >= 3 && offset.inHours <= 4) {
+      final tzs = ['Asia/Dubai', 'Asia/Riyadh'];
+      final lat = 25.2048 + (rnd.nextDouble() - 0.5) * 5.0;
+      final lon = 55.2708 + (rnd.nextDouble() - 0.5) * 5.0;
+      return (tzs[rnd.nextInt(tzs.length)], lat, lon);
+    }
+    // North America (UTC-8 to UTC-4)
+    if (offset.inHours <= -4 && offset.inHours >= -8) {
+      final tzs = ['America/New_York', 'America/Chicago', 'America/Los_Angeles'];
+      final lat = 37.7749 + (rnd.nextDouble() - 0.5) * 8.0;
+      final lon = -122.4194 + (rnd.nextDouble() - 0.5) * 15.0;
+      return (tzs[rnd.nextInt(tzs.length)], lat, lon);
+    }
+    // Europe & UK (default)
+    final tzs = ['Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Rome', 'Europe/Warsaw'];
+    final lat = 51.5074 + (rnd.nextDouble() - 0.5) * 8.0;
+    final lon = -0.1278 + (rnd.nextDouble() - 0.5) * 10.0;
+    return (tzs[rnd.nextInt(tzs.length)], lat, lon);
+  }
 
   static String _generateUuidV4() {
     final rnd = math.Random();
@@ -663,11 +672,12 @@ class ShazamClient {
       'Content-Language': 'en_US',
     };
 
+    final geo = _resolveGeoParams();
     final body = jsonEncode({
       'geolocation': {
         'altitude': 100.0 + rnd.nextDouble() * 400.0,
-        'latitude': rnd.nextDouble() * 180.0 - 90.0,
-        'longitude': rnd.nextDouble() * 360.0 - 180.0,
+        'latitude': geo.$2,
+        'longitude': geo.$3,
       },
       'signature': {
         'samplems': sampleDurationMs,
@@ -675,7 +685,7 @@ class ShazamClient {
         'uri': signature,
       },
       'timestamp': timestamp,
-      'timezone': _timezones[rnd.nextInt(_timezones.length)],
+      'timezone': geo.$1,
     });
 
     final c = client ?? http.Client();
@@ -748,9 +758,8 @@ class ShazamClient {
 
 class MusicDetectionService {
   static const String _tag = 'MusicDetection';
-  static const int _preferredCaptureSampleRate = 48000;
-  static const int _fallbackCaptureSampleRate = 44100;
-  int _activeCaptureSampleRate = _preferredCaptureSampleRate;
+  static const int _defaultCaptureSampleRate = 44100;
+  int _activeCaptureSampleRate = _defaultCaptureSampleRate;
   static http.Client? customClient;
 
   static final MusicDetectionService _instance = MusicDetectionService._internal();
@@ -820,12 +829,18 @@ class MusicDetectionService {
       resultNotifier.value = null;
 
       _audioRecorder = AudioRecorder();
+      final hasPerm = await _audioRecorder!.hasPermission();
+      if (!hasPerm && thisSession == _sessionCounter) {
+        statusNotifier.value = DetectionStatus.error;
+        statusMessageNotifier.value = 'Audio recorder permission denied.';
+        return;
+      }
 
       RecordConfig buildRecordConfig(int sampleRate) => RecordConfig(
         encoder: AudioEncoder.pcm16bits,
         sampleRate: sampleRate,
         numChannels: 1,
-        autoGain: false,
+        autoGain: true,
         echoCancel: false,
         noiseSuppress: false,
         audioInterruption: AudioInterruptionMode.none,
@@ -837,14 +852,23 @@ class MusicDetectionService {
         ),
       );
 
-      Stream<Uint8List> pcmStream;
-      try {
-        _activeCaptureSampleRate = _preferredCaptureSampleRate;
-        pcmStream = await _audioRecorder!.startStream(buildRecordConfig(_activeCaptureSampleRate));
-      } catch (e) {
-        LogService.w(_tag, '48kHz stream failed, falling back to 44.1kHz: $e');
-        _activeCaptureSampleRate = _fallbackCaptureSampleRate;
-        pcmStream = await _audioRecorder!.startStream(buildRecordConfig(_activeCaptureSampleRate));
+      Stream<Uint8List>? pcmStream;
+      for (final rate in [44100, 16000]) {
+        try {
+          _activeCaptureSampleRate = rate;
+          pcmStream = await _audioRecorder!.startStream(buildRecordConfig(rate));
+          break;
+        } catch (e) {
+          LogService.w(_tag, 'Capture stream failed at $rate Hz: $e');
+          await _audioRecorder?.dispose();
+          _audioRecorder = AudioRecorder();
+        }
+      }
+
+      if (pcmStream == null) {
+        statusNotifier.value = DetectionStatus.error;
+        statusMessageNotifier.value = 'Could not start audio stream on device.';
+        return;
       }
 
       if (thisSession != _sessionCounter) {
@@ -863,6 +887,11 @@ class MusicDetectionService {
         },
         onError: (Object err) {
           LogService.w(_tag, 'PCM audio stream error: $err');
+          if (thisSession == _sessionCounter) {
+            statusNotifier.value = DetectionStatus.error;
+            statusMessageNotifier.value = 'Microphone capture error: $err';
+            _disposeRecorder();
+          }
         },
       );
 

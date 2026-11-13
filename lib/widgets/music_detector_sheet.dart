@@ -364,6 +364,14 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
               }
             },
           ),
+
+          const SizedBox(height: 10),
+
+          TextButton.icon(
+            icon: const FaIcon(FontAwesomeIcons.magnifyingGlass, size: 12, color: EmberColors.primaryBlue),
+            label: const Text('Search by Lyrics or Humming', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12)),
+            onPressed: () => setState(() => _isLyricsSearchOpen = !_isLyricsSearchOpen),
+          ),
         ],
       ),
     );
@@ -562,6 +570,12 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
               textAlign: TextAlign.center,
               style: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
             ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Tip: Shazam identifies original studio recordings from nearby speakers. For singing, humming, or vocal snippets, type what you heard!',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: EmberColors.textSecondary, fontSize: 11),
           ),
           const SizedBox(height: 16),
           Row(
