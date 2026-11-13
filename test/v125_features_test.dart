@@ -133,9 +133,9 @@ void main() {
 
       expect(decoded['format'], equals('SINE_BACKUP'));
 
-      expect(decoded['version'], equals('1.2.11'));
+      expect(decoded['version'], equals('1.3.0'));
 
-      expect(decoded['versionCode'], equals(29));
+      expect(decoded['versionCode'], equals(30));
 
       expect(decoded['settings'], isNotNull);
 

@@ -13,7 +13,12 @@ class SpotifyEqPreset {
 }
 
 class SpotifyGraphEqualizer extends StatefulWidget {
-  const SpotifyGraphEqualizer({super.key});
+  final ValueChanged<bool>? onDragStateChanged;
+
+  const SpotifyGraphEqualizer({
+    super.key,
+    this.onDragStateChanged,
+  });
 
   static const List<String> frequencyLabels = [
     '60 Hz',
@@ -46,6 +51,16 @@ class SpotifyGraphEqualizer extends StatefulWidget {
     SpotifyEqPreset('Bass Boost', [6.0, 4.0, 1.5, 0.0, 0.0, 0.0]),
     SpotifyEqPreset('Lo-Fi', [-1.0, 2.0, 3.0, 1.0, -2.0, -4.0]),
   ];
+
+  /// Fast case-insensitive helper to look up preset gains
+  static List<double> getPresetGains(String presetName) {
+    final lower = presetName.toLowerCase().trim();
+    final matched = standardPresets.where((p) => p.name.toLowerCase() == lower);
+    if (matched.isNotEmpty) {
+      return List<double>.from(matched.first.gains);
+    }
+    return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+  }
 
   @override
   State<SpotifyGraphEqualizer> createState() => _SpotifyGraphEqualizerState();
@@ -138,20 +153,23 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
     player.setEqualizerPreset(preset.name, presetGains: preset.gains);
   }
 
-  void _onPanStart(Offset localPos, Size size) {
+  void _handleTouch(Offset localPos, Size size) {
+    if (_animController.isAnimating) {
+      _animController.stop();
+    }
+
     const horizontalPadding = 24.0;
     final usableWidth = size.width - (horizontalPadding * 2);
     final colWidth = usableWidth / 5.0;
 
-    final touchX = (localPos.dx - horizontalPadding).clamp(0.0, usableWidth);
-    final bandIndex = (touchX / colWidth).round().clamp(0, 5);
-    _activeDragBand = bandIndex;
-    _updateGainFromY(bandIndex, localPos.dy, size);
-  }
-
-  void _onPanUpdate(Offset localPos, Size size) {
-    final bandIndex = _activeDragBand;
-    if (bandIndex == null) return;
+    int bandIndex;
+    if (_activeDragBand != null) {
+      bandIndex = _activeDragBand!;
+    } else {
+      final touchX = (localPos.dx - horizontalPadding).clamp(0.0, usableWidth);
+      bandIndex = (touchX / colWidth).round().clamp(0, 5);
+      _activeDragBand = bandIndex;
+    }
     _updateGainFromY(bandIndex, localPos.dy, size);
   }
 
@@ -211,12 +229,25 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final size = Size(constraints.maxWidth, constraints.maxHeight);
-                    return GestureDetector(
+                    return Listener(
                       behavior: HitTestBehavior.opaque,
-                      onPanStart: (d) => _onPanStart(d.localPosition, size),
-                      onPanUpdate: (d) => _onPanUpdate(d.localPosition, size),
-                      onPanEnd: (_) => setState(() => _activeDragBand = null),
-                      onPanCancel: () => setState(() => _activeDragBand = null),
+                      onPointerDown: (e) {
+                        widget.onDragStateChanged?.call(true);
+                        _handleTouch(e.localPosition, size);
+                      },
+                      onPointerMove: (e) {
+                        if (_activeDragBand != null) {
+                          _handleTouch(e.localPosition, size);
+                        }
+                      },
+                      onPointerUp: (e) {
+                        widget.onDragStateChanged?.call(false);
+                        if (mounted) setState(() => _activeDragBand = null);
+                      },
+                      onPointerCancel: (e) {
+                        widget.onDragStateChanged?.call(false);
+                        if (mounted) setState(() => _activeDragBand = null);
+                      },
                       child: RepaintBoundary(
                         child: CustomPaint(
                           size: size,

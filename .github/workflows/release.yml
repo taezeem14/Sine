@@ -37,7 +37,7 @@ jobs:
         run: flutter test
 
       - name: Build Release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
 
       - name: Rename APK Artifact
         run: cp build/app/outputs/flutter-apk/app-release.apk Sine-${{ github.ref_name }}.apk

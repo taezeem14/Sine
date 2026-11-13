@@ -28,6 +28,7 @@ class SoundShapingSheet extends StatefulWidget {
 class _SoundShapingSheetState extends State<SoundShapingSheet> {
   double? _localBassBoost;
   DateTime _lastBassSent = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _isDraggingGraph = false;
 
   @override
   void initState() {
@@ -44,6 +45,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: SingleChildScrollView(
+          physics: _isDraggingGraph ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,7 +287,13 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
               const SizedBox(height: 14),
 
               // Spotify-Style Interactive Graph Equalizer & Presets
-              const SpotifyGraphEqualizer(),
+              SpotifyGraphEqualizer(
+                onDragStateChanged: (dragging) {
+                  if (_isDraggingGraph != dragging) {
+                    setState(() => _isDraggingGraph = dragging);
+                  }
+                },
+              ),
 
               const SizedBox(height: 16),
               const Divider(color: EmberColors.outlineVariant, height: 1),

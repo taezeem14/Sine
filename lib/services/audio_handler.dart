@@ -1017,10 +1017,10 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       return;
     }
 
-    // 3. Before any audio session is created, persist desired enabled flag on AudioEffect without blocking on .parameters
-    if (_player.processingState == ProcessingState.idle && _player.androidAudioSessionId == null) {
+    // 3. Before an Android audio session is created or bound, persist desired enabled flag on AudioEffect without blocking on .parameters
+    if (_player.androidAudioSessionId == null || _player.androidAudioSessionId == 0) {
       try {
-        await _equalizer.setEnabled(true);
+        await _equalizer.setEnabled(shouldEnableEq);
       } catch (_) {}
       await _updateHeadroomGain();
       return;

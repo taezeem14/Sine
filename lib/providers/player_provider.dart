@@ -17,6 +17,7 @@ import '../services/smart_radio_service.dart';
 import '../services/widget_service.dart';
 import '../services/performance_service.dart';
 import '../services/metadata_correction_service.dart';
+import '../widgets/spotify_graph_equalizer.dart';
 
 
 class SavedPlaybackSession {
@@ -1667,16 +1668,21 @@ class PlayerProvider extends ChangeNotifier {
     if (preset != 'Vocals Only' && preset != 'Instruments Only') {
       _isolationMode = IsolationMode.none;
     }
-    if (presetGains != null) {
-      for (int i = 0; i < presetGains.length; i++) {
-        _bandGains[i] = presetGains[i];
-      }
-      await _storageService.saveBandGains(_bandGains);
+
+    // Auto-enable equalizer on preset selection
+    if (!_eqEnabled) {
+      _eqEnabled = true;
+      await _storageService.saveEqualizerEnabled(true);
+      await _audioHandler.setEqualizerEnabled(true);
     }
+
+    final gains = presetGains ?? SpotifyGraphEqualizer.getPresetGains(preset);
+    for (int i = 0; i < gains.length; i++) {
+      _bandGains[i] = gains[i];
+    }
+    await _storageService.saveBandGains(_bandGains);
     await _storageService.saveEqualizerPreset(preset);
-    if (preset == 'Custom' && _bandGains.isNotEmpty) {
-      _audioHandler.setCustomBandGains(_bandGains);
-    }
+    _audioHandler.setCustomBandGains(_bandGains);
     await _audioHandler.applyEqualizerPreset(preset);
     notifyListeners();
   }
@@ -1820,6 +1826,21 @@ class PlayerProvider extends ChangeNotifier {
   void notifyListenersPlatform() => notifyListeners();
 
   Future<void> setBandGain(int index, double gain) async {
+    // Auto-enable equalizer on custom band gain adjustment
+    if (!_eqEnabled) {
+      _eqEnabled = true;
+      await _storageService.saveEqualizerEnabled(true);
+      await _audioHandler.setEqualizerEnabled(true);
+    }
+
+    // Ensure all 6 bands are initialized so other bands don't collapse to 0
+    if (_bandGains.length < 6) {
+      final base = SpotifyGraphEqualizer.getPresetGains(_eqPreset);
+      for (int i = 0; i < 6; i++) {
+        _bandGains.putIfAbsent(i, () => base[i]);
+      }
+    }
+
     _bandGains[index] = gain;
     _eqPreset = 'Custom';
     _isolationMode = IsolationMode.none;

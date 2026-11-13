@@ -25,6 +25,7 @@ class EqualizerScreen extends StatefulWidget {
 
 class _EqualizerScreenState extends State<EqualizerScreen> {
   bool _showAdvancedShaping = false;
+  bool _isDraggingGraph = false;
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +72,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: _isDraggingGraph ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -93,7 +94,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Equalizer is currently off. Toggle top switch to activate.',
+                          'Equalizer is currently off. Toggle top switch or select a preset to activate.',
                           style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
                         ),
                       ),
@@ -102,7 +103,13 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                 ),
 
               // Interactive 6-Band Graph Equalizer with Electric Blue Theme
-              const SpotifyGraphEqualizer(),
+              SpotifyGraphEqualizer(
+                onDragStateChanged: (dragging) {
+                  if (_isDraggingGraph != dragging) {
+                    setState(() => _isDraggingGraph = dragging);
+                  }
+                },
+              ),
 
               const SizedBox(height: 16),
               Padding(
