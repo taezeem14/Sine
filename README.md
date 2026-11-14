@@ -66,8 +66,11 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 
 | Category | Capability | Technical Details |
 | :--- | :--- | :--- |
+| **Theming** | **Dynamic Accent Themes & Color Studio** | 8 vibrant presets (Electric Blue, Emerald Green, Sunset Orange, Crimson Red, Electric Yellow, Neon Purple, Monochromatic, Custom) with real-time app repaint and custom RGB slider/hex color studio in Settings. |
+| **Acoustics** | **Lossless Pitch & Speed Headroom Guard** | Dynamic -2.5 dB pre-amp limiter absorbing Sonic SOLA constructive interference spikes, preventing clipping, crackle, and acoustic degradation during tempo or pitch shifts. |
+| **Widgets** | **Instant-Hydration Home Screen Widget** | 4x2 responsive Android widget with immediate state restoration upon placement and direct in-process audio transport controls (Play/Pause, Next, Previous) bypassing Android 12+ background limits. |
 | **Acoustics** | **Native ExoPlayer DSP Engine** | Multi-candidate stream cascade prioritizing Progressive Muxed MP4 (itag 18) for instant hardware decoding, with standalone AAC (128 kbps) and WebM Opus (160 kbps) fallbacks. |
-| **Acoustics** | **6-Band Graph Equalizer** | Bezier spline visualizer across `60 Hz`, `150 Hz`, `400 Hz`, `1 kHz`, `2.4 kHz`, `15 kHz` with 20 calibrated Spotify presets. |
+| **Acoustics** | **6-Band Graph Equalizer** | Interactive touch-draggable Bezier spline visualizer across `60 Hz`, `150 Hz`, `400 Hz`, `1 kHz`, `2.4 kHz`, `15 kHz` with persistent custom curves and Spotify presets. |
 | **Acoustics** | **Dynamic Headroom Limiter** | Pre-amp attenuation preventing digital clipping (0 dBFS overshoot) during heavy bass/treble boost. |
 | **Playback** | **Smart Sleep Timer** | Drift-compensated countdown timer resilient to Android Doze mode, with "End of Track" sleep support. |
 | **Playback** | **Gapless Crossfade** | Configurable audio crossfade for smooth, continuous transitions between tracks. |
@@ -75,10 +78,8 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 | **Offline** | **Local Storage Vault** | Direct track downloads to `/storage/emulated/0/Sine-Music` with embedded ID3 metadata and artwork. |
 | **Sharing** | **Sine QR Code** | 100% offline, on-device QR generator & scanner for sharing tracks and playlists without internet. |
 | **Security** | **App Lock** | Local 4-digit PIN authentication securing your library and downloads. |
-| **Widgets** | **Home Screen Widget** | 4x2 responsive Android widget with real-time metadata, album art, and transport playback controls. |
 | **Discovery** | **Audile Music Detection** | Live microphone acoustic recognition radar with real-time waveform visualization, AudD/Shazam multi-provider matching, and instant 1-tap playback & library save. |
 | **Discovery** | **Category & Genre Deep Explorer** | Dedicated modal sheet browsing with instant 'Play All', 'Shuffle', and glitch-free smooth scrolling across Spotify genres. |
-| **Streaming** | **Audio Streaming Quality Engine** | User-selected bitrate presets: High (160+ kbps WebM Opus / 128 kbps AAC), Medium (balanced hardware MP4), and Data Saver (~50-70 kbps Opus) with immediate stream cache invalidation. |
 
 ---
 
