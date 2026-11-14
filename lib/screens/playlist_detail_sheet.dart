@@ -99,14 +99,14 @@ class PlaylistDetailSheet extends StatelessWidget {
                               width: 64,
                               height: 64,
                               color: EmberColors.surfaceContainerHigh,
-                              child: const Center(child: FaIcon(FontAwesomeIcons.music, size: 24, color: EmberColors.primaryAmber)),
+                              child: Center(child: FaIcon(FontAwesomeIcons.music, size: 24, color: EmberColors.primaryAmber)),
                             ),
                           )
                         : Container(
                             width: 64,
                             height: 64,
                             color: EmberColors.surfaceContainerHigh,
-                            child: const Center(child: FaIcon(FontAwesomeIcons.listCheck, size: 24, color: EmberColors.primaryAmber)),
+                            child: Center(child: FaIcon(FontAwesomeIcons.listCheck, size: 24, color: EmberColors.primaryAmber)),
                           ),
                   ),
                   const SizedBox(width: 14),
@@ -133,7 +133,7 @@ class PlaylistDetailSheet extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const FaIcon(FontAwesomeIcons.qrcode, size: 16, color: EmberColors.primaryBlue),
+                    icon: FaIcon(FontAwesomeIcons.qrcode, size: 16, color: EmberColors.primaryBlue),
                     tooltip: 'Share Playlist QR Code',
                     onPressed: () => SineQrCodeSheet.showForPlaylist(context, currentPl),
                   ),
@@ -239,7 +239,7 @@ class PlaylistDetailSheet extends StatelessWidget {
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           foregroundColor: EmberColors.primaryAmber,
-                          side: const BorderSide(color: EmberColors.primaryAmber),
+                          side: BorderSide(color: EmberColors.primaryAmber),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
@@ -332,9 +332,9 @@ class PlaylistDetailSheet extends StatelessWidget {
                                         memCacheWidth: 150,
                                         memCacheHeight: 150,
                                         fit: BoxFit.cover,
-                                        errorWidget: (_, _, _) => const FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryAmber),
+                                        errorWidget: (_, _, _) => FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryAmber),
                                       )
-                                    : const FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryAmber),
+                                    : FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryAmber),
                               ),
                               title: Text(
                                 song.title,

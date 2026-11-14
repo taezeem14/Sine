@@ -10,6 +10,7 @@ import 'sponsorblock_service.dart';
 import 'youtube_importer_service.dart';
 import 'piped_service.dart';
 import 'log_service.dart';
+import 'widget_service.dart';
 
 
 Future<AudioHandler> initAudioHandler() async {
@@ -157,8 +158,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         androidLoadControl: AndroidLoadControl(
           minBufferDuration: Duration(seconds: 15),
           maxBufferDuration: Duration(seconds: 45),
-          bufferForPlaybackDuration: Duration(milliseconds: 500),
-          bufferForPlaybackAfterRebufferDuration: Duration(milliseconds: 1500),
+          bufferForPlaybackDuration: Duration(milliseconds: 1200),
+          bufferForPlaybackAfterRebufferDuration: Duration(milliseconds: 2000),
           backBufferDuration: Duration(seconds: 10),
         ),
         darwinLoadControl: DarwinLoadControl(
@@ -290,6 +291,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             queueIndex: event.currentIndex,
           ),
         );
+        _syncWidget();
       },
       onError: (Object e, StackTrace st) {
         LogService.w('AudioHandler', 'playbackEventStream error: $e');
@@ -897,11 +899,38 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     await _updateHeadroomGain();
   }
 
+  void _syncWidget({bool force = false}) {
+    try {
+      final title = _currentSong?.title ?? mediaItem.value?.title;
+      final artist = _currentSong?.artist ?? mediaItem.value?.artist;
+      SineWidgetService.updateWidget(
+        title: title,
+        artist: artist,
+        isPlaying: _player.playing,
+        force: force,
+      );
+    } catch (_) {}
+  }
+
   Future<void> _updateHeadroomGain() async {
+    final bool isPitchOrSpeedShifted =
+        (_activeSpeed - 1.0).abs() > 0.005 || (_activePitch - 1.0).abs() > 0.005;
+
+    // Sonic SOLA engine in ExoPlayer creates transient constructive interference peaks up to +2.5 dB.
+    // Providing -2.5 dB (0.75x) headroom prevents 16-bit integer PCM clipping and audio degradation.
+    final double sonicHeadroom = isPitchOrSpeedShifted ? 0.75 : 1.0;
+
+    // Suppress loudness enhancer boost during pitch/speed stretching to prevent SOLA clipping
+    if (isPitchOrSpeedShifted) {
+      try {
+        await _loudnessEnhancer.setTargetGain(0.0).catchError((_) {});
+      } catch (_) {}
+    }
+
     if (!_clippingProtectionEnabled) {
-      _headroomAttenuation = 1.0;
+      _headroomAttenuation = sonicHeadroom;
       if (!_isDucked) {
-        final vol = (_masterVolume * _normalizationGain * _sleepFadeMultiplier).clamp(0.0, 1.0);
+        final vol = (_masterVolume * _headroomAttenuation * _normalizationGain * _sleepFadeMultiplier).clamp(0.0, 1.0);
         await _player.setVolume(vol).catchError((_) {});
       }
       return;
@@ -928,9 +957,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
     if (maxBoost > 1.0) {
       final attenuationDb = (maxBoost * 0.45).clamp(0.0, 7.5);
-      _headroomAttenuation = (1.0 / (1.0 + (attenuationDb * 0.12))).clamp(0.40, 1.0);
+      _headroomAttenuation = ((1.0 / (1.0 + (attenuationDb * 0.12))) * sonicHeadroom).clamp(0.35, 1.0);
     } else {
-      _headroomAttenuation = 1.0;
+      _headroomAttenuation = sonicHeadroom;
     }
 
     if (!_isDucked) {
@@ -1353,10 +1382,14 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     await _player.play();
     // Maintain hardware DSP equalizer, bass boost, and headroom limiter after pause/earbud resume
     await _restorePlaybackParameters();
+    _syncWidget();
   }
 
   @override
-  Future<void> pause() => _player.pause();
+  Future<void> pause() async {
+    await _player.pause();
+    _syncWidget();
+  }
 
   @override
   Future<void> seek(Duration position) async {
@@ -1381,8 +1414,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
   @override
   Future<void> setSpeed(double speed) async {
-    _activeSpeed = speed;
-    await _player.setSpeed(speed);
+    _activeSpeed = speed.clamp(0.25, 3.0);
+    await _player.setSpeed(_activeSpeed);
+    await _updateHeadroomGain();
   }
 
   Future<void> setPitch(double pitch) async {
@@ -1390,6 +1424,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     try {
       await _player.setPitch(_activePitch).catchError((_) {});
     } catch (_) {}
+    await _updateHeadroomGain();
   }
 
   Future<void> setNormalizationGain(double gain) async {
@@ -1506,6 +1541,12 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     );
     await _player.stop();
     await super.stop();
+    SineWidgetService.updateWidget(
+      title: 'No Song Playing',
+      artist: 'Tap to open Sine',
+      isPlaying: false,
+      force: true,
+    );
   }
 
 }

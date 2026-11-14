@@ -231,14 +231,14 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                               width: 62,
                               height: 62,
                               color: EmberColors.surfaceContainerHigh,
-                              child: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                              child: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
                             ),
                           )
                         : Container(
                             width: 62,
                             height: 62,
                             color: EmberColors.surfaceContainerHigh,
-                            child: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                            child: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
                           ),
                   ),
                   const SizedBox(width: 14),
@@ -261,7 +261,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                           song.artist,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 13),
+                          style: TextStyle(color: EmberColors.textMuted, fontSize: 13),
                         ),
                       ],
                     ),
@@ -290,7 +290,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                   Expanded(
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: EmberColors.outlineVariant),
+                        side: BorderSide(color: EmberColors.outlineVariant),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
@@ -301,7 +301,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                       ),
                       label: Text(
                         player.isFavorite(song.id) ? 'In Liked Songs' : 'Add to Library',
-                        style: const TextStyle(color: EmberColors.textPrimary),
+                        style: TextStyle(color: EmberColors.textPrimary),
                       ),
                       onPressed: () async {
                         if (!player.isFavorite(song.id)) {
@@ -315,7 +315,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                               backgroundColor: EmberColors.surfaceContainerHigh,
                               content: Text(
                                 'Added "${song.title}" to Liked Songs in Library!',
-                                style: const TextStyle(color: EmberColors.primaryBlueHi),
+                                style: TextStyle(color: EmberColors.primaryBlueHi),
                               ),
                             ),
                           );
@@ -414,14 +414,14 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                               width: 60,
                               height: 60,
                               color: EmberColors.surfaceContainerHigh,
-                              child: const Icon(Icons.queue_music_rounded, color: EmberColors.primaryBlue),
+                              child: Icon(Icons.queue_music_rounded, color: EmberColors.primaryBlue),
                             ),
                           )
                         : Container(
                             width: 60,
                             height: 60,
                             color: EmberColors.surfaceContainerHigh,
-                            child: const Icon(Icons.queue_music_rounded, color: EmberColors.primaryBlue),
+                            child: Icon(Icons.queue_music_rounded, color: EmberColors.primaryBlue),
                           ),
                   ),
                   const SizedBox(width: 14),
@@ -442,7 +442,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                         const SizedBox(height: 4),
                         Text(
                           '${playlist.songs.length} tracks • Sine Playlist',
-                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 13),
+                          style: TextStyle(color: EmberColors.textMuted, fontSize: 13),
                         ),
                       ],
                     ),
@@ -480,19 +480,19 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                         contentPadding: EdgeInsets.zero,
                         leading: Text(
                           '${idx + 1}',
-                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                          style: TextStyle(color: EmberColors.textMuted, fontSize: 12),
                         ),
                         title: Text(
                           s.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                          style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                         subtitle: Text(
                           s.artist,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
+                          style: TextStyle(color: EmberColors.textMuted, fontSize: 11),
                         ),
                       );
                     },
@@ -503,7 +503,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       '+ ${songs.length - 5} more tracks',
-                      style: const TextStyle(color: EmberColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.w500),
+                      style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.w500),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -514,12 +514,12 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                   Expanded(
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: EmberColors.outlineVariant),
+                        side: BorderSide(color: EmberColors.outlineVariant),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      icon: const FaIcon(FontAwesomeIcons.bookmark, size: 14, color: EmberColors.primaryBlue),
-                      label: const Text('Add to Library', style: TextStyle(color: EmberColors.textPrimary)),
+                      icon: FaIcon(FontAwesomeIcons.bookmark, size: 14, color: EmberColors.primaryBlue),
+                      label: Text('Add to Library', style: TextStyle(color: EmberColors.textPrimary)),
                       onPressed: () async {
                         await player.importScannedPlaylist(playlist);
                         if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
@@ -530,7 +530,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                               backgroundColor: EmberColors.surfaceContainerHigh,
                               content: Text(
                                 'Saved "${playlist.title}" to Library!',
-                                style: const TextStyle(color: EmberColors.primaryBlueHi),
+                                style: TextStyle(color: EmberColors.primaryBlueHi),
                               ),
                             ),
                           );
@@ -579,21 +579,21 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
       builder: (ctx) => AlertDialog(
         backgroundColor: EmberColors.surfaceContainerLow,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Enter Link or Code', style: TextStyle(color: EmberColors.textPrimary)),
+        title: Text('Enter Link or Code', style: TextStyle(color: EmberColors.textPrimary)),
         content: TextField(
           controller: textController,
           autofocus: true,
-          style: const TextStyle(color: EmberColors.textPrimary),
+          style: TextStyle(color: EmberColors.textPrimary),
           decoration: InputDecoration(
             hintText: 'Paste YouTube link or Sine QR link...',
-            hintStyle: const TextStyle(color: EmberColors.textMuted),
+            hintStyle: TextStyle(color: EmberColors.textMuted),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+            child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: EmberColors.primaryBlue),
@@ -684,7 +684,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                         height: 2.5,
                         child: Container(
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               colors: [
                                 Colors.transparent,
                                 EmberColors.secondaryCyan,
@@ -741,7 +741,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: EmberColors.outlineVariant),
+                  side: BorderSide(color: EmberColors.outlineVariant),
                 ),
               ),
             ),

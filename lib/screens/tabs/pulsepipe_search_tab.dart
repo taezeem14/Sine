@@ -212,12 +212,12 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const FaIcon(FontAwesomeIcons.microphoneLines, color: EmberColors.primaryBlue, size: 18),
+                      icon: FaIcon(FontAwesomeIcons.microphoneLines, color: EmberColors.primaryBlue, size: 18),
                       tooltip: 'Audile Music Detector',
                       onPressed: () => MusicDetectorSheet.show(context),
                     ),
                     IconButton(
-                      icon: const FaIcon(FontAwesomeIcons.camera, color: EmberColors.textPrimary, size: 18),
+                      icon: FaIcon(FontAwesomeIcons.camera, color: EmberColors.textPrimary, size: 18),
                       tooltip: 'Scan QR Code',
                       onPressed: _openQrScanner,
                     ),
@@ -232,10 +232,10 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                           width: 1,
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const FaIcon(FontAwesomeIcons.bolt, size: 11, color: EmberColors.primaryBlue),
+                          FaIcon(FontAwesomeIcons.bolt, size: 11, color: EmberColors.primaryBlue),
                           const SizedBox(width: 5),
                           const Text(
                             'Sine Hi-Fi',
@@ -362,7 +362,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const FaIcon(FontAwesomeIcons.compactDisc, size: 48, color: EmberColors.textMuted),
+                        FaIcon(FontAwesomeIcons.compactDisc, size: 48, color: EmberColors.textMuted),
                         const SizedBox(height: 16),
                         const Text(
                           'Couldn\'t find that song',
@@ -544,16 +544,16 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.history_rounded, size: 14, color: EmberColors.textMuted),
+                                  Icon(Icons.history_rounded, size: 14, color: EmberColors.textMuted),
                                   const SizedBox(width: 6),
                                   Text(
                                     query,
-                                    style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
+                                    style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
                                   ),
                                   const SizedBox(width: 6),
                                   GestureDetector(
                                     onTap: () => _removeRecentSearch(query),
-                                    child: const Icon(Icons.close_rounded, size: 14, color: EmberColors.textMuted),
+                                    child: Icon(Icons.close_rounded, size: 14, color: EmberColors.textMuted),
                                   ),
                                 ],
                               ),
@@ -816,7 +816,7 @@ class _SearchResultRow extends StatelessWidget {
 
             // Options Button
             IconButton(
-              icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 15, color: EmberColors.textMuted),
+              icon: FaIcon(FontAwesomeIcons.ellipsisVertical, size: 15, color: EmberColors.textMuted),
               onPressed: onOptions,
             ),
           ],
@@ -881,13 +881,13 @@ class _SpotifyTopResultCard extends StatelessWidget {
                           width: 76,
                           height: 76,
                           color: EmberColors.surfaceContainerHigh,
-                          child: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                          child: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
                         ),
                       ),
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 16, color: EmberColors.textMuted),
+                      icon: FaIcon(FontAwesomeIcons.ellipsisVertical, size: 16, color: EmberColors.textMuted),
                       onPressed: onOptions,
                     ),
                   ],

@@ -194,7 +194,7 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(
+            SizedBox(
               width: 28,
               height: 28,
               child: CircularProgressIndicator(
@@ -441,8 +441,8 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
           const SizedBox(height: 16),
           TextButton.icon(
             onPressed: () => player.retryFetchLyrics(),
-            icon: const FaIcon(FontAwesomeIcons.arrowsRotate, size: 14, color: EmberColors.primaryBlue),
-            label: const Text('Search Again', style: TextStyle(color: EmberColors.primaryBlue)),
+            icon: FaIcon(FontAwesomeIcons.arrowsRotate, size: 14, color: EmberColors.primaryBlue),
+            label: Text('Search Again', style: TextStyle(color: EmberColors.primaryBlue)),
           ),
         ],
       ),
@@ -556,7 +556,7 @@ class _KaraokeWordWidget extends StatelessWidget {
           progress = ((curMs - effectiveStart) / totalSpan).clamp(0.0, 1.0);
         }
 
-        const activeStyle = TextStyle(
+        final activeStyle = TextStyle(
           color: EmberColors.primaryBlueHi,
           fontSize: 18,
           fontWeight: FontWeight.w700,
@@ -589,9 +589,9 @@ class _KaraokeWordWidget extends StatelessWidget {
                 progress,
                 (progress + 0.08).clamp(0.0, 1.0),
               ],
-              colors: const [
+              colors: [
                 EmberColors.primaryBlueHi,
-                Color(0x66FFFFFF),
+                const Color(0x66FFFFFF),
               ],
             ).createShader(bounds);
           },

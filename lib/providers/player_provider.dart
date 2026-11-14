@@ -2,9 +2,11 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
+import '../theme/ember_theme.dart';
 import '../services/audio_handler.dart';
 import '../services/catalog_service.dart';
 import '../services/download_service.dart';
@@ -237,6 +239,30 @@ class PlayerProvider extends ChangeNotifier {
   int get crossfadeSeconds => _crossfadeSeconds;
   bool get gaplessPlayback => _gaplessPlayback;
 
+  SineThemePreset _activeThemePreset = SineThemePreset.blue;
+  Color _customThemeColor = const Color(0xFF2979FF);
+
+  SineThemePreset get activeThemePreset => _activeThemePreset;
+  Color get customThemeColor => _customThemeColor;
+  ThemeData get themeData => EmberTheme.buildTheme(accentColor: EmberColors.currentPrimary);
+
+  Future<void> setThemePreset(SineThemePreset preset, {Color? customColor}) async {
+    _activeThemePreset = preset;
+    await _storageService.saveThemePreset(preset.name);
+
+    if (preset == SineThemePreset.custom) {
+      if (customColor != null) {
+        _customThemeColor = customColor;
+        await _storageService.saveCustomThemeColor(customColor.toARGB32());
+      }
+      EmberColors.applyThemeColor(_customThemeColor);
+    } else {
+      EmberColors.applyThemePreset(preset);
+    }
+
+    notifyListeners();
+  }
+
   List<Song> get youtubeTracks => _youtubeTracks;
   bool get isLoadingYouTube => _isLoadingYouTube;
   String get searchEngine => _searchEngine;
@@ -312,6 +338,18 @@ class PlayerProvider extends ChangeNotifier {
     PerformanceService.instance.setHudVisible(_performanceHudEnabled);
     if (_performanceHudEnabled) {
       PerformanceService.instance.start();
+    }
+
+    final savedPresetKey = _storageService.loadThemePreset();
+    _activeThemePreset = SineThemePreset.fromKey(savedPresetKey);
+    final savedCustomColorInt = _storageService.loadCustomThemeColor();
+    if (savedCustomColorInt != null) {
+      _customThemeColor = Color(savedCustomColorInt);
+    }
+    if (_activeThemePreset == SineThemePreset.custom) {
+      EmberColors.applyThemeColor(_customThemeColor);
+    } else {
+      EmberColors.applyThemePreset(_activeThemePreset);
     }
 
     // Check for recoverable previous playback session

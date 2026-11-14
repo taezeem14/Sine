@@ -73,7 +73,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                             color: EmberColors.primaryBlue.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
-                          child: const FaIcon(FontAwesomeIcons.sliders, size: 16, color: EmberColors.primaryBlue),
+                          child: FaIcon(FontAwesomeIcons.sliders, size: 16, color: EmberColors.primaryBlue),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -118,7 +118,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text('Reset', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
+                        child: Text('Reset', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
                       ),
                       const SizedBox(width: 8),
                       Switch(
@@ -168,7 +168,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (player.isLoadingStem) ...[
-                            const SizedBox(
+                            SizedBox(
                               width: 10,
                               height: 10,
                               child: CircularProgressIndicator(strokeWidth: 2, color: EmberColors.primaryBlue),
@@ -227,7 +227,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: EmberColors.surfaceContainerHighest),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.restore_rounded, size: 14, color: EmberColors.primaryBlue),
@@ -252,8 +252,8 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Hearth Bass Boost', style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
-                  Text('${((_localBassBoost ?? player.bassBoost) * 100).toInt()}%', style: const TextStyle(color: EmberColors.primaryBlueHi, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('Hearth Bass Boost', style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text('${((_localBassBoost ?? player.bassBoost) * 100).toInt()}%', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 13, fontWeight: FontWeight.bold)),
                 ],
               ),
               SliderTheme(
@@ -311,7 +311,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                           color: EmberColors.primaryBlue.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: const FaIcon(FontAwesomeIcons.music, size: 13, color: EmberColors.primaryBlue),
+                        child: FaIcon(FontAwesomeIcons.music, size: 13, color: EmberColors.primaryBlue),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -403,7 +403,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                           color: EmberColors.primaryBlue.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: const FaIcon(FontAwesomeIcons.gaugeHigh, size: 14, color: EmberColors.primaryBlue),
+                        child: FaIcon(FontAwesomeIcons.gaugeHigh, size: 14, color: EmberColors.primaryBlue),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -435,7 +435,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
               ),
               Row(
                 children: [
-                  const Text('0.25x', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
+                  Text('0.25x', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
                   Expanded(
                     child: SliderTheme(
                       data: SliderTheme.of(context).copyWith(
@@ -457,7 +457,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       ),
                     ),
                   ),
-                  const Text('2.0x', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
+                  Text('2.0x', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
                 ],
               ),
 
@@ -481,7 +481,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                         color: EmberColors.primaryBlue.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.equalizer_rounded, color: EmberColors.primaryBlue, size: 20),
+                      child: Icon(Icons.equalizer_rounded, color: EmberColors.primaryBlue, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -601,7 +601,7 @@ class _IsolationCard extends StatelessWidget {
                     ),
                   ),
                   if (isLoading)
-                    const SizedBox(
+                    SizedBox(
                       width: 14,
                       height: 14,
                       child: CircularProgressIndicator(strokeWidth: 2, color: EmberColors.primaryBlue),

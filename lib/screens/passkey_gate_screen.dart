@@ -88,7 +88,7 @@ class _PasskeyGateScreenState extends State<PasskeyGateScreen>
                       width: 1.5,
                     ),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: FaIcon(
                       FontAwesomeIcons.fireFlameCurved,
                       color: EmberColors.primaryAmber,
@@ -190,7 +190,7 @@ class _PasskeyGateScreenState extends State<PasskeyGateScreen>
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
-                              borderSide: const BorderSide(
+                              borderSide: BorderSide(
                                 color: EmberColors.primaryAmber,
                                 width: 1.5,
                               ),

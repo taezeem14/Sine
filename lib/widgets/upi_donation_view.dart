@@ -78,7 +78,7 @@ class _UpiDonationViewState extends State<UpiDonationView> {
           appName != null
               ? 'Could not open $appName. UPI ID ($upiId) copied to clipboard!'
               : 'No UPI app responded. UPI ID ($upiId) copied to clipboard!',
-          style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13),
+          style: TextStyle(color: EmberColors.textPrimary, fontSize: 13),
         ),
       ),
     );
@@ -277,7 +277,7 @@ class _UpiDonationViewState extends State<UpiDonationView> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: EmberColors.outlineVariant),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Icon(Icons.copy_rounded, size: 14, color: EmberColors.primaryAmber),
                       SizedBox(width: 5),
@@ -395,22 +395,22 @@ class _UpiDonationViewState extends State<UpiDonationView> {
           TextField(
             controller: _customAmountController,
             keyboardType: TextInputType.number,
-            style: const TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
             decoration: InputDecoration(
               prefixText: '₹ ',
-              prefixStyle: const TextStyle(color: EmberColors.primaryAmber, fontSize: 18, fontWeight: FontWeight.bold),
+              prefixStyle: TextStyle(color: EmberColors.primaryAmber, fontSize: 18, fontWeight: FontWeight.bold),
               hintText: 'Enter amount (e.g. 150)',
-              hintStyle: const TextStyle(color: EmberColors.textMuted, fontSize: 14),
+              hintStyle: TextStyle(color: EmberColors.textMuted, fontSize: 14),
               filled: true,
               fillColor: EmberColors.surfaceContainerLow,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: EmberColors.outlineVariant),
+                borderSide: BorderSide(color: EmberColors.outlineVariant),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: EmberColors.primaryAmber, width: 1.5),
+                borderSide: BorderSide(color: EmberColors.primaryAmber, width: 1.5),
               ),
             ),
             onChanged: (_) => setState(() {}),
@@ -514,7 +514,7 @@ class _UpiDonationViewState extends State<UpiDonationView> {
           ),
           child: Column(
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   FaIcon(FontAwesomeIcons.camera, size: 14, color: EmberColors.primaryAmber),

@@ -4,8 +4,58 @@ import 'package:google_fonts/google_fonts.dart';
 typedef SineColors = EmberColors;
 typedef SineTheme = EmberTheme;
 
+enum SineThemePreset {
+  blue('Electric Blue', Color(0xFF2979FF)),
+  green('Emerald Green', Color(0xFF1DB954)),
+  orange('Sunset Orange', Color(0xFFFF6D00)),
+  red('Crimson Red', Color(0xFFFF1744)),
+  yellow('Electric Yellow', Color(0xFFFFD600)),
+  purple('Neon Purple', Color(0xFFD500F9)),
+  monochrome('Monochromatic', Color(0xFFE0E0E0)),
+  custom('Custom Accent', Color(0xFF2979FF));
+
+  final String label;
+  final Color accentColor;
+  const SineThemePreset(this.label, this.accentColor);
+
+  static SineThemePreset fromKey(String? key) {
+    switch (key?.toLowerCase().trim()) {
+      case 'green':
+        return SineThemePreset.green;
+      case 'orange':
+        return SineThemePreset.orange;
+      case 'red':
+        return SineThemePreset.red;
+      case 'yellow':
+        return SineThemePreset.yellow;
+      case 'purple':
+        return SineThemePreset.purple;
+      case 'monochrome':
+      case 'monochromatic':
+        return SineThemePreset.monochrome;
+      case 'custom':
+        return SineThemePreset.custom;
+      case 'blue':
+      default:
+        return SineThemePreset.blue;
+    }
+  }
+}
+
 class EmberColors {
   EmberColors._();
+
+  static Color _currentPrimary = const Color(0xFF2979FF);
+
+  static Color get currentPrimary => _currentPrimary;
+
+  static void applyThemeColor(Color color) {
+    _currentPrimary = color;
+  }
+
+  static void applyThemePreset(SineThemePreset preset) {
+    _currentPrimary = preset.accentColor;
+  }
 
   // Surface & Foundations (Pitch Black & Obsidian Surfaces)
   static const Color obsidianBase = Color(0xFF121212);
@@ -16,27 +66,27 @@ class EmberColors {
   static const Color surfaceContainerHigh = Color(0xFF282828);
   static const Color surfaceContainerHighest = Color(0xFF333333);
 
-  // Sine Electric Blue — ONE Unified Signature Shade: Color(0xFF2979FF)
-  static const Color primaryBlue = Color(0xFF2979FF);
-  static const Color primaryBlueHi = primaryBlue;
-  static const Color secondaryCyan = primaryBlue;
-  static const Color secondaryAzure = primaryBlue;
-  static const Color tertiaryBlue = primaryBlue;
+  // Dynamic Signature Accent Theme Shade
+  static Color get primaryBlue => _currentPrimary;
+  static Color get primaryBlueHi => _currentPrimary;
+  static Color get secondaryCyan => _currentPrimary;
+  static Color get secondaryAzure => _currentPrimary;
+  static Color get tertiaryBlue => _currentPrimary;
 
   // Convenience aliases for Electric Blue Sine theme
-  static const Color electricBlue = primaryBlue;
-  static const Color electricBlueHi = primaryBlue;
+  static Color get electricBlue => _currentPrimary;
+  static Color get electricBlueHi => _currentPrimary;
   static const Color charcoalCard = surfaceContainerLow;
   static const Color surfaceDark = surfaceContainer;
   static const Color glassBorder = outlineVariant;
   static const Color youtubeRed = Color(0xFFFF0000);
 
   // Backward-compatible aliases for existing widgets — all unified to ONE shade of blue
-  static const Color primaryAmber = primaryBlue;
-  static const Color primaryAmberHi = primaryBlue;
-  static const Color secondaryHoney = primaryBlue;
-  static const Color secondaryOrange = primaryBlue;
-  static const Color tertiaryGold = primaryBlue;
+  static Color get primaryAmber => _currentPrimary;
+  static Color get primaryAmberHi => _currentPrimary;
+  static Color get secondaryHoney => _currentPrimary;
+  static Color get secondaryOrange => _currentPrimary;
+  static Color get tertiaryGold => _currentPrimary;
 
   // Text & Content Hierarchy (Pure Contrast)
   static const Color textPrimary = Color(0xFFFFFFFF);
@@ -48,15 +98,16 @@ class EmberColors {
   static const Color outlineVariant = Color(0xFF282828);
   static const Color borderSubtle = Color(0xFF282828);
   static const Color error = Color(0xFFE05252);
-  static const Color pulseBlue = Color(0xFF2979FF);
+  static Color get pulseBlue => _currentPrimary;
 }
 
 class EmberTheme {
   EmberTheme._();
 
-  static ThemeData get darkTheme => buildTheme(useGoogleFonts: true);
+  static ThemeData get darkTheme => buildTheme(accentColor: EmberColors.currentPrimary, useGoogleFonts: true);
 
-  static ThemeData buildTheme({bool useGoogleFonts = true}) {
+  static ThemeData buildTheme({Color? accentColor, bool useGoogleFonts = true}) {
+    final activeAccent = accentColor ?? EmberColors.currentPrimary;
     TextTheme mergedTextTheme;
     if (useGoogleFonts) {
       try {
@@ -96,11 +147,11 @@ class EmberTheme {
       canvasColor: EmberColors.surface,
       cardColor: EmberColors.surfaceContainerLow,
       dividerColor: EmberColors.outlineVariant,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: ColorScheme.dark(
         surface: EmberColors.surface,
-        primary: EmberColors.primaryAmber,
-        secondary: EmberColors.secondaryHoney,
-        tertiary: EmberColors.tertiaryGold,
+        primary: activeAccent,
+        secondary: activeAccent,
+        tertiary: activeAccent,
         error: EmberColors.error,
         onSurface: EmberColors.textPrimary,
         onPrimary: EmberColors.obsidianBase,
@@ -119,7 +170,7 @@ class EmberTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: EmberColors.primaryAmber,
+          backgroundColor: activeAccent,
           foregroundColor: EmberColors.obsidianBase,
           shape: const StadiumBorder(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

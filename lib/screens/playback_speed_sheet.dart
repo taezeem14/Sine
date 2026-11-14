@@ -74,7 +74,7 @@ class PlaybackSpeedSheet extends StatelessWidget {
                           color: EmberColors.primaryAmber.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: const FaIcon(
+                        child: FaIcon(
                           FontAwesomeIcons.gaugeHigh,
                           size: 16,
                           color: EmberColors.primaryAmber,

@@ -45,7 +45,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
         content: TextField(
           controller: controller,
           autofocus: true,
-          style: const TextStyle(color: EmberColors.textPrimary),
+          style: TextStyle(color: EmberColors.textPrimary),
           decoration: const InputDecoration(
             hintText: 'Playlist name',
             hintStyle: TextStyle(color: EmberColors.textMuted),
@@ -60,7 +60,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+            child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -89,7 +89,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
       builder: (ctx) => AlertDialog(
         backgroundColor: EmberColors.charcoalCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
             FaIcon(FontAwesomeIcons.link, size: 18, color: EmberColors.electricBlue),
             SizedBox(width: 10),
@@ -108,10 +108,10 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
             TextField(
               controller: controller,
               autofocus: true,
-              style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13),
+              style: TextStyle(color: EmberColors.textPrimary, fontSize: 13),
               decoration: InputDecoration(
                 hintText: 'https://www.youtube.com/watch?v=... or playlist URL',
-                hintStyle: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                hintStyle: TextStyle(color: EmberColors.textMuted, fontSize: 12),
                 filled: true,
                 fillColor: EmberColors.surfaceDark,
                 border: OutlineInputBorder(
@@ -125,7 +125,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+            child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -179,16 +179,16 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
               ),
             ),
             ListTile(
-              leading: const FaIcon(FontAwesomeIcons.circlePlus, color: EmberColors.electricBlue),
-              title: const Text('Create Playlist', style: TextStyle(color: EmberColors.textPrimary)),
+              leading: FaIcon(FontAwesomeIcons.circlePlus, color: EmberColors.electricBlue),
+              title: Text('Create Playlist', style: TextStyle(color: EmberColors.textPrimary)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showCreatePlaylistDialog(context, player);
               },
             ),
             ListTile(
-              leading: const FaIcon(FontAwesomeIcons.link, color: EmberColors.electricBlue),
-              title: const Text('Import YouTube Link', style: TextStyle(color: EmberColors.textPrimary)),
+              leading: FaIcon(FontAwesomeIcons.link, color: EmberColors.electricBlue),
+              title: Text('Import YouTube Link', style: TextStyle(color: EmberColors.textPrimary)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showImportUrlDialog(context, player);
@@ -250,12 +250,12 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const FaIcon(FontAwesomeIcons.plus, size: 20, color: EmberColors.textPrimary),
+                      icon: FaIcon(FontAwesomeIcons.plus, size: 20, color: EmberColors.textPrimary),
                       tooltip: 'Add Playlist or Import Link',
                       onPressed: () => _showAddMenu(context, player),
                     ),
                     IconButton(
-                      icon: const FaIcon(FontAwesomeIcons.gear, size: 19, color: EmberColors.textSecondary),
+                      icon: FaIcon(FontAwesomeIcons.gear, size: 19, color: EmberColors.textSecondary),
                       tooltip: 'Settings & Info',
                       onPressed: () => SettingsScreen.show(context),
                     ),
@@ -412,14 +412,14 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                                     width: 48,
                                     height: 48,
                                     color: EmberColors.surfaceContainerHigh,
-                                    child: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                                    child: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
                                   ),
                                 )
                               : Container(
                                   width: 48,
                                   height: 48,
                                   color: EmberColors.surfaceContainerHigh,
-                                  child: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                                  child: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
                                 ),
                         ),
                         title: Text(
@@ -436,10 +436,10 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                           '${song.artist} • Offline',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                          style: TextStyle(color: EmberColors.textMuted, fontSize: 12),
                         ),
                         trailing: IconButton(
-                          icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
+                          icon: FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
                           onPressed: () => TrackOptionsSheet.show(context, song),
                         ),
                         onTap: () {
@@ -493,7 +493,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const FaIcon(FontAwesomeIcons.music, size: 42, color: EmberColors.textMuted),
+                        FaIcon(FontAwesomeIcons.music, size: 42, color: EmberColors.textMuted),
                         const SizedBox(height: 12),
                         const Text(
                           'No playlists yet',
@@ -554,8 +554,8 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   ListTile(
-                                    leading: const FaIcon(FontAwesomeIcons.qrcode, color: EmberColors.primaryBlue),
-                                    title: const Text('Share Playlist QR Code', style: TextStyle(color: EmberColors.textPrimary)),
+                                    leading: FaIcon(FontAwesomeIcons.qrcode, color: EmberColors.primaryBlue),
+                                    title: Text('Share Playlist QR Code', style: TextStyle(color: EmberColors.textPrimary)),
                                     onTap: () {
                                       Navigator.pop(ctx);
                                       SineQrCodeSheet.showForPlaylist(context, pl);
@@ -611,7 +611,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                               builder: (ctx) => AlertDialog(
                                 backgroundColor: EmberColors.charcoalCard,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                title: const Text('Clear History', style: TextStyle(color: EmberColors.textPrimary)),
+                                title: Text('Clear History', style: TextStyle(color: EmberColors.textPrimary)),
                                 content: const Text(
                                   'Are you sure you want to clear your listening history?',
                                   style: TextStyle(color: EmberColors.textSecondary),
@@ -619,7 +619,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx),
-                                    child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+                                    child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
                                   ),
                                   TextButton(
                                     onPressed: () {
@@ -712,7 +712,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
+                                  icon: FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
                                   onPressed: () => TrackOptionsSheet.show(context, song),
                                 ),
                               ],
@@ -809,7 +809,7 @@ class _LibraryRowItem extends StatelessWidget {
                   Row(
                     children: [
                       if (isPinned) ...[
-                        const FaIcon(FontAwesomeIcons.thumbtack, size: 10, color: EmberColors.electricBlue),
+                        FaIcon(FontAwesomeIcons.thumbtack, size: 10, color: EmberColors.electricBlue),
                         const SizedBox(width: 5),
                       ],
                       Text(
@@ -824,7 +824,7 @@ class _LibraryRowItem extends StatelessWidget {
                 ],
               ),
             ),
-            const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+            FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           ],
         ),
       ),
@@ -884,7 +884,7 @@ class _PlaylistRowItem extends StatelessWidget {
                       width: 54,
                       height: 54,
                       color: EmberColors.charcoalCard,
-                      child: const Center(
+                      child: Center(
                         child: FaIcon(FontAwesomeIcons.music, size: 20, color: EmberColors.electricBlue),
                       ),
                     ),
@@ -916,7 +916,7 @@ class _PlaylistRowItem extends StatelessWidget {
               ),
             ),
             IconButton(
-              icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
+              icon: FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
               onPressed: onOptions,
             ),
           ],

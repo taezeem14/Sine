@@ -95,7 +95,7 @@ class MiniPlayer extends StatelessWidget {
                     value: progress,
                     minHeight: 2.5,
                     backgroundColor: Colors.white.withValues(alpha: 0.06),
-                    valueColor: const AlwaysStoppedAnimation<Color>(EmberColors.primaryBlue),
+                    valueColor: AlwaysStoppedAnimation<Color>(EmberColors.primaryBlue),
                   );
                 },
               ),
@@ -123,9 +123,9 @@ class MiniPlayer extends StatelessWidget {
                                   memCacheWidth: 80,
                                   memCacheHeight: 80,
                                   fit: BoxFit.cover,
-                                  errorWidget: (_, _, _) => const FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryBlue),
+                                  errorWidget: (_, _, _) => FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryBlue),
                                 )
-                              : const FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryBlue),
+                              : FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryBlue),
                         ),
                       ],
                     ),
@@ -230,7 +230,7 @@ class MiniPlayer extends StatelessWidget {
                   const SizedBox(width: 4),
                   // Skip Next
                   IconButton(
-                    icon: const FaIcon(FontAwesomeIcons.forwardStep, size: 18, color: EmberColors.textSecondary),
+                    icon: FaIcon(FontAwesomeIcons.forwardStep, size: 18, color: EmberColors.textSecondary),
                     onPressed: () => player.skipNext(),
                     splashRadius: 20,
                   ),

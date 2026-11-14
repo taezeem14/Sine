@@ -116,7 +116,7 @@ class _VinylPainter extends CustomPainter {
     // Center amber label
     final labelRadius = radius * 0.36;
     final labelPaint = Paint()
-      ..shader = const RadialGradient(
+      ..shader = RadialGradient(
         colors: [
           EmberColors.primaryAmberHi,
           EmberColors.primaryAmber,

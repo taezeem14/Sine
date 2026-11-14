@@ -207,7 +207,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
           // Track List
           Expanded(
             child: _isLoading
-                ? const Center(
+                ? Center(
                     child: CircularProgressIndicator(color: EmberColors.primaryBlue),
                   )
                 : _tracks.isEmpty
@@ -247,7 +247,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                                     width: 44,
                                     height: 44,
                                     color: EmberColors.surfaceContainerHigh,
-                                    child: const Icon(Icons.music_note, color: EmberColors.textMuted, size: 20),
+                                    child: Icon(Icons.music_note, color: EmberColors.textMuted, size: 20),
                                   ),
                                 ),
                               ),
@@ -265,7 +265,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                                 song.artist,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: EmberColors.textSecondary, fontSize: 11),
+                                style: TextStyle(color: EmberColors.textSecondary, fontSize: 11),
                               ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -279,7 +279,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                                     onPressed: () => player.toggleFavorite(song),
                                   ),
                                   IconButton(
-                                    icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
+                                    icon: FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
                                     onPressed: () => TrackOptionsSheet.show(context, song),
                                   ),
                                 ],

@@ -27,33 +27,33 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
         private const val KEY_PLAYING = "widget_playing"
 
         fun updateAllWidgets(context: Context, title: String?, artist: String?, isPlaying: Boolean) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val thisWidget = ComponentName(context, SineMusicWidgetProvider::class.java)
-            val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
-
-            // If user hasn't added any widget to home screen, skip view building and SharedPreferences
-            if (allWidgetIds.isEmpty()) {
-                return
-            }
-
-            val safeTitle = title ?: "No Song Playing"
-            val safeArtist = artist ?: "Tap to open Sine"
+            val safeTitle = if (title.isNullOrBlank()) "No Song Playing" else title
+            val safeArtist = if (artist.isNullOrBlank()) "Tap to open Sine" else artist
 
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val prevTitle = prefs.getString(KEY_TITLE, null)
             val prevArtist = prefs.getString(KEY_ARTIST, null)
             val prevPlaying = prefs.getBoolean(KEY_PLAYING, false)
 
-            // Deduplicate: avoid thrashing Android AppWidgetManager IPC if values are identical
-            if (prevTitle == safeTitle && prevArtist == safeArtist && prevPlaying == isPlaying) {
-                return
-            }
-
+            // Always persist state to SharedPreferences first so any widget added later is immediately hydrated
             prefs.edit()
                 .putString(KEY_TITLE, safeTitle)
                 .putString(KEY_ARTIST, safeArtist)
                 .putBoolean(KEY_PLAYING, isPlaying)
                 .apply()
+
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val thisWidget = ComponentName(context, SineMusicWidgetProvider::class.java)
+            val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
+
+            if (allWidgetIds.isEmpty()) {
+                return
+            }
+
+            // Deduplicate: avoid thrashing Android AppWidgetManager IPC if values are identical
+            if (prevTitle == safeTitle && prevArtist == safeArtist && prevPlaying == isPlaying) {
+                return
+            }
 
             for (widgetId in allWidgetIds) {
                 val views = buildRemoteViews(context, safeTitle, safeArtist, isPlaying)
@@ -184,7 +184,52 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
 
     private fun sendMediaKeyEvent(context: Context, keyCode: Int) {
         try {
-            // Explicit component routing for Android 8+ (Oreo through Android 15)
+            // Direct AudioService transport dispatch if available (bypasses Android 12+ background broadcast restrictions)
+            try {
+                val audioServiceClass = Class.forName("com.ryanheise.audioservice.AudioService")
+                val instanceField = audioServiceClass.getDeclaredField("instance")
+                instanceField.isAccessible = true
+                val audioServiceInstance = instanceField.get(null)
+                if (audioServiceInstance != null) {
+                    val getMediaSessionMethod = audioServiceClass.getMethod("getMediaSession")
+                    val mediaSession = getMediaSessionMethod.invoke(audioServiceInstance)
+                    if (mediaSession != null) {
+                        val controllerMethod = mediaSession.javaClass.getMethod("getController")
+                        val controller = controllerMethod.invoke(mediaSession)
+                        if (controller != null) {
+                            val transportControlsMethod = controller.javaClass.getMethod("getTransportControls")
+                            val transportControls = transportControlsMethod.invoke(controller)
+                            if (transportControls != null) {
+                                when (keyCode) {
+                                    KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                                        val getPlaybackStateMethod = controller.javaClass.getMethod("getPlaybackState")
+                                        val playbackState = getPlaybackStateMethod.invoke(controller)
+                                        val getStateMethod = playbackState?.javaClass?.getMethod("getState")
+                                        val state = getStateMethod?.invoke(playbackState) as? Int ?: 0
+                                        // 3 == PlaybackStateCompat.STATE_PLAYING
+                                        if (state == 3) {
+                                            transportControls.javaClass.getMethod("pause").invoke(transportControls)
+                                        } else {
+                                            transportControls.javaClass.getMethod("play").invoke(transportControls)
+                                        }
+                                        return
+                                    }
+                                    KeyEvent.KEYCODE_MEDIA_NEXT -> {
+                                        transportControls.javaClass.getMethod("skipToNext").invoke(transportControls)
+                                        return
+                                    }
+                                    KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
+                                        transportControls.javaClass.getMethod("skipToPrevious").invoke(transportControls)
+                                        return
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (_: Throwable) {}
+
+            // Fallback: Explicit component routing for Android 8+ (Oreo through Android 15)
             val component = ComponentName(context, "com.ryanheise.audioservice.MediaButtonReceiver")
 
             val downIntent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {

@@ -239,7 +239,7 @@ class SineQrCodeSheet extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.qr_code_scanner_rounded, size: 15, color: EmberColors.primaryBlue),
+                    Icon(Icons.qr_code_scanner_rounded, size: 15, color: EmberColors.primaryBlue),
                     const SizedBox(width: 8),
                     Text(
                       playlist != null
@@ -274,16 +274,16 @@ class SineQrCodeSheet extends StatelessWidget {
                           playlist != null
                               ? 'Sine playlist QR link copied to clipboard!'
                               : 'Sine track QR link copied to clipboard!',
-                          style: const TextStyle(color: EmberColors.primaryBlueHi),
+                          style: TextStyle(color: EmberColors.primaryBlueHi),
                         ),
                         duration: const Duration(seconds: 2),
                       ),
                     );
                   },
-                  icon: const FaIcon(FontAwesomeIcons.copy, size: 14, color: EmberColors.primaryBlue),
-                  label: const Text('Copy Link', style: TextStyle(color: EmberColors.textPrimary)),
+                  icon: FaIcon(FontAwesomeIcons.copy, size: 14, color: EmberColors.primaryBlue),
+                  label: Text('Copy Link', style: TextStyle(color: EmberColors.textPrimary)),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: EmberColors.outlineVariant),
+                    side: BorderSide(color: EmberColors.outlineVariant),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),

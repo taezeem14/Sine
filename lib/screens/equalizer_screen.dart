@@ -139,7 +139,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                           color: EmberColors.primaryBlue.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: const FaIcon(FontAwesomeIcons.sliders, size: 13, color: EmberColors.primaryBlue),
+                        child: FaIcon(FontAwesomeIcons.sliders, size: 13, color: EmberColors.primaryBlue),
                       ),
                       title: const Text(
                         'Hearth Bass & Studio Stems',
@@ -175,7 +175,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                                   ),
                                   Text(
                                     '${(player.bassBoost * 100).toInt()}%',
-                                    style: const TextStyle(color: EmberColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.bold),
+                                    style: TextStyle(color: EmberColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
@@ -238,8 +238,8 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                                 const SizedBox(height: 8),
                                 Center(
                                   child: TextButton.icon(
-                                    icon: const Icon(Icons.restore_rounded, size: 14, color: EmberColors.primaryBlue),
-                                    label: const Text(
+                                    icon: Icon(Icons.restore_rounded, size: 14, color: EmberColors.primaryBlue),
+                                    label: Text(
                                       'Revert to Original Audio',
                                       style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.w600),
                                     ),
@@ -316,7 +316,7 @@ class _StemQuickCard extends StatelessWidget {
         child: Row(
           children: [
             if (isLoading)
-              const SizedBox(
+              SizedBox(
                 width: 14,
                 height: 14,
                 child: CircularProgressIndicator(strokeWidth: 2, color: EmberColors.primaryBlue),

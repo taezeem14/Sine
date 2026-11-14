@@ -35,7 +35,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           leading: IconButton(
-            icon: const FaIcon(FontAwesomeIcons.chevronDown, size: 20, color: EmberColors.textPrimary),
+            icon: FaIcon(FontAwesomeIcons.chevronDown, size: 20, color: EmberColors.textPrimary),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -43,11 +43,11 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.textMuted),
+              FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.textMuted),
               const SizedBox(height: 6),
-              const Text('No song playing', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('No song playing', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              const Text('Playback has been stopped', style: TextStyle(color: EmberColors.textMuted, fontSize: 13)),
+              Text('Playback has been stopped', style: TextStyle(color: EmberColors.textMuted, fontSize: 13)),
               const SizedBox(height: 20),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -91,7 +91,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             IconButton(
-                              icon: const FaIcon(FontAwesomeIcons.chevronDown, size: 18, color: EmberColors.textPrimary),
+                              icon: FaIcon(FontAwesomeIcons.chevronDown, size: 18, color: EmberColors.textPrimary),
                               tooltip: 'Collapse',
                               onPressed: () => Navigator.of(context).pop(),
                             ),
@@ -122,13 +122,13 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                             ),
                             // Quick Sine QR Code Share
                             IconButton(
-                              icon: const FaIcon(FontAwesomeIcons.qrcode, size: 18, color: EmberColors.textSecondary),
+                              icon: FaIcon(FontAwesomeIcons.qrcode, size: 18, color: EmberColors.textSecondary),
                               tooltip: 'Show Sine QR Code',
                               onPressed: () => SineQrCodeSheet.show(context, song),
                             ),
                             // Three Dots Menu -> Opens Track Options Bottom Sheet
                             IconButton(
-                              icon: const FaIcon(FontAwesomeIcons.ellipsis, size: 18, color: EmberColors.textSecondary),
+                              icon: FaIcon(FontAwesomeIcons.ellipsis, size: 18, color: EmberColors.textSecondary),
                               tooltip: 'More Options',
                               onPressed: () => TrackOptionsSheet.show(context, song),
                             ),
@@ -157,7 +157,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     if (isStemLoading) ...[
-                                      const SizedBox(
+                                      SizedBox(
                                         width: 10,
                                         height: 10,
                                         child: CircularProgressIndicator(
@@ -181,7 +181,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                           (isolationMode == IsolationMode.instrumentsOnly
                                               ? 'AI Karaoke Active'
                                               : 'AI Acapella Active'),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: EmberColors.primaryBlue,
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
@@ -284,11 +284,11 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                                                   imageUrl: song.artworkUrl,
                                                                   memCacheWidth: 600,
                                                                   fit: BoxFit.cover,
-                                                                  errorWidget: (_, _, _) => const Center(
+                                                                  errorWidget: (_, _, _) => Center(
                                                                     child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
                                                                   ),
                                                                 )
-                                                              : const Center(
+                                                              : Center(
                                                                   child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
                                                                 ),
                                                         ),
@@ -507,7 +507,7 @@ class _TransportControlsSection extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const FaIcon(FontAwesomeIcons.backwardStep, color: EmberColors.textPrimary, size: 24),
+            icon: FaIcon(FontAwesomeIcons.backwardStep, color: EmberColors.textPrimary, size: 24),
             tooltip: 'Previous',
             onPressed: () {
               HapticFeedback.lightImpact();
@@ -524,7 +524,7 @@ class _TransportControlsSection extends StatelessWidget {
               height: 68,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [EmberColors.primaryBlueHi, EmberColors.primaryBlue],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -561,7 +561,7 @@ class _TransportControlsSection extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const FaIcon(FontAwesomeIcons.forwardStep, color: EmberColors.textPrimary, size: 24),
+            icon: FaIcon(FontAwesomeIcons.forwardStep, color: EmberColors.textPrimary, size: 24),
             tooltip: 'Next',
             onPressed: () {
               HapticFeedback.lightImpact();
@@ -646,7 +646,7 @@ class _SpotifyHeartButtonState extends State<_SpotifyHeartButton> with SingleTic
             const SizedBox(width: 10),
             Text(
               !isFav ? 'Added to Liked Songs' : 'Removed from Liked Songs',
-              style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+              style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -777,9 +777,9 @@ class _UtilityPillsRow extends StatelessWidget {
                           ),
                           subtitle: Text(
                             isTimerActive ? 'Cancel the active sleep timer immediately' : 'No sleep timer is currently active',
-                            style: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
+                            style: TextStyle(color: EmberColors.textMuted, fontSize: 11),
                           ),
-                          trailing: !isTimerActive ? const Icon(Icons.check, color: EmberColors.textMuted, size: 18) : null,
+                          trailing: !isTimerActive ? Icon(Icons.check, color: EmberColors.textMuted, size: 18) : null,
                           onTap: () {
                             player.cancelSleepTimer();
                             Navigator.pop(context);
@@ -788,9 +788,9 @@ class _UtilityPillsRow extends StatelessWidget {
                         const Divider(color: EmberColors.outlineVariant, height: 16),
 
                         ListTile(
-                          leading: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
-                          title: const Text('End of this song', style: TextStyle(color: EmberColors.textPrimary, fontWeight: FontWeight.w600)),
-                          trailing: player.sleepAtTrackEnd ? const Icon(Icons.check, color: EmberColors.primaryBlue) : null,
+                          leading: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                          title: Text('End of this song', style: TextStyle(color: EmberColors.textPrimary, fontWeight: FontWeight.w600)),
+                          trailing: player.sleepAtTrackEnd ? Icon(Icons.check, color: EmberColors.primaryBlue) : null,
                           onTap: () {
                             player.setSleepAtTrackEnd(true);
                             Navigator.pop(context);
@@ -798,10 +798,10 @@ class _UtilityPillsRow extends StatelessWidget {
                         ),
                         for (final mins in [5, 10, 15, 30, 45, 60, 90, 120])
                           ListTile(
-                            leading: const FaIcon(FontAwesomeIcons.clock, size: 16, color: EmberColors.textMuted),
-                            title: Text('$mins minutes', style: const TextStyle(color: EmberColors.textPrimary)),
+                            leading: FaIcon(FontAwesomeIcons.clock, size: 16, color: EmberColors.textMuted),
+                            title: Text('$mins minutes', style: TextStyle(color: EmberColors.textPrimary)),
                             trailing: (!player.sleepAtTrackEnd && remainingSecs == mins * 60)
-                                ? const Icon(Icons.check, color: EmberColors.primaryBlue)
+                                ? Icon(Icons.check, color: EmberColors.primaryBlue)
                                 : null,
                             onTap: () {
                               player.startSleepTimer(mins);

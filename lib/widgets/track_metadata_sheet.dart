@@ -113,7 +113,7 @@ class _TrackMetadataSheetState extends State<TrackMetadataSheet> {
                         color: EmberColors.primaryBlue.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const FaIcon(FontAwesomeIcons.penToSquare, size: 16, color: EmberColors.primaryBlue),
+                      child: FaIcon(FontAwesomeIcons.penToSquare, size: 16, color: EmberColors.primaryBlue),
                     ),
                     const SizedBox(width: 12),
                     const Text(
@@ -124,8 +124,8 @@ class _TrackMetadataSheetState extends State<TrackMetadataSheet> {
                 ),
                 TextButton.icon(
                   onPressed: _cleanYouTubeFormatting,
-                  icon: const Icon(Icons.auto_fix_high_rounded, size: 14, color: EmberColors.primaryBlue),
-                  label: const Text('Auto-Clean', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12)),
+                  icon: Icon(Icons.auto_fix_high_rounded, size: 14, color: EmberColors.primaryBlue),
+                  label: Text('Auto-Clean', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12)),
                 ),
               ],
             ),
@@ -153,14 +153,14 @@ class _TrackMetadataSheetState extends State<TrackMetadataSheet> {
                               width: 44,
                               height: 44,
                               color: EmberColors.surfaceContainerHigh,
-                              child: const Icon(Icons.music_note, color: EmberColors.textMuted, size: 20),
+                              child: Icon(Icons.music_note, color: EmberColors.textMuted, size: 20),
                             ),
                           )
                         : Container(
                             width: 44,
                             height: 44,
                             color: EmberColors.surfaceContainerHigh,
-                            child: const Icon(Icons.music_note, color: EmberColors.textMuted, size: 20),
+                            child: Icon(Icons.music_note, color: EmberColors.textMuted, size: 20),
                           ),
                   ),
                   const SizedBox(width: 12),
@@ -170,12 +170,12 @@ class _TrackMetadataSheetState extends State<TrackMetadataSheet> {
                       children: [
                         Text(
                           isLocal ? 'Offline Audio File' : 'YouTube Stream Stem',
-                          style: const TextStyle(color: EmberColors.primaryBlueHi, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           'Duration: ${s.duration.inMinutes}:${(s.duration.inSeconds % 60).toString().padLeft(2, '0')} • ID: ${s.id}',
-                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 10.5),
+                          style: TextStyle(color: EmberColors.textMuted, fontSize: 10.5),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -190,11 +190,11 @@ class _TrackMetadataSheetState extends State<TrackMetadataSheet> {
             // Track Title
             TextField(
               controller: _titleController,
-              style: const TextStyle(color: EmberColors.textPrimary, fontSize: 14),
+              style: TextStyle(color: EmberColors.textPrimary, fontSize: 14),
               decoration: InputDecoration(
                 labelText: 'Track Title',
-                labelStyle: const TextStyle(color: EmberColors.textSecondary, fontSize: 12),
-                prefixIcon: const Padding(
+                labelStyle: TextStyle(color: EmberColors.textSecondary, fontSize: 12),
+                prefixIcon: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryBlue),
                 ),
@@ -206,7 +206,7 @@ class _TrackMetadataSheetState extends State<TrackMetadataSheet> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: EmberColors.primaryBlue, width: 1.5),
+                  borderSide: BorderSide(color: EmberColors.primaryBlue, width: 1.5),
                 ),
               ),
             ),
@@ -215,11 +215,11 @@ class _TrackMetadataSheetState extends State<TrackMetadataSheet> {
             // Artist Name
             TextField(
               controller: _artistController,
-              style: const TextStyle(color: EmberColors.textPrimary, fontSize: 14),
+              style: TextStyle(color: EmberColors.textPrimary, fontSize: 14),
               decoration: InputDecoration(
                 labelText: 'Artist / Channel Name',
-                labelStyle: const TextStyle(color: EmberColors.textSecondary, fontSize: 12),
-                prefixIcon: const Padding(
+                labelStyle: TextStyle(color: EmberColors.textSecondary, fontSize: 12),
+                prefixIcon: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: FaIcon(FontAwesomeIcons.userPen, size: 14, color: EmberColors.primaryBlue),
                 ),
@@ -231,7 +231,7 @@ class _TrackMetadataSheetState extends State<TrackMetadataSheet> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: EmberColors.primaryBlue, width: 1.5),
+                  borderSide: BorderSide(color: EmberColors.primaryBlue, width: 1.5),
                 ),
               ),
             ),
@@ -259,7 +259,7 @@ class _TrackMetadataSheetState extends State<TrackMetadataSheet> {
                     context.read<PlayerProvider>().updateSongMetadata(updated);
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         backgroundColor: EmberColors.surfaceContainerHigh,
                         content: Text('Track metadata saved successfully!', style: TextStyle(color: EmberColors.primaryBlueHi)),
                       ),

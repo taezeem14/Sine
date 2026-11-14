@@ -75,8 +75,8 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
   String? _lastSyncedPreset;
   DateTime _lastHaptic = DateTime.fromMillisecondsSinceEpoch(0);
 
-  static const Color sineBlue = EmberColors.primaryBlue;
-  static const Color sineBlueDark = EmberColors.primaryBlue;
+  static Color get sineBlue => EmberColors.primaryBlue;
+  static Color get sineBlueDark => EmberColors.primaryBlue;
 
   @override
   void initState() {
@@ -310,7 +310,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: sineBlue.withValues(alpha: 0.3)),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Custom Curve',
                     style: TextStyle(
                       color: sineBlue,
@@ -351,7 +351,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
                       ),
                     ),
                     if (isSelected)
-                      const Icon(
+                      Icon(
                         Icons.check,
                         color: sineBlue,
                         size: 20,

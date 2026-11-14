@@ -149,7 +149,7 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
                               },
                             ),
                             IconButton(
-                              icon: const Icon(Icons.close_rounded, color: EmberColors.textMuted, size: 20),
+                              icon: Icon(Icons.close_rounded, color: EmberColors.textMuted, size: 20),
                               onPressed: () => Navigator.of(context).pop(),
                             ),
                           ],
@@ -181,10 +181,10 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
                               const SizedBox(height: 12),
                               TextField(
                                 controller: _lyricsSearchController,
-                                style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13),
+                                style: TextStyle(color: EmberColors.textPrimary, fontSize: 13),
                                 decoration: InputDecoration(
                                   hintText: 'e.g., "never gonna give you up"',
-                                  hintStyle: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                                  hintStyle: TextStyle(color: EmberColors.textMuted, fontSize: 12),
                                   filled: true,
                                   fillColor: EmberColors.surfaceContainerLow,
                                   border: OutlineInputBorder(
@@ -192,7 +192,7 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
                                     borderSide: BorderSide(color: EmberColors.outlineVariant.withValues(alpha: 0.5)),
                                   ),
                                   suffixIcon: IconButton(
-                                    icon: const Icon(Icons.arrow_forward_rounded, color: EmberColors.primaryBlue),
+                                    icon: Icon(Icons.arrow_forward_rounded, color: EmberColors.primaryBlue),
                                     onPressed: () {
                                       final q = _lyricsSearchController.text.trim();
                                       if (q.isNotEmpty) {
@@ -279,7 +279,7 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
                         height: 96,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: const LinearGradient(
+                          gradient: LinearGradient(
                             colors: [Color(0xFF1565C0), EmberColors.primaryBlue],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -368,8 +368,8 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
           const SizedBox(height: 10),
 
           TextButton.icon(
-            icon: const FaIcon(FontAwesomeIcons.magnifyingGlass, size: 12, color: EmberColors.primaryBlue),
-            label: const Text('Search by Lyrics or Humming', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12)),
+            icon: FaIcon(FontAwesomeIcons.magnifyingGlass, size: 12, color: EmberColors.primaryBlue),
+            label: Text('Search by Lyrics or Humming', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12)),
             onPressed: () => setState(() => _isLyricsSearchOpen = !_isLyricsSearchOpen),
           ),
         ],
@@ -409,14 +409,14 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
                         width: 140,
                         height: 140,
                         color: EmberColors.surfaceContainerHigh,
-                        child: const Icon(Icons.music_note, color: EmberColors.textMuted, size: 48),
+                        child: Icon(Icons.music_note, color: EmberColors.textMuted, size: 48),
                       ),
                     )
                   : Container(
                       width: 140,
                       height: 140,
                       color: EmberColors.surfaceContainerHigh,
-                      child: const Icon(Icons.music_note, color: EmberColors.textMuted, size: 48),
+                      child: Icon(Icons.music_note, color: EmberColors.textMuted, size: 48),
                     ),
             ),
           ),
@@ -431,7 +431,7 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: EmberColors.primaryBlue.withValues(alpha: 0.4)),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 FaIcon(FontAwesomeIcons.bolt, size: 10, color: EmberColors.primaryBlue),
@@ -519,7 +519,7 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
                     backgroundColor: EmberColors.surfaceContainerHigh,
                     padding: const EdgeInsets.all(12),
                   ),
-                  icon: const FaIcon(FontAwesomeIcons.alignLeft, color: EmberColors.textPrimary, size: 16),
+                  icon: FaIcon(FontAwesomeIcons.alignLeft, color: EmberColors.textPrimary, size: 16),
                   tooltip: 'View Lyrics',
                   onPressed: () {
                     LyricsSheet.show(context, sineSong);
@@ -533,7 +533,7 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
 
           TextButton(
             onPressed: () => MusicDetectionService.instance.startListening(),
-            child: const Text('Detect Another Song', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
+            child: Text('Detect Another Song', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
           ),
         ],
       ),
@@ -568,7 +568,7 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
             builder: (context, msg, _) => Text(
               msg,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
+              style: TextStyle(color: EmberColors.textMuted, fontSize: 12),
             ),
           ),
           const SizedBox(height: 10),
@@ -595,7 +595,7 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   foregroundColor: EmberColors.textPrimary,
-                  side: const BorderSide(color: EmberColors.outlineVariant),
+                  side: BorderSide(color: EmberColors.outlineVariant),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const FaIcon(FontAwesomeIcons.keyboard, size: 13),

@@ -77,7 +77,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       shape: BoxShape.circle,
                       color: EmberColors.primaryBlue.withValues(alpha: 0.16),
                     ),
-                    child: const FaIcon(FontAwesomeIcons.gear, color: EmberColors.primaryBlue, size: 18),
+                    child: FaIcon(FontAwesomeIcons.gear, color: EmberColors.primaryBlue, size: 18),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -91,7 +91,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: EmberColors.textMuted, size: 20),
+                    icon: Icon(Icons.close_rounded, color: EmberColors.textMuted, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -245,9 +245,9 @@ class _SettingsContentState extends State<SettingsContent> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Neural Stem Separation Engine', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                Text('Neural Stem Separation Engine', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
-                const Text('Prioritize AI models or local matching for Karaoke & Acapella isolation.', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
+                Text('Prioritize AI models or local matching for Karaoke & Acapella isolation.', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
                 const SizedBox(height: 14),
                 _buildOptionTile('Automatic SOTA (Recommended)', 'BS-RoFormer (12.97dB SDR) -> Demucs v4 -> Studio', player.stemEnginePreference == 'auto', () {
                   player.setStemEnginePreference('auto');
@@ -290,9 +290,9 @@ class _SettingsContentState extends State<SettingsContent> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Playback Session Recovery', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                Text('Playback Session Recovery', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
-                const Text('How Sine handles previously active playback when the app is restarted.', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
+                Text('How Sine handles previously active playback when the app is restarted.', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
                 const SizedBox(height: 14),
                 _buildOptionTile('Prompt (Recommended)', 'Clean startup; show discrete "Resume" banner on Home', player.playbackRecoveryMode == 'prompt', () {
                   player.setPlaybackRecoveryMode('prompt');
@@ -331,7 +331,7 @@ class _SettingsContentState extends State<SettingsContent> {
                 shape: BoxShape.circle,
                 color: EmberColors.primaryBlue.withValues(alpha: 0.15),
               ),
-              child: const FaIcon(FontAwesomeIcons.scaleBalanced, color: EmberColors.primaryBlue, size: 16),
+              child: FaIcon(FontAwesomeIcons.scaleBalanced, color: EmberColors.primaryBlue, size: 16),
             ),
             const SizedBox(width: 12),
             const Expanded(
@@ -371,7 +371,7 @@ class _SettingsContentState extends State<SettingsContent> {
                           children: [
                             Text(
                               item['name'] ?? '',
-                              style: const TextStyle(color: EmberColors.primaryBlueHi, fontWeight: FontWeight.bold, fontSize: 13),
+                              style: TextStyle(color: EmberColors.primaryBlueHi, fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
@@ -381,7 +381,7 @@ class _SettingsContentState extends State<SettingsContent> {
                               ),
                               child: Text(
                                 item['license'] ?? 'GPL-3.0',
-                                style: const TextStyle(color: EmberColors.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: EmberColors.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ],
@@ -389,12 +389,12 @@ class _SettingsContentState extends State<SettingsContent> {
                         const SizedBox(height: 3),
                         Text(
                           'By ${item['organization']} • ${item['repo']}',
-                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 10.5, fontStyle: FontStyle.italic),
+                          style: TextStyle(color: EmberColors.textMuted, fontSize: 10.5, fontStyle: FontStyle.italic),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           item['role'] ?? '',
-                          style: const TextStyle(color: EmberColors.textSecondary, fontSize: 11, height: 1.3),
+                          style: TextStyle(color: EmberColors.textSecondary, fontSize: 11, height: 1.3),
                         ),
                       ],
                     ),
@@ -407,7 +407,7 @@ class _SettingsContentState extends State<SettingsContent> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close', style: TextStyle(color: EmberColors.primaryBlue, fontWeight: FontWeight.bold)),
+            child: Text('Close', style: TextStyle(color: EmberColors.primaryBlue, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -421,7 +421,7 @@ class _SettingsContentState extends State<SettingsContent> {
       builder: (ctx) => AlertDialog(
         backgroundColor: EmberColors.obsidianBase,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Row(
+        title: Row(
           children: [
             FaIcon(FontAwesomeIcons.fileExport, color: EmberColors.primaryBlue, size: 18),
             SizedBox(width: 10),
@@ -447,10 +447,10 @@ class _SettingsContentState extends State<SettingsContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('• Playlists: ${player.playlists.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
-                  Text('• Favorites: ${player.favorites.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
-                  Text('• History Tracks: ${player.history.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
-                  const Text('• Format: SINE_BACKUP v1.3.0', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('• Playlists: ${player.playlists.length}', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                  Text('• Favorites: ${player.favorites.length}', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                  Text('• History Tracks: ${player.history.length}', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                  Text('• Format: SINE_BACKUP v1.3.0', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -459,7 +459,7 @@ class _SettingsContentState extends State<SettingsContent> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+            child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
           ),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
@@ -472,7 +472,7 @@ class _SettingsContentState extends State<SettingsContent> {
               Clipboard.setData(ClipboardData(text: jsonStr));
               Navigator.of(ctx).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
+                SnackBar(
                   backgroundColor: EmberColors.surfaceContainerHigh,
                   content: Text('Backup JSON copied to clipboard!', style: TextStyle(color: EmberColors.primaryBlueHi)),
                 ),
@@ -494,7 +494,7 @@ class _SettingsContentState extends State<SettingsContent> {
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: EmberColors.obsidianBase,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: const Row(
+          title: Row(
             children: [
               FaIcon(FontAwesomeIcons.fileImport, color: EmberColors.primaryBlue, size: 18),
               SizedBox(width: 10),
@@ -514,10 +514,10 @@ class _SettingsContentState extends State<SettingsContent> {
                 TextField(
                   controller: controller,
                   maxLines: 5,
-                  style: const TextStyle(color: EmberColors.textPrimary, fontSize: 11, fontFamily: 'monospace'),
+                  style: TextStyle(color: EmberColors.textPrimary, fontSize: 11, fontFamily: 'monospace'),
                   decoration: InputDecoration(
                     hintText: 'Paste {"format": "SINE_BACKUP", ...}',
-                    hintStyle: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
+                    hintStyle: TextStyle(color: EmberColors.textMuted, fontSize: 11),
                     filled: true,
                     fillColor: EmberColors.surfaceContainerLow,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -527,8 +527,8 @@ class _SettingsContentState extends State<SettingsContent> {
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   dense: true,
-                  title: const Text('Merge with existing library', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
-                  subtitle: const Text('Uncheck to completely overwrite current database', style: TextStyle(color: EmberColors.textMuted, fontSize: 10.5)),
+                  title: Text('Merge with existing library', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                  subtitle: Text('Uncheck to completely overwrite current database', style: TextStyle(color: EmberColors.textMuted, fontSize: 10.5)),
                   value: mergeData,
                   activeColor: EmberColors.primaryBlue,
                   onChanged: (val) => setDialogState(() => mergeData = val ?? true),
@@ -539,7 +539,7 @@ class _SettingsContentState extends State<SettingsContent> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+              child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: EmberColors.primaryBlue, foregroundColor: Colors.white),
@@ -554,7 +554,7 @@ class _SettingsContentState extends State<SettingsContent> {
                   messenger.showSnackBar(
                     SnackBar(
                       backgroundColor: EmberColors.surfaceContainerHigh,
-                      content: Text('Restored ${res.playlistsCount} playlists, ${res.favoritesCount} favorites!', style: const TextStyle(color: EmberColors.primaryBlueHi)),
+                      content: Text('Restored ${res.playlistsCount} playlists, ${res.favoritesCount} favorites!', style: TextStyle(color: EmberColors.primaryBlueHi)),
                     ),
                   );
                 } else {
@@ -574,6 +574,442 @@ class _SettingsContentState extends State<SettingsContent> {
     );
   }
 
+  Widget _buildThemeSection(BuildContext context, PlayerProvider player) {
+    final currentPreset = player.activeThemePreset;
+    final activeAccent = EmberColors.currentPrimary;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: EmberColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: activeAccent.withValues(alpha: 0.18),
+                ),
+                child: Icon(Icons.palette_rounded, color: activeAccent, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Accent Color',
+                      style: TextStyle(
+                        color: EmberColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      currentPreset == SineThemePreset.custom
+                          ? 'Custom Accent (#${activeAccent.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()})'
+                          : currentPreset.label,
+                      style: const TextStyle(
+                        color: EmberColors.textSecondary,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: activeAccent,
+                  boxShadow: [
+                    BoxShadow(
+                      color: activeAccent.withValues(alpha: 0.5),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
+                ...SineThemePreset.values.where((p) => p != SineThemePreset.custom).map((preset) {
+                  final isSelected = currentPreset == preset;
+                  return GestureDetector(
+                    onTap: () => player.setThemePreset(preset),
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: preset.accentColor,
+                              border: Border.all(
+                                color: isSelected ? Colors.white : Colors.transparent,
+                                width: 2.5,
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: preset.accentColor.withValues(alpha: 0.5),
+                                        blurRadius: 8,
+                                        spreadRadius: 2,
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: isSelected
+                                ? Icon(
+                                    Icons.check_rounded,
+                                    size: 18,
+                                    color: (preset == SineThemePreset.monochrome || preset == SineThemePreset.yellow)
+                                        ? Colors.black
+                                        : Colors.white,
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            preset.label.split(' ').first,
+                            style: TextStyle(
+                              color: isSelected ? EmberColors.textPrimary : EmberColors.textMuted,
+                              fontSize: 10,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                GestureDetector(
+                  onTap: () => _showCustomColorPicker(context, player),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const SweepGradient(
+                            colors: [
+                              Colors.red,
+                              Colors.yellow,
+                              Colors.green,
+                              Colors.cyan,
+                              Colors.blue,
+                              Colors.purple,
+                              Colors.red,
+                            ],
+                          ),
+                          border: Border.all(
+                            color: currentPreset == SineThemePreset.custom ? Colors.white : Colors.transparent,
+                            width: 2.5,
+                          ),
+                          boxShadow: currentPreset == SineThemePreset.custom
+                              ? [
+                                  BoxShadow(
+                                    color: activeAccent.withValues(alpha: 0.5),
+                                    blurRadius: 8,
+                                    spreadRadius: 2,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: currentPreset == SineThemePreset.custom
+                            ? const Icon(Icons.colorize_rounded, size: 17, color: Colors.white)
+                            : const Icon(Icons.add_rounded, size: 19, color: Colors.white),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Custom',
+                        style: TextStyle(
+                          color: currentPreset == SineThemePreset.custom ? EmberColors.textPrimary : EmberColors.textMuted,
+                          fontSize: 10,
+                          fontWeight: currentPreset == SineThemePreset.custom ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCustomColorPicker(BuildContext context, PlayerProvider player) {
+    Color pickerColor = player.customThemeColor;
+    int r = (pickerColor.r * 255).round();
+    int g = (pickerColor.g * 255).round();
+    int b = (pickerColor.b * 255).round();
+
+    final curatedSwatches = const [
+      Color(0xFF00E5FF),
+      Color(0xFF00BFA5),
+      Color(0xFFFF4081),
+      Color(0xFF7C4DFF),
+      Color(0xFFAEEA00),
+      Color(0xFFFFD700),
+      Color(0xFFFF6F61),
+      Color(0xFF00BFFF),
+      Color(0xFFB388FF),
+      Color(0xFFFFAB00),
+      Color(0xFFE91E63),
+      Color(0xFFFFFFFF),
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setPickerState) {
+          final hexStr = '#${pickerColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+
+          return AlertDialog(
+            backgroundColor: EmberColors.obsidianBase,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: pickerColor.withValues(alpha: 0.2),
+                  ),
+                  child: Icon(Icons.colorize_rounded, color: pickerColor, size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Custom Theme Color',
+                  style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: EmberColors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: pickerColor,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: pickerColor.withValues(alpha: 0.4),
+                                  blurRadius: 12,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                hexStr,
+                                style: TextStyle(
+                                  color: pickerColor,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'RGB: ($r, $g, $b)',
+                                style: const TextStyle(
+                                  color: EmberColors.textMuted,
+                                  fontSize: 11,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Curated Neon & Vivid Accents',
+                      style: TextStyle(color: EmberColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: curatedSwatches.map((color) {
+                        final isPicked = pickerColor.toARGB32() == color.toARGB32();
+                        return GestureDetector(
+                          onTap: () {
+                            setPickerState(() {
+                              pickerColor = color;
+                              r = (color.r * 255).round();
+                              g = (color.g * 255).round();
+                              b = (color.b * 255).round();
+                            });
+                          },
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: color,
+                              border: Border.all(
+                                color: isPicked ? Colors.white : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: isPicked
+                                ? Icon(
+                                    Icons.check,
+                                    size: 16,
+                                    color: (color.r * 0.299 + color.g * 0.587 + color.b * 0.114) > 0.6 ? Colors.black : Colors.white,
+                                  )
+                                : null,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Precision RGB Sliders',
+                      style: TextStyle(color: EmberColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const SizedBox(width: 22, child: Text('R', style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold))),
+                        Expanded(
+                          child: Slider(
+                            value: r.toDouble(),
+                            min: 0,
+                            max: 255,
+                            activeColor: Colors.redAccent,
+                            onChanged: (val) {
+                              setPickerState(() {
+                                r = val.round();
+                                pickerColor = Color.fromARGB(255, r, g, b);
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 30, child: Text('$r', style: const TextStyle(color: EmberColors.textMuted, fontSize: 11))),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const SizedBox(width: 22, child: Text('G', style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold))),
+                        Expanded(
+                          child: Slider(
+                            value: g.toDouble(),
+                            min: 0,
+                            max: 255,
+                            activeColor: Colors.greenAccent,
+                            onChanged: (val) {
+                              setPickerState(() {
+                                g = val.round();
+                                pickerColor = Color.fromARGB(255, r, g, b);
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 30, child: Text('$g', style: const TextStyle(color: EmberColors.textMuted, fontSize: 11))),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const SizedBox(width: 22, child: Text('B', style: TextStyle(color: Colors.lightBlueAccent, fontSize: 11, fontWeight: FontWeight.bold))),
+                        Expanded(
+                          child: Slider(
+                            value: b.toDouble(),
+                            min: 0,
+                            max: 255,
+                            activeColor: Colors.lightBlueAccent,
+                            onChanged: (val) {
+                              setPickerState(() {
+                                b = val.round();
+                                pickerColor = Color.fromARGB(255, r, g, b);
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 30, child: Text('$b', style: const TextStyle(color: EmberColors.textMuted, fontSize: 11))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: pickerColor,
+                  foregroundColor: (pickerColor.r * 0.299 + pickerColor.g * 0.587 + pickerColor.b * 0.114) > 0.6 ? Colors.black : Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  player.setThemePreset(SineThemePreset.custom, customColor: pickerColor);
+                  Navigator.of(ctx).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: EmberColors.surfaceContainerHigh,
+                      content: Text('Custom theme accent applied ($hexStr)!', style: TextStyle(color: pickerColor, fontWeight: FontWeight.bold)),
+                    ),
+                  );
+                },
+                child: const Text('Apply Theme', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildOptionTile(String title, String subtitle, bool isSelected, VoidCallback onTap) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -585,8 +1021,8 @@ class _SettingsContentState extends State<SettingsContent> {
       child: ListTile(
         dense: true,
         title: Text(title, style: TextStyle(color: isSelected ? EmberColors.primaryBlueHi : EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, style: const TextStyle(color: EmberColors.textMuted, fontSize: 11)),
-        trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: EmberColors.primaryBlue, size: 18) : null,
+        subtitle: Text(subtitle, style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
+        trailing: isSelected ? Icon(Icons.check_circle_rounded, color: EmberColors.primaryBlue, size: 18) : null,
         onTap: onTap,
       ),
     );
@@ -661,7 +1097,7 @@ class _SettingsContentState extends State<SettingsContent> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
                             Flexible(
                               child: Text(
@@ -691,7 +1127,7 @@ class _SettingsContentState extends State<SettingsContent> {
                             color: EmberColors.primaryBlue.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Author & Creator',
                             style: TextStyle(
                               color: EmberColors.primaryBlueHi,
@@ -715,10 +1151,10 @@ class _SettingsContentState extends State<SettingsContent> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Row(
+              Row(
                 children: [
                   FaIcon(FontAwesomeIcons.github, size: 14, color: EmberColors.textMuted),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       'github.com/taezeem14',
@@ -780,7 +1216,7 @@ class _SettingsContentState extends State<SettingsContent> {
           iconColor: EmberColors.primaryBlue,
           title: 'Donate via UPI (7006616470@fam)',
           subtitle: 'Support development directly using GPay, PhonePe, Paytm or FamPay',
-          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.primaryBlue),
+          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.primaryBlue),
           onTap: widget.onNavigateToDonate,
         ),
 
@@ -807,9 +1243,17 @@ class _SettingsContentState extends State<SettingsContent> {
             icon: FontAwesomeIcons.key,
             title: 'Change Passcode',
             subtitle: 'Update your 4-digit security PIN',
-            trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+            trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
             onTap: _changePasscode,
           ),
+
+        const SizedBox(height: 16),
+
+        // ==========================================
+        // SECTION: THEME & ACCENT CUSTOMIZATION
+        // ==========================================
+        const _SectionHeader(title: 'Theme & Accent Customization'),
+        _buildThemeSection(context, player),
 
         const SizedBox(height: 16),
 
@@ -817,7 +1261,7 @@ class _SettingsContentState extends State<SettingsContent> {
         // SECTION: HOME SCREEN WIDGETS
         // ==========================================
         const _SectionHeader(title: 'Android Home Screen Widgets'),
-        const _SettingsTile(
+        _SettingsTile(
           icon: FontAwesomeIcons.tableCellsLarge,
           iconColor: EmberColors.secondaryCyan,
           title: 'Sine Now Playing Widget (4x2)',
@@ -836,7 +1280,7 @@ class _SettingsContentState extends State<SettingsContent> {
           icon: FontAwesomeIcons.sliders,
           title: 'Equalizer & Audio Shaping',
           subtitle: 'Preset: ${player.eqPreset} • Bass Boost: ${(player.bassBoost * 100).round()}%',
-          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => EqualizerScreen.open(context),
         ),
         _SettingsTile(
@@ -856,7 +1300,7 @@ class _SettingsContentState extends State<SettingsContent> {
           iconColor: EmberColors.primaryBlue,
           title: 'Neural Stem Engine Preference',
           subtitle: 'AI Model: ${player.stemEnginePreference.toUpperCase()} • SOTA Vocal & Backing Separation',
-          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showStemEngineSheet(context, player),
         ),
         _SettingsTile(
@@ -864,7 +1308,7 @@ class _SettingsContentState extends State<SettingsContent> {
           iconColor: EmberColors.primaryBlue,
           title: 'Playback Session Recovery',
           subtitle: 'Mode: ${player.playbackRecoveryMode.toUpperCase()} • Reliable app restart recovery',
-          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showRecoveryModeSheet(context, player),
         ),
         _SettingsTile(
@@ -927,7 +1371,7 @@ class _SettingsContentState extends State<SettingsContent> {
           iconColor: EmberColors.error,
           title: 'Cut Active Playback',
           subtitle: 'Immediately stop audio and dismiss the playing song',
-          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () {
             final messenger = ScaffoldMessenger.of(context);
             player.stopPlayback();
@@ -953,13 +1397,13 @@ class _SettingsContentState extends State<SettingsContent> {
           icon: FontAwesomeIcons.layerGroup,
           title: 'Deduplicate Active Queue',
           subtitle: 'Remove all duplicate tracks while preserving active playback',
-          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () {
             player.deduplicateQueue();
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 backgroundColor: EmberColors.surfaceContainerHigh,
-                duration: Duration(seconds: 2),
+                duration: const Duration(seconds: 2),
                 content: Text('Active queue deduplicated cleanly!', style: TextStyle(color: EmberColors.primaryBlueHi)),
               ),
             );
@@ -969,23 +1413,23 @@ class _SettingsContentState extends State<SettingsContent> {
           icon: FontAwesomeIcons.broom,
           title: 'Purge Placeholders & Clean Cache',
           subtitle: 'Eradicate legacy mock songs and clear temp audio cache',
-          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () async {
             final messenger = ScaffoldMessenger.of(context);
             messenger.hideCurrentSnackBar();
             messenger.showSnackBar(
-              const SnackBar(
+              SnackBar(
                 backgroundColor: EmberColors.surfaceContainerHigh,
-                duration: Duration(seconds: 1),
+                duration: const Duration(seconds: 1),
                 content: Text('Cleaning storage and purging old cache...', style: TextStyle(color: EmberColors.primaryBlue)),
               ),
             );
             await player.purgePlaceholders();
             messenger.hideCurrentSnackBar();
             messenger.showSnackBar(
-              const SnackBar(
+              SnackBar(
                 backgroundColor: EmberColors.surfaceContainerHigh,
-                duration: Duration(seconds: 2),
+                duration: const Duration(seconds: 2),
                 content: Text('Storage cleaned & cache flushed successfully!', style: TextStyle(color: EmberColors.primaryBlueHi)),
               ),
             );
@@ -996,7 +1440,7 @@ class _SettingsContentState extends State<SettingsContent> {
           iconColor: EmberColors.primaryBlue,
           title: 'Export Library Backup (JSON)',
           subtitle: 'Backup playlists, favorites, history, and custom EQ settings',
-          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showExportBackupDialog(context, player),
         ),
         _SettingsTile(
@@ -1004,7 +1448,7 @@ class _SettingsContentState extends State<SettingsContent> {
           iconColor: EmberColors.primaryBlue,
           title: 'Restore Library from Backup',
           subtitle: 'Import JSON backup with merge or clean overwrite options',
-          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showRestoreBackupDialog(context, player),
         ),
 
@@ -1021,7 +1465,7 @@ class _SettingsContentState extends State<SettingsContent> {
           trailing: Text(AppConstants.version, style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
           onTap: null,
         ),
-        const _SettingsTile(
+        _SettingsTile(
           icon: FontAwesomeIcons.music,
           iconColor: EmberColors.primaryBlue,
           title: 'NewPipe YouTube Audio Engine',
@@ -1029,7 +1473,7 @@ class _SettingsContentState extends State<SettingsContent> {
           trailing: Text('Lossless/HD', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12, fontWeight: FontWeight.bold)),
           onTap: null,
         ),
-        const _SettingsTile(
+        _SettingsTile(
           icon: FontAwesomeIcons.shieldHeart,
           title: 'Open Source & Ad-Free',
           subtitle: 'No telemetry, zero third-party ads, strictly local storage',
@@ -1041,7 +1485,7 @@ class _SettingsContentState extends State<SettingsContent> {
           iconColor: EmberColors.primaryBlue,
           title: 'Open Source Credits & Attribution',
           subtitle: 'GNU GPL-3.0 attribution for Audile, zemer-cipher, BetterLyrics & Metrolist',
-          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showOpenSourceCreditsDialog(context),
         ),
         _SettingsTile(
@@ -1049,7 +1493,7 @@ class _SettingsContentState extends State<SettingsContent> {
           iconColor: EmberColors.primaryBlue,
           title: 'Diagnostics & Log Extractor',
           subtitle: 'Live ExoPlayer telemetry, candidate stream inspector & bug reporter',
-          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const DiagnosticsLogScreen()),

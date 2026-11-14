@@ -74,20 +74,20 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
       await LogService.instance.copyReportToClipboard();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           backgroundColor: EmberColors.surfaceContainerHigh,
           behavior: SnackBarBehavior.floating,
           content: Row(
             children: [
               FaIcon(FontAwesomeIcons.circleCheck, color: EmberColors.primaryAmber, size: 16),
-              SizedBox(width: 10),
-              Text(
+              const SizedBox(width: 10),
+              const Text(
                 'Diagnostic report copied to clipboard!',
                 style: TextStyle(color: EmberColors.textPrimary, fontWeight: FontWeight.w600),
               ),
             ],
           ),
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
@@ -153,7 +153,7 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
         backgroundColor: EmberColors.obsidianBase,
         elevation: 0,
         leading: IconButton(
-          icon: const FaIcon(FontAwesomeIcons.chevronLeft, size: 18, color: EmberColors.textPrimary),
+          icon: FaIcon(FontAwesomeIcons.chevronLeft, size: 18, color: EmberColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Column(
@@ -179,12 +179,12 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
         actions: [
           IconButton(
             tooltip: 'Copy Markdown Report',
-            icon: const FaIcon(FontAwesomeIcons.copy, size: 16, color: EmberColors.primaryAmber),
+            icon: FaIcon(FontAwesomeIcons.copy, size: 16, color: EmberColors.primaryAmber),
             onPressed: _copyReport,
           ),
           IconButton(
             tooltip: 'Clear Logs',
-            icon: const FaIcon(FontAwesomeIcons.trashCan, size: 16, color: EmberColors.textMuted),
+            icon: FaIcon(FontAwesomeIcons.trashCan, size: 16, color: EmberColors.textMuted),
             onPressed: () {
               LogService.instance.clearLogs();
               ScaffoldMessenger.of(context).showSnackBar(
@@ -516,7 +516,7 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
                               children: [
                                 Text(
                                   'Candidate #$idx: ',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: EmberColors.primaryAmber,
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
@@ -530,7 +530,7 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
                                   ),
                                   child: Text(
                                     codec,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: EmberColors.primaryAmber,
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
@@ -581,7 +581,7 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
                   ),
                   if (log.lastStackTrace != null && log.lastStackTrace!.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    const Text('Stack Trace:', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
+                    Text('Stack Trace:', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.all(8),
@@ -638,11 +638,11 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
                   FaIcon(FontAwesomeIcons.flask, size: 14, color: EmberColors.primaryAmber),
-                  SizedBox(width: 8),
-                  Text(
+                  const SizedBox(width: 8),
+                  const Text(
                     'Live Stream Extraction Sandbox',
                     style: TextStyle(
                       color: EmberColors.textPrimary,
@@ -663,12 +663,12 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
                   Expanded(
                     child: TextField(
                       controller: _testQueryController,
-                      style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontFamily: 'monospace'),
+                      style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontFamily: 'monospace'),
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: EmberColors.surfaceContainerHigh,
                         hintText: 'e.g. dQw4w9WgXcQ or song name',
-                        hintStyle: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                        hintStyle: TextStyle(color: EmberColors.textMuted, fontSize: 12),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -738,7 +738,7 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
                     ),
                     Text(
                       '${_testResult!.durationMs} ms',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: EmberColors.primaryAmber,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -799,7 +799,7 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
               const SizedBox(width: 8),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   color: EmberColors.primaryAmber,
                   fontSize: 11.5,
                   fontWeight: FontWeight.bold,
@@ -869,12 +869,12 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
             const SizedBox(height: 12),
             TextField(
               controller: _stemSongIdController,
-              style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13),
+              style: TextStyle(color: EmberColors.textPrimary, fontSize: 13),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: EmberColors.surfaceContainerHigh,
                 hintText: 'YouTube Video ID or Title',
-                hintStyle: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                hintStyle: TextStyle(color: EmberColors.textMuted, fontSize: 12),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
               ),
@@ -962,11 +962,11 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
                           diag.songTitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13.5, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: EmberColors.textPrimary, fontSize: 13.5, fontWeight: FontWeight.bold),
                         ),
                         Text(
                           '${diag.songArtist} • Total Latency: ${diag.totalLatency.inMilliseconds}ms',
-                          style: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
+                          style: TextStyle(color: EmberColors.textMuted, fontSize: 11),
                         ),
                       ],
                     ),
@@ -990,7 +990,7 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
                 ],
               ),
               const SizedBox(height: 14),
-              const Text('EXECUTION TIMELINE & STAGE RESULTS:', style: TextStyle(color: EmberColors.textMuted, fontSize: 10.5, fontWeight: FontWeight.bold, letterSpacing: 0.6)),
+              Text('EXECUTION TIMELINE & STAGE RESULTS:', style: TextStyle(color: EmberColors.textMuted, fontSize: 10.5, fontWeight: FontWeight.bold, letterSpacing: 0.6)),
               const SizedBox(height: 8),
               ...diag.steps.map((step) {
                 final isOk = step.isSuccess;
@@ -1016,11 +1016,11 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(step.stage, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
-                                Text('${step.latency.inMilliseconds}ms', style: const TextStyle(color: EmberColors.textMuted, fontSize: 10, fontFamily: 'monospace')),
+                                Text('${step.latency.inMilliseconds}ms', style: TextStyle(color: EmberColors.textMuted, fontSize: 10, fontFamily: 'monospace')),
                               ],
                             ),
                             const SizedBox(height: 3),
-                            Text(step.details, style: const TextStyle(color: EmberColors.textSecondary, fontSize: 11, height: 1.3)),
+                            Text(step.details, style: TextStyle(color: EmberColors.textSecondary, fontSize: 11, height: 1.3)),
                           ],
                         ),
                       ),
@@ -1044,8 +1044,8 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(h.isSuccess ? Icons.check_circle : Icons.warning_amber_rounded, size: 16, color: h.isSuccess ? EmberColors.primaryAmber : Colors.orangeAccent),
-                  title: Text(h.songTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
-                  subtitle: Text('${h.requestedStem.name} • ${h.finalSource.name} • ${h.totalLatency.inMilliseconds}ms', style: const TextStyle(color: EmberColors.textMuted, fontSize: 10.5)),
+                  title: Text(h.songTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: EmberColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                  subtitle: Text('${h.requestedStem.name} • ${h.finalSource.name} • ${h.totalLatency.inMilliseconds}ms', style: TextStyle(color: EmberColors.textMuted, fontSize: 10.5)),
                   onTap: () => setState(() => _activeStemDiagnostic = h),
                 );
               }),
@@ -1101,13 +1101,13 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text('FPS', style: TextStyle(color: EmberColors.textMuted, fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text('FPS', style: TextStyle(color: EmberColors.textMuted, fontSize: 18, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Target: ${snap.targetRefreshRate.toInt()} Hz Display Refresh Rate',
-                    style: const TextStyle(color: EmberColors.textSecondary, fontSize: 12),
+                    style: TextStyle(color: EmberColors.textSecondary, fontSize: 12),
                   ),
                 ],
               ),
@@ -1143,8 +1143,8 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
                     return SwitchListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Floating Performance HUD', style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
-                      subtitle: const Text('Display real-time FPS overlay across all app screens', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
+                      title: Text('Floating Performance HUD', style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                      subtitle: Text('Display real-time FPS overlay across all app screens', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
                       value: hudVisible,
                       activeThumbColor: EmberColors.primaryAmber,
                       onChanged: (val) {
@@ -1156,8 +1156,8 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
                 const Divider(color: EmberColors.outlineVariant, height: 16),
                 Center(
                   child: TextButton.icon(
-                    icon: const FaIcon(FontAwesomeIcons.rotateRight, size: 12, color: EmberColors.primaryAmber),
-                    label: const Text('Reset Telemetry Data', style: TextStyle(color: EmberColors.primaryAmber, fontSize: 12, fontWeight: FontWeight.bold)),
+                    icon: FaIcon(FontAwesomeIcons.rotateRight, size: 12, color: EmberColors.primaryAmber),
+                    label: Text('Reset Telemetry Data', style: TextStyle(color: EmberColors.primaryAmber, fontSize: 12, fontWeight: FontWeight.bold)),
                     onPressed: () {
                       PerformanceService.instance.resetStats();
                       ScaffoldMessenger.of(context).showSnackBar(

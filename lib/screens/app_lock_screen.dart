@@ -171,7 +171,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                     ),
                   ],
                 ),
-                child: const Center(
+                child: Center(
                   child: FaIcon(
                     FontAwesomeIcons.lock,
                     color: EmberColors.primaryBlue,

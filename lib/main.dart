@@ -78,11 +78,13 @@ class SineMobileApp extends StatelessWidget {
           create: (_) => PlayerProvider(audioHandler, storageService),
         ),
       ],
-      child: MaterialApp(
-        title: 'Sine',
-        debugShowCheckedModeBanner: false,
-        theme: EmberTheme.darkTheme,
-        home: const PerformanceHudOverlay(child: PulsePipeShellScreen()),
+      child: Consumer<PlayerProvider>(
+        builder: (context, player, _) => MaterialApp(
+          title: 'Sine',
+          debugShowCheckedModeBanner: false,
+          theme: player.themeData,
+          home: const PerformanceHudOverlay(child: PulsePipeShellScreen()),
+        ),
       ),
     );
   }

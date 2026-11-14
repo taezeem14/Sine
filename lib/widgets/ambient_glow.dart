@@ -4,13 +4,13 @@ import '../theme/ember_theme.dart';
 class AmbientGlow extends StatefulWidget {
   final Widget child;
   final bool isPlaying;
-  final Color glowColor;
+  final Color? glowColor;
 
   const AmbientGlow({
     super.key,
     required this.child,
     this.isPlaying = true,
-    this.glowColor = EmberColors.primaryAmber,
+    this.glowColor,
   });
 
   @override
@@ -70,7 +70,7 @@ class _AmbientGlowState extends State<AmbientGlow>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: widget.glowColor.withValues(alpha: widget.isPlaying ? 0.32 : 0.12),
+                  color: (widget.glowColor ?? EmberColors.primaryAmber).withValues(alpha: widget.isPlaying ? 0.32 : 0.12),
                   blurRadius: 52,
                   spreadRadius: 22,
                 ),

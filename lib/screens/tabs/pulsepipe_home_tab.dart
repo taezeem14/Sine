@@ -85,22 +85,22 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
             ),
             actions: [
               IconButton(
-                icon: const FaIcon(FontAwesomeIcons.microphoneLines, size: 16, color: EmberColors.primaryBlue),
+                icon: FaIcon(FontAwesomeIcons.microphoneLines, size: 16, color: EmberColors.primaryBlue),
                 tooltip: 'Audile Music Detector',
                 onPressed: () => MusicDetectorSheet.show(context),
               ),
               IconButton(
-                icon: const FaIcon(FontAwesomeIcons.sliders, size: 16, color: EmberColors.textPrimary),
+                icon: FaIcon(FontAwesomeIcons.sliders, size: 16, color: EmberColors.textPrimary),
                 tooltip: 'Audiophile Equalizer',
                 onPressed: () => SoundShapingSheet.show(context),
               ),
               IconButton(
-                icon: const FaIcon(FontAwesomeIcons.clockRotateLeft, size: 16, color: EmberColors.textPrimary),
+                icon: FaIcon(FontAwesomeIcons.clockRotateLeft, size: 16, color: EmberColors.textPrimary),
                 tooltip: 'Listening History',
                 onPressed: widget.onOpenLibrary,
               ),
               IconButton(
-                icon: const FaIcon(FontAwesomeIcons.gear, size: 16, color: EmberColors.textPrimary),
+                icon: FaIcon(FontAwesomeIcons.gear, size: 16, color: EmberColors.textPrimary),
                 tooltip: 'Settings & Author',
                 onPressed: () => SettingsScreen.show(context),
               ),
@@ -147,7 +147,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                       ),
                       child: IconButton(
                         padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.play_arrow_rounded, color: EmberColors.obsidianBase, size: 24),
+                        icon: Icon(Icons.play_arrow_rounded, color: EmberColors.obsidianBase, size: 24),
                         onPressed: () => player.resumeRecoveredSession(),
                       ),
                     ),
@@ -193,7 +193,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: EmberColors.textMuted, size: 18),
+                      icon: Icon(Icons.close_rounded, color: EmberColors.textMuted, size: 18),
                       tooltip: 'Dismiss',
                       onPressed: () => player.dismissRecoverableSession(),
                     ),
@@ -254,7 +254,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                   ),
                 ),
                 if (player.isLoadingYouTube)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                     child: LinearProgressIndicator(
                       minHeight: 2,
@@ -343,7 +343,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
             child: SizedBox(
               height: 200,
               child: player.youtubeTracks.isEmpty
-                  ? const Center(child: CircularProgressIndicator(color: EmberColors.primaryBlue))
+                  ? Center(child: CircularProgressIndicator(color: EmberColors.primaryBlue))
                   : ListView.builder(
                       key: const PageStorageKey<String>('sine_home_carousel'),
                       scrollDirection: Axis.horizontal,
@@ -373,7 +373,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   if (player.youtubeTracks.isEmpty) {
-                    return const Padding(
+                    return Padding(
                       padding: EdgeInsets.symmetric(vertical: 24),
                       child: Center(child: CircularProgressIndicator(color: EmberColors.primaryBlue)),
                     );
@@ -411,7 +411,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                                 width: 44,
                                 height: 44,
                                 color: EmberColors.surfaceContainerHigh,
-                                child: const FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.textMuted),
+                                child: FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.textMuted),
                               ),
                             ),
                           ),
@@ -423,7 +423,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                                 color: Colors.black.withValues(alpha: 0.55),
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: const Center(
+                              child: Center(
                                 child: FaIcon(FontAwesomeIcons.volumeHigh, size: 14, color: EmberColors.primaryBlue),
                               ),
                             ),
@@ -460,7 +460,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                             onPressed: () => player.toggleFavorite(track),
                           ),
                           IconButton(
-                            icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 13, color: EmberColors.textMuted),
+                            icon: FaIcon(FontAwesomeIcons.ellipsisVertical, size: 13, color: EmberColors.textMuted),
                             onPressed: () => TrackOptionsSheet.show(context, track),
                           ),
                         ],
@@ -559,7 +559,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
               ),
             ),
             if (isPlaying)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(right: 8),
                 child: FaIcon(FontAwesomeIcons.volumeHigh, size: 12, color: EmberColors.primaryBlue),
               ),

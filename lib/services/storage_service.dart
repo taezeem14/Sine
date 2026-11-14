@@ -41,6 +41,8 @@ class StorageService {
   static const String _savedQueueKey = 'sine_saved_queue_tracks';
   static const String _stemEngineKey = 'sine_stem_engine_preference';
   static const String _performanceHudKey = 'sine_performance_hud_enabled';
+  static const String _themePresetKey = 'sine_theme_preset_v1';
+  static const String _customThemeColorKey = 'sine_custom_theme_color_v1';
 
   final SharedPreferences? _prefs;
   final List<Song> _memFavorites = [];
@@ -680,5 +682,25 @@ class StorageService {
       debugPrint('[StorageService] Backup import error: $e');
       return null;
     }
+  }
+
+  /// Loads saved theme preset name, defaults to 'blue'
+  String loadThemePreset() {
+    return _prefs?.getString(_themePresetKey) ?? 'blue';
+  }
+
+  /// Persists selected theme preset name
+  Future<void> saveThemePreset(String presetName) async {
+    await _prefs?.setString(_themePresetKey, presetName);
+  }
+
+  /// Loads custom theme color ARGB integer if present
+  int? loadCustomThemeColor() {
+    return _prefs?.getInt(_customThemeColorKey);
+  }
+
+  /// Persists custom theme color ARGB integer
+  Future<void> saveCustomThemeColor(int colorValue) async {
+    await _prefs?.setInt(_customThemeColorKey, colorValue);
   }
 }

@@ -3,6 +3,7 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   exclude:
     - newpipe_repo/**
+    - lib_prev/**
     - build/**
   errors:
     unnecessary_const: ignore

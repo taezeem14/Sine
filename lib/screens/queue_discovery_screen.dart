@@ -36,7 +36,7 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
         backgroundColor: EmberColors.obsidianBase,
         elevation: 0,
         leading: IconButton(
-          icon: const FaIcon(FontAwesomeIcons.chevronDown, size: 18, color: EmberColors.textPrimary),
+          icon: FaIcon(FontAwesomeIcons.chevronDown, size: 18, color: EmberColors.textPrimary),
           tooltip: 'Close Queue',
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -57,7 +57,7 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                 HapticFeedback.lightImpact();
                 player.clearQueue();
               },
-              icon: const FaIcon(FontAwesomeIcons.trashCan, size: 12, color: EmberColors.textMuted),
+              icon: FaIcon(FontAwesomeIcons.trashCan, size: 12, color: EmberColors.textMuted),
               label: const Text(
                 'Clear',
                 style: TextStyle(
@@ -124,7 +124,7 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                                   width: 52,
                                   height: 52,
                                   color: EmberColors.surfaceContainerHigh,
-                                  child: const Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                                  child: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
                                 ),
                               ),
                               if (player.isPlaying)
@@ -152,7 +152,7 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                                 currentSong.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: EmberColors.primaryBlueHi,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
@@ -167,7 +167,7 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                                       color: EmberColors.primaryBlue.withValues(alpha: 0.18),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: const Text(
+                                    child: Text(
                                       'Opus HQ',
                                       style: TextStyle(
                                         color: EmberColors.primaryBlue,
@@ -338,7 +338,7 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                             duration: const Duration(seconds: 2),
                             content: Text(
                               'Removed "${song.title}" from queue',
-                              style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12.5),
+                              style: TextStyle(color: EmberColors.textPrimary, fontSize: 12.5),
                             ),
                           ),
                         );
@@ -368,7 +368,7 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                                 width: 44,
                                 height: 44,
                                 color: EmberColors.surfaceContainerHigh,
-                                child: const Icon(Icons.music_note_rounded, color: EmberColors.textMuted, size: 18),
+                                child: Icon(Icons.music_note_rounded, color: EmberColors.textMuted, size: 18),
                               ),
                             ),
                           ),
@@ -395,12 +395,12 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
+                                icon: FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
                                 onPressed: () => TrackOptionsSheet.show(context, song),
                               ),
                               ReorderableDragStartListener(
                                 index: index,
-                                child: const Icon(Icons.drag_handle_rounded, color: EmberColors.textMuted, size: 22),
+                                child: Icon(Icons.drag_handle_rounded, color: EmberColors.textMuted, size: 22),
                               ),
                             ],
                           ),
@@ -489,7 +489,7 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                               width: 44,
                               height: 44,
                               color: EmberColors.surfaceContainerHigh,
-                              child: const Icon(Icons.music_note_rounded, color: EmberColors.textMuted, size: 18),
+                              child: Icon(Icons.music_note_rounded, color: EmberColors.textMuted, size: 18),
                             ),
                           ),
                         ),
@@ -513,7 +513,7 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                           ),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.add_circle_outline_rounded, color: EmberColors.primaryBlue, size: 22),
+                          icon: Icon(Icons.add_circle_outline_rounded, color: EmberColors.primaryBlue, size: 22),
                           tooltip: 'Add to queue',
                           onPressed: () {
                             HapticFeedback.lightImpact();
@@ -524,7 +524,7 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                                 duration: const Duration(seconds: 1),
                                 content: Text(
                                   'Added "${song.title}" to queue',
-                                  style: const TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12.5),
+                                  style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12.5),
                                 ),
                               ),
                             );
