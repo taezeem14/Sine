@@ -177,7 +177,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                           ],
                           Text(
                             player.stemStatusBadgeText!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: EmberColors.primaryBlueHi,
                               fontSize: 10.5,
                               fontWeight: FontWeight.bold,

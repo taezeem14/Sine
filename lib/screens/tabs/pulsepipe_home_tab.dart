@@ -141,7 +141,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                     Container(
                       width: 38,
                       height: 38,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: EmberColors.primaryAmber,
                       ),
@@ -158,7 +158,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                         children: [
                           Row(
                             children: [
-                              const Text(
+                              Text(
                                 'RESUME SESSION',
                                 style: TextStyle(
                                   color: EmberColors.primaryAmberHi,
@@ -672,7 +672,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                     color: EmberColors.electricBlue.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(3),
                   ),
-                  child: const Text(
+                  child: Text(
                     'OPUS',
                     style: TextStyle(
                       color: EmberColors.secondaryCyan,

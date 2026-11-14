@@ -191,7 +191,7 @@ class SineQrCodeSheet extends StatelessWidget {
                       ),
                       child: Text(
                         _codeTag,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: EmberColors.primaryBlueHi,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,

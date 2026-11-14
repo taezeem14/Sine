@@ -168,7 +168,7 @@ class _UpiDonationViewState extends State<UpiDonationView> {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -180,7 +180,7 @@ class _UpiDonationViewState extends State<UpiDonationView> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 3),
+                        const SizedBox(height: 3),
                         Text(
                           'Direct UPI Transfer • 100% Goes to Dev',
                           style: TextStyle(
@@ -230,7 +230,7 @@ class _UpiDonationViewState extends State<UpiDonationView> {
                     color: EmberColors.primaryAmber.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const FaIcon(
+                  child: FaIcon(
                     FontAwesomeIcons.qrcode,
                     color: EmberColors.primaryAmber,
                     size: 20,

@@ -272,7 +272,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                       color: EmberColors.primaryBlue.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Text(
+                    child: Text(
                       'SINE QR',
                       style: TextStyle(
                         color: EmberColors.primaryBlueHi,
@@ -453,7 +453,7 @@ class _SineQrScannerScreenState extends State<SineQrScannerScreen> with SingleTi
                       color: EmberColors.primaryBlue.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Text(
+                    child: Text(
                       'SINE QR',
                       style: TextStyle(
                         color: EmberColors.primaryBlueHi,

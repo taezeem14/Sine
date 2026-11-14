@@ -107,7 +107,7 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
                                 color: EmberColors.primaryBlue.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const FaIcon(
+                              child: FaIcon(
                                 FontAwesomeIcons.waveSquare,
                                 color: EmberColors.primaryBlue,
                                 size: 14,

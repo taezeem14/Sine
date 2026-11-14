@@ -46,7 +46,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
           controller: controller,
           autofocus: true,
           style: TextStyle(color: EmberColors.textPrimary),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'Playlist name',
             hintStyle: TextStyle(color: EmberColors.textMuted),
             enabledBorder: UnderlineInputBorder(

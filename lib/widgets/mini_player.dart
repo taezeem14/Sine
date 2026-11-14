@@ -160,7 +160,7 @@ class MiniPlayer extends StatelessWidget {
                                 ),
                                 child: Text(
                                   player.isolationMode == IsolationMode.instrumentsOnly ? 'AI KARAOKE' : 'AI VOCALS',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: EmberColors.primaryBlueHi,
                                     fontSize: 8.5,
                                     fontWeight: FontWeight.w900,
@@ -201,7 +201,7 @@ class MiniPlayer extends StatelessWidget {
                   Container(
                     width: 38,
                     height: 38,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: EmberColors.primaryBlue,
                     ),

@@ -237,7 +237,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                         children: [
                           FaIcon(FontAwesomeIcons.bolt, size: 11, color: EmberColors.primaryBlue),
                           const SizedBox(width: 5),
-                          const Text(
+                          Text(
                             'Sine Hi-Fi',
                             style: TextStyle(
                               color: EmberColors.primaryBlue,
@@ -346,7 +346,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
             // 3. Search Results or Browse Categories
             if (isSearching) ...[
               if (player.isSearching && player.searchResults.isEmpty)
-                const SliverFillRemaining(
+                SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
                     child: CircularProgressIndicator(
@@ -787,7 +787,7 @@ class _SearchResultRow extends StatelessWidget {
                           color: EmberColors.primaryBlue.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(3),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Opus HQ',
                           style: TextStyle(
                             color: EmberColors.primaryBlue,
