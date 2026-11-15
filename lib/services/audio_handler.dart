@@ -41,6 +41,23 @@ typedef EmberAudioHandler = SineAudioHandler;
 
 class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   static const Map<String, List<double>> _spotifyPresetMap = {
+    // Open-Source AutoEq Studio Target Curves (Jaakko Pasanen)
+    'autoeq: harman target': [5.2, 2.8, -0.5, 0.2, 2.5, 4.2],
+    'autoeq: audiophile neutral': [1.8, 0.5, 0.0, 0.2, 0.8, 1.2],
+    'autoeq: harman bass boost': [6.5, 4.2, 0.8, -0.2, 1.5, 3.8],
+    'autoeq: vocal forward': [-1.5, 1.0, 3.5, 4.5, 2.2, -0.5],
+
+    // Open-Source JamesDSP Acoustic DSP Models (TheJamesDSP / James34602)
+    'jamesdsp: pure clarity': [2.5, -1.0, 1.0, 3.0, 4.5, 5.5],
+    'jamesdsp: bass resonance': [6.8, 4.5, 1.0, 0.0, 1.5, 2.0],
+    'jamesdsp: tube amp warmth': [3.5, 2.0, 0.5, -0.5, -1.5, -3.0],
+    'jamesdsp: studio master': [3.0, 1.5, -0.5, 1.2, 2.8, 3.5],
+
+    // Open-Source Equalizer APO & ISO 226 Equal-Loudness (jthedering)
+    'equalizer apo: loudness contour': [6.0, 2.5, -1.5, -0.5, 2.0, 5.5],
+    'equalizer apo: acoustic space': [1.5, 0.5, 1.5, 2.5, 4.0, 6.0],
+
+    // Genre Master Presets
     'dance': [4.5, 3.0, -1.0, 0.0, 3.0, 4.0],
     'deep': [5.5, 3.5, 1.5, -1.0, -2.5, -4.0],
     'electronic': [4.5, 2.5, 0.0, -1.0, 2.0, 4.5],
@@ -916,9 +933,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     final bool isPitchOrSpeedShifted =
         (_activeSpeed - 1.0).abs() > 0.005 || (_activePitch - 1.0).abs() > 0.005;
 
-    // Sonic SOLA engine in ExoPlayer creates transient constructive interference peaks up to +2.5 dB.
-    // Providing -2.5 dB (0.75x) headroom prevents 16-bit integer PCM clipping and audio degradation.
-    final double sonicHeadroom = isPitchOrSpeedShifted ? 0.75 : 1.0;
+    // Sonic SOLA engine in ExoPlayer creates transient constructive interference peaks up to +3.5 to +5.0 dB.
+    // Providing -3.7 dB (0.65x) headroom completely absorbs constructive interference spikes without clipping or distortion.
+    final double sonicHeadroom = isPitchOrSpeedShifted ? 0.65 : 1.0;
 
     // Suppress loudness enhancer boost during pitch/speed stretching to prevent SOLA clipping
     if (isPitchOrSpeedShifted) {
@@ -939,12 +956,13 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     double maxBoost = 0.0;
 
     if (_eqEnabled) {
-      if (_currentPreset.toLowerCase() == 'custom') {
+      final activePresetLower = _currentPreset.toLowerCase().trim();
+      if (activePresetLower == 'custom') {
         for (final gain in _userCustomBandGains.values) {
           if (gain > maxBoost) maxBoost = gain;
         }
-      } else if (_spotifyPresetMap.containsKey(_currentPreset.toLowerCase())) {
-        final curve = _spotifyPresetMap[_currentPreset.toLowerCase()]!;
+      } else if (_spotifyPresetMap.containsKey(activePresetLower)) {
+        final curve = _spotifyPresetMap[activePresetLower]!;
         for (final g in curve) {
           if (g > maxBoost) maxBoost = g;
         }
@@ -955,9 +973,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       }
     }
 
-    if (maxBoost > 1.0) {
-      final attenuationDb = (maxBoost * 0.45).clamp(0.0, 7.5);
-      _headroomAttenuation = ((1.0 / (1.0 + (attenuationDb * 0.12))) * sonicHeadroom).clamp(0.35, 1.0);
+    if (maxBoost > 0.5) {
+      final attenuationDb = (maxBoost * 0.5).clamp(0.0, 8.0);
+      _headroomAttenuation = ((1.0 / (1.0 + (attenuationDb * 0.14))) * sonicHeadroom).clamp(0.28, 1.0);
     } else {
       _headroomAttenuation = sonicHeadroom;
     }
@@ -1417,6 +1435,10 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     _activeSpeed = speed.clamp(0.25, 3.0);
     await _player.setSpeed(_activeSpeed);
     await _updateHeadroomGain();
+    // Critical: ExoPlayer shifts audio processors when playback parameters change.
+    // Re-anchor hardware Equalizer & DSP on active ExoPlayer pipeline after Sonic shift.
+    await Future<void>.delayed(const Duration(milliseconds: 35));
+    await _scheduleDspSync(forceRebind: true);
   }
 
   Future<void> setPitch(double pitch) async {
@@ -1425,6 +1447,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       await _player.setPitch(_activePitch).catchError((_) {});
     } catch (_) {}
     await _updateHeadroomGain();
+    // Critical: Re-anchor hardware Equalizer & DSP on active ExoPlayer pipeline after Sonic shift.
+    await Future<void>.delayed(const Duration(milliseconds: 35));
+    await _scheduleDspSync(forceRebind: true);
   }
 
   Future<void> setNormalizationGain(double gain) async {

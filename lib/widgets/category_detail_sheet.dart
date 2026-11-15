@@ -42,25 +42,16 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
   }
 
   Future<void> _loadCategoryTracks() async {
-    // Map query to catalog key or search query
-    final query = widget.category.query.toLowerCase().replaceAll('-', '').replaceAll(' ', '_');
-    final songs = await CatalogService.fetchCategory(query);
+    final songs = await CatalogService.fetchCuratedGenre(
+      widget.category.title,
+      widget.category.query,
+    );
 
     if (mounted) {
       setState(() {
-        _tracks = songs.isNotEmpty ? songs : [];
+        _tracks = songs;
         _isLoading = false;
       });
-    }
-
-    if (_tracks.isEmpty) {
-      final searchResults = await CatalogService.searchOnline(widget.category.query, limit: 30);
-      if (mounted) {
-        setState(() {
-          _tracks = searchResults;
-          _isLoading = false;
-        });
-      }
     }
   }
 
@@ -247,7 +238,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                                     width: 44,
                                     height: 44,
                                     color: EmberColors.surfaceContainerHigh,
-                                    child: Icon(Icons.music_note, color: EmberColors.textMuted, size: 20),
+                                    child: const Icon(Icons.music_note, color: EmberColors.textMuted, size: 20),
                                   ),
                                 ),
                               ),
@@ -265,7 +256,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                                 song.artist,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: EmberColors.textSecondary, fontSize: 11),
+                                style: const TextStyle(color: EmberColors.textSecondary, fontSize: 11),
                               ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -279,7 +270,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                                     onPressed: () => player.toggleFavorite(song),
                                   ),
                                   IconButton(
-                                    icon: FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
+                                    icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
                                     onPressed: () => TrackOptionsSheet.show(context, song),
                                   ),
                                 ],

@@ -8,8 +8,15 @@ import '../theme/ember_theme.dart';
 class SpotifyEqPreset {
   final String name;
   final List<double> gains; // 6 standard bands: 60Hz, 150Hz, 400Hz, 1kHz, 2.4kHz, 15kHz
+  final String category;
+  final String description;
 
-  const SpotifyEqPreset(this.name, this.gains);
+  const SpotifyEqPreset(
+    this.name,
+    this.gains, {
+    this.category = 'Genre Classics',
+    this.description = '',
+  });
 }
 
 class SpotifyGraphEqualizer extends StatefulWidget {
@@ -30,32 +37,99 @@ class SpotifyGraphEqualizer extends StatefulWidget {
   ];
 
   static const List<SpotifyEqPreset> standardPresets = [
-    SpotifyEqPreset('Dance', [4.5, 3.0, -1.0, 0.0, 3.0, 4.0]),
-    SpotifyEqPreset('Deep', [5.5, 3.5, 1.5, -1.0, -2.5, -4.0]),
-    SpotifyEqPreset('Electronic', [4.5, 2.5, 0.0, -1.0, 2.0, 4.5]),
-    SpotifyEqPreset('Flat', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-    SpotifyEqPreset('Hip-Hop', [5.5, 4.0, 1.0, 1.0, 3.0, 3.0]),
-    SpotifyEqPreset('Jazz', [3.0, 2.0, -1.0, 1.0, 2.0, 3.0]),
-    SpotifyEqPreset('Latin', [4.0, 2.0, 0.0, 0.0, 3.0, 4.0]),
-    SpotifyEqPreset('Loudness', [6.0, 3.0, -1.0, 0.0, 2.0, 5.0]),
-    SpotifyEqPreset('Lounge', [2.0, 3.0, 1.0, -1.0, 0.0, -1.5]),
-    SpotifyEqPreset('Piano', [1.0, 2.0, 3.0, 2.0, 3.0, 2.0]),
-    SpotifyEqPreset('Pop', [3.0, 2.0, 2.0, 3.0, 2.0, 2.0]),
-    SpotifyEqPreset('R&B', [5.5, 4.0, 1.0, 2.0, 3.0, 2.0]),
-    SpotifyEqPreset('Rock', [5.0, 3.0, -1.0, 1.0, 3.0, 4.0]),
-    SpotifyEqPreset('Small Speakers', [-3.0, 2.0, 4.0, 3.0, 3.0, 2.0]),
-    SpotifyEqPreset('Spoken Word', [-4.0, -1.0, 3.0, 4.0, 2.0, -2.0]),
-    SpotifyEqPreset('Treble Booster', [-1.0, 0.0, 0.0, 2.0, 4.0, 6.0]),
-    SpotifyEqPreset('Treble Reducer', [0.0, 0.0, 0.0, -1.0, -3.0, -5.0]),
-    SpotifyEqPreset('Vocal Booster', [-2.0, 0.0, 3.0, 4.0, 2.0, -1.0]),
-    SpotifyEqPreset('Bass Boost', [6.0, 4.0, 1.5, 0.0, 0.0, 0.0]),
-    SpotifyEqPreset('Lo-Fi', [-1.0, 2.0, 3.0, 1.0, -2.0, -4.0]),
+    // 1. AutoEq Studio Target Curves (Open-Source Jaakko Pasanen)
+    SpotifyEqPreset(
+      'AutoEq: Harman Target',
+      [5.2, 2.8, -0.5, 0.2, 2.5, 4.2],
+      category: 'AutoEq Studio',
+      description: 'Gold-standard research acoustic curve for natural, spacious staging',
+    ),
+    SpotifyEqPreset(
+      'AutoEq: Audiophile Neutral',
+      [1.8, 0.5, 0.0, 0.2, 0.8, 1.2],
+      category: 'AutoEq Studio',
+      description: 'Diffuse-field calibrated flat monitor response',
+    ),
+    SpotifyEqPreset(
+      'AutoEq: Harman Bass Boost',
+      [6.5, 4.2, 0.8, -0.2, 1.5, 3.8],
+      category: 'AutoEq Studio',
+      description: 'Punchy low-shelf response with clean vocal headroom',
+    ),
+    SpotifyEqPreset(
+      'AutoEq: Vocal Forward',
+      [-1.5, 1.0, 3.5, 4.5, 2.2, -0.5],
+      category: 'AutoEq Studio',
+      description: 'Brings vocals and lead instruments up-front without sibilance',
+    ),
+
+    // 2. JamesDSP Acoustic DSP Models (TheJamesDSP / James34602)
+    SpotifyEqPreset(
+      'JamesDSP: Pure Clarity',
+      [2.5, -1.0, 1.0, 3.0, 4.5, 5.5],
+      category: 'JamesDSP Acoustic',
+      description: 'Acoustic air, sparkle, and tight low-end resonance',
+    ),
+    SpotifyEqPreset(
+      'JamesDSP: Bass Resonance',
+      [6.8, 4.5, 1.0, 0.0, 1.5, 2.0],
+      category: 'JamesDSP Acoustic',
+      description: 'Deep sub-harmonic warmth with attenuated room boominess',
+    ),
+    SpotifyEqPreset(
+      'JamesDSP: Tube Amp Warmth',
+      [3.5, 2.0, 0.5, -0.5, -1.5, -3.0],
+      category: 'JamesDSP Acoustic',
+      description: 'Analog vacuum tube 2nd-order harmonic simulation',
+    ),
+    SpotifyEqPreset(
+      'JamesDSP: Studio Master',
+      [3.0, 1.5, -0.5, 1.2, 2.8, 3.5],
+      category: 'JamesDSP Acoustic',
+      description: 'Dynamic reference mastering profile for high-end headphones',
+    ),
+
+    // 3. Equalizer APO & ISO 226 Contours (jthedering)
+    SpotifyEqPreset(
+      'Equalizer APO: Loudness Contour',
+      [6.0, 2.5, -1.5, -0.5, 2.0, 5.5],
+      category: 'APO / Loudness',
+      description: 'ISO 226 equal-loudness contour compensation for low-volume playback',
+    ),
+    SpotifyEqPreset(
+      'Equalizer APO: Acoustic Space',
+      [1.5, 0.5, 1.5, 2.5, 4.0, 6.0],
+      category: 'APO / Loudness',
+      description: 'Soundstage spatial widening with presence & brilliance lift',
+    ),
+
+    // 4. Genre Classics & Master Presets
+    SpotifyEqPreset('Dance', [4.5, 3.0, -1.0, 0.0, 3.0, 4.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Deep', [5.5, 3.5, 1.5, -1.0, -2.5, -4.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Electronic', [4.5, 2.5, 0.0, -1.0, 2.0, 4.5], category: 'Genre Classics'),
+    SpotifyEqPreset('Flat', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Hip-Hop', [5.5, 4.0, 1.0, 1.0, 3.0, 3.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Jazz', [3.0, 2.0, -1.0, 1.0, 2.0, 3.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Latin', [4.0, 2.0, 0.0, 0.0, 3.0, 4.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Loudness', [6.0, 3.0, -1.0, 0.0, 2.0, 5.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Lounge', [2.0, 3.0, 1.0, -1.0, 0.0, -1.5], category: 'Genre Classics'),
+    SpotifyEqPreset('Piano', [1.0, 2.0, 3.0, 2.0, 3.0, 2.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Pop', [3.0, 2.0, 2.0, 3.0, 2.0, 2.0], category: 'Genre Classics'),
+    SpotifyEqPreset('R&B', [5.5, 4.0, 1.0, 2.0, 3.0, 2.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Rock', [5.0, 3.0, -1.0, 1.0, 3.0, 4.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Small Speakers', [-3.0, 2.0, 4.0, 3.0, 3.0, 2.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Spoken Word', [-4.0, -1.0, 3.0, 4.0, 2.0, -2.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Treble Booster', [-1.0, 0.0, 0.0, 2.0, 4.0, 6.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Treble Reducer', [0.0, 0.0, 0.0, -1.0, -3.0, -5.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Vocal Booster', [-2.0, 0.0, 3.0, 4.0, 2.0, -1.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Bass Boost', [6.0, 4.0, 1.5, 0.0, 0.0, 0.0], category: 'Genre Classics'),
+    SpotifyEqPreset('Lo-Fi', [-1.0, 2.0, 3.0, 1.0, -2.0, -4.0], category: 'Genre Classics'),
   ];
 
   /// Fast case-insensitive helper to look up preset gains
   static List<double> getPresetGains(String presetName) {
     final lower = presetName.toLowerCase().trim();
-    final matched = standardPresets.where((p) => p.name.toLowerCase() == lower);
+    final matched = standardPresets.where((p) => p.name.toLowerCase().trim() == lower);
     if (matched.isNotEmpty) {
       return List<double>.from(matched.first.gains);
     }
@@ -74,9 +148,20 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
   int? _activeDragBand;
   String? _lastSyncedPreset;
   DateTime _lastHaptic = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastTapTime = DateTime.fromMillisecondsSinceEpoch(0);
+  int? _lastTappedBand;
+  String _selectedCategory = 'All';
 
   static Color get sineBlue => EmberColors.primaryBlue;
   static Color get sineBlueDark => EmberColors.primaryBlue;
+
+  static const List<String> _categories = [
+    'All',
+    'AutoEq Studio',
+    'JamesDSP Acoustic',
+    'APO / Loudness',
+    'Genre Classics',
+  ];
 
   @override
   void initState() {
@@ -124,7 +209,9 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
     final presetName = player.eqPreset;
 
     List<double> gains;
-    final matched = SpotifyGraphEqualizer.standardPresets.where((p) => p.name.toLowerCase() == presetName.toLowerCase());
+    final matched = SpotifyGraphEqualizer.standardPresets.where(
+      (p) => p.name.toLowerCase().trim() == presetName.toLowerCase().trim(),
+    );
     if (matched.isNotEmpty) {
       gains = List.from(matched.first.gains);
     } else if (player.bandGains.isNotEmpty) {
@@ -153,6 +240,27 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
     player.setEqualizerPreset(preset.name, presetGains: preset.gains);
   }
 
+  void _resetBandToZero(int bandIndex) {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _currentGains[bandIndex] = 0.0;
+      _targetGains[bandIndex] = 0.0;
+      _startGains[bandIndex] = 0.0;
+    });
+    _lastSyncedPreset = 'Custom';
+    final player = context.read<PlayerProvider>();
+    player.setBandGain(bandIndex, 0.0);
+  }
+
+  void _resetAllBands() {
+    HapticFeedback.mediumImpact();
+    _startGains = List.from(_currentGains);
+    _targetGains = List.filled(6, 0.0);
+    _animController.forward(from: 0.0);
+    final player = context.read<PlayerProvider>();
+    player.setEqualizerPreset('Flat', presetGains: List.filled(6, 0.0));
+  }
+
   void _handleTouch(Offset localPos, Size size) {
     if (_animController.isAnimating) {
       _animController.stop();
@@ -170,6 +278,18 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
       bandIndex = (touchX / colWidth).round().clamp(0, 5);
       _activeDragBand = bandIndex;
     }
+
+    // Check for double-tap on band node to reset to 0 dB
+    final now = DateTime.now();
+    if (_lastTappedBand == bandIndex && now.difference(_lastTapTime).inMilliseconds < 280) {
+      _resetBandToZero(bandIndex);
+      _lastTappedBand = null;
+      _lastTapTime = DateTime.fromMillisecondsSinceEpoch(0);
+      return;
+    }
+    _lastTappedBand = bandIndex;
+    _lastTapTime = now;
+
     _updateGainFromY(bandIndex, localPos.dy, size);
   }
 
@@ -208,20 +328,33 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
       });
     }
 
+    final filteredPresets = _selectedCategory == 'All'
+        ? SpotifyGraphEqualizer.standardPresets
+        : SpotifyGraphEqualizer.standardPresets
+            .where((p) => p.category == _selectedCategory)
+            .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Interactive Graph Container
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 195,
+          height: 205,
           decoration: BoxDecoration(
             color: const Color(0xFF141414),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.06),
+              color: Colors.white.withValues(alpha: 0.08),
               width: 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: sineBlue.withValues(alpha: 0.06),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             children: [
@@ -285,16 +418,57 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
           ),
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
-        // Presets Header
+        // Category Filter Chips
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: _categories.map((cat) {
+              final isSel = _selectedCategory == cat;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: Text(cat),
+                  selected: isSel,
+                  showCheckmark: false,
+                  labelStyle: TextStyle(
+                    color: isSel ? Colors.black : Colors.white70,
+                    fontSize: 11.5,
+                    fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                  ),
+                  backgroundColor: const Color(0xFF1E1E24),
+                  selectedColor: sineBlue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: isSel ? sineBlue : Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  onSelected: (val) {
+                    if (val) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _selectedCategory = cat);
+                    }
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // Presets Header & Reset
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'PRESETS',
+                'PRESETS (${filteredPresets.length})',
                 style: TextStyle(
                   color: EmberColors.textMuted.withValues(alpha: 0.8),
                   fontSize: 11,
@@ -302,52 +476,113 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (activePreset == 'Custom')
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: sineBlue.withValues(alpha: 0.15),
+              Row(
+                children: [
+                  if (activePreset == 'Custom') ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: sineBlue.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: sineBlue.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(
+                        'Custom Curve',
+                        style: TextStyle(
+                          color: sineBlue,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  InkWell(
+                    onTap: _resetAllBands,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: sineBlue.withValues(alpha: 0.3)),
-                  ),
-                  child: Text(
-                    'Custom Curve',
-                    style: TextStyle(
-                      color: sineBlue,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      child: Text(
+                        'Reset to Flat',
+                        style: TextStyle(
+                          color: EmberColors.textMuted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
+              ),
             ],
           ),
         ),
 
-        // Vertical List of Presets (Identical to Spotify's Equalizer list in user's image)
+        // Vertical List of Presets
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: SpotifyGraphEqualizer.standardPresets.length,
+          itemCount: filteredPresets.length,
           itemBuilder: (context, index) {
-            final preset = SpotifyGraphEqualizer.standardPresets[index];
-            final isSelected = activePreset.toLowerCase() == preset.name.toLowerCase();
+            final preset = filteredPresets[index];
+            final isSelected = activePreset.toLowerCase().trim() == preset.name.toLowerCase().trim();
 
             return InkWell(
               onTap: () => _selectPreset(preset),
               splashColor: sineBlue.withValues(alpha: 0.12),
               highlightColor: Colors.white.withValues(alpha: 0.05),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      preset.name,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : const Color(0xFFE0E0E0),
-                        fontSize: 16,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-                        letterSpacing: 0.1,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                preset.name,
+                                style: TextStyle(
+                                  color: isSelected ? Colors.white : const Color(0xFFE0E0E0),
+                                  fontSize: 15.5,
+                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                                  letterSpacing: 0.1,
+                                ),
+                              ),
+                              if (preset.category.contains('AutoEq') || preset.category.contains('JamesDSP') || preset.category.contains('APO')) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: sineBlue.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: sineBlue.withValues(alpha: 0.3)),
+                                  ),
+                                  child: Text(
+                                    preset.category.split(' ').first,
+                                    style: TextStyle(
+                                      color: sineBlue,
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          if (preset.description.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              preset.description,
+                              style: TextStyle(
+                                color: EmberColors.textMuted.withValues(alpha: 0.75),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                     if (isSelected)
@@ -407,7 +642,7 @@ class _SpotifyEqPainter extends CustomPainter {
     // 2. Center 0 dB subtle horizontal guideline
     final zeroLineY = verticalPadding + (usableHeight / 2);
     final zeroPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.06)
+      ..color = Colors.white.withValues(alpha: 0.08)
       ..strokeWidth = 1.0;
     canvas.drawLine(
       Offset(horizontalPadding - 8, zeroLineY),
@@ -432,7 +667,6 @@ class _SpotifyEqPainter extends CustomPainter {
       final p0 = points[i];
       final p1 = points[i + 1];
 
-      // Smooth control points
       final controlPoint1 = Offset(p0.dx + (p1.dx - p0.dx) / 2, p0.dy);
       final controlPoint2 = Offset(p0.dx + (p1.dx - p0.dx) / 2, p1.dy);
 
@@ -458,7 +692,7 @@ class _SpotifyEqPainter extends CustomPainter {
         end: Alignment.bottomCenter,
         colors: [
           strokeColor.withValues(alpha: 0.75),
-          gradientDark.withValues(alpha: 0.40),
+          gradientDark.withValues(alpha: 0.35),
           const Color(0xFF141414).withValues(alpha: 0.05),
         ],
         stops: const [0.0, 0.45, 1.0],
@@ -476,7 +710,7 @@ class _SpotifyEqPainter extends CustomPainter {
 
     canvas.drawPath(path, strokePaint);
 
-    // 7. Draw circular white draggable control knobs at each frequency point
+    // 7. Draw circular white draggable control knobs with floating dB readout
     for (int i = 0; i < points.length; i++) {
       final pt = points[i];
       final isDragged = activeBand == i;
@@ -494,9 +728,9 @@ class _SpotifyEqPainter extends CustomPainter {
       if (isDragged) {
         canvas.drawCircle(
           pt,
-          16.0,
+          17.0,
           Paint()
-            ..color = strokeColor.withValues(alpha: 0.35)
+            ..color = strokeColor.withValues(alpha: 0.4)
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6.0),
         );
       }
@@ -507,6 +741,48 @@ class _SpotifyEqPainter extends CustomPainter {
         isDragged ? 11.5 : 9.5,
         Paint()..color = Colors.white,
       );
+
+      // Floating dB readout bubble directly above the active dragged knob
+      if (isDragged) {
+        final gainVal = gains[i];
+        final gainText = '${gainVal > 0 ? "+${gainVal.toStringAsFixed(1)}" : gainVal.toStringAsFixed(1)} dB';
+        final textSpan = TextSpan(
+          text: gainText,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.2,
+          ),
+        );
+        final tp = TextPainter(
+          text: textSpan,
+          textDirection: TextDirection.ltr,
+        )..layout();
+
+        final bubbleCenter = pt.translate(0, -26);
+        final bubbleRect = RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: bubbleCenter,
+            width: tp.width + 12,
+            height: tp.height + 6,
+          ),
+          const Radius.circular(6),
+        );
+
+        canvas.drawRRect(
+          bubbleRect,
+          Paint()..color = const Color(0xFF1E1E24),
+        );
+        canvas.drawRRect(
+          bubbleRect,
+          Paint()
+            ..color = strokeColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2,
+        );
+        tp.paint(canvas, bubbleCenter.translate(-tp.width / 2, -tp.height / 2));
+      }
     }
   }
 

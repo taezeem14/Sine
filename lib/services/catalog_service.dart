@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
 import '../models/song.dart';
 import 'youtube_importer_service.dart';
 
@@ -79,8 +81,23 @@ class CatalogService {
     ),
   ];
 
-  static const int _maxCategoryCache = 20;
+  static const int _maxCategoryCache = 25;
   static final Map<String, List<Song>> _categoryCache = {};
+
+  static final Map<String, String> _genreSearchTerms = {
+    'electric & dance': 'electronic dance edm hits',
+    'today\'s top hits': 'top hits billboard chart',
+    'pop global': 'pop hits top tracks',
+    'hip-hop & rap': 'hip hop rap top hits',
+    'rock & alt': 'rock classics alternative hits',
+    'indie vibes': 'indie rock alternative',
+    'chill & lo-fi': 'lofi chill beats study relax',
+    'bollywood hits': 'bollywood top hits hindi songs',
+    'pakistani hits': 'pakistani top hits coke studio urdu',
+    'workout & hype': 'workout cardio hype gym hits',
+    'classical & piano': 'classical masterpieces piano orchestra',
+    'acoustic & folk': 'acoustic guitar folk calm',
+  };
 
   static void _cacheCategory(String key, List<Song> songs) {
     if (_categoryCache.length >= _maxCategoryCache) {
@@ -112,6 +129,84 @@ class CatalogService {
       if (lowerTitle.contains(term)) return false;
     }
     return true;
+  }
+
+  /// Curated Genre Provider: Fetches genuine top tracks via iTunes Search API with fallback to YouTube
+  static Future<List<Song>> fetchCuratedGenre(
+    String categoryTitle,
+    String query, {
+    bool forceRefresh = false,
+  }) async {
+    final cacheKey = 'curated_${categoryTitle.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
+
+    if (!forceRefresh && _categoryCache.containsKey(cacheKey)) {
+      final cached = _categoryCache[cacheKey]!;
+      if (cached.isNotEmpty) return cached;
+    }
+
+    final lowerTitle = categoryTitle.toLowerCase().trim();
+    final searchTerm = _genreSearchTerms[lowerTitle] ??
+        (query.trim().isNotEmpty ? query.trim() : categoryTitle.trim());
+
+    // 1. Primary: High-fidelity iTunes Music API (returns genuine top tracks, clean metadata, and HD 600x600 covers)
+    try {
+      final uri = Uri.parse(
+        'https://itunes.apple.com/search?term=${Uri.encodeComponent(searchTerm)}&media=music&entity=song&limit=50',
+      );
+      final resp = await http.get(uri).timeout(const Duration(seconds: 6));
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final results = data['results'] as List? ?? [];
+        final songs = <Song>[];
+
+        for (final item in results) {
+          final trackName = item['trackName'] as String?;
+          final artistName = item['artistName'] as String?;
+          final trackId = item['trackId'];
+          if (trackName == null || trackName.isEmpty || artistName == null || artistName.isEmpty) {
+            continue;
+          }
+
+          final rawArtwork = item['artworkUrl100'] as String? ?? '';
+          final hdArtwork = rawArtwork.replaceAll('100x100bb', '600x600bb');
+          final durationMs = item['trackTimeMillis'] as int? ?? 0;
+
+          songs.add(
+            Song(
+              id: 'itunes_${trackId ?? songs.length}',
+              title: trackName,
+              artist: artistName,
+              duration: Duration(milliseconds: durationMs),
+              artworkUrl: hdArtwork,
+              streamUrl: '', // Resolved on-demand by StreamResolverService via YouTube
+              source: 'itunes',
+            ),
+          );
+        }
+
+        if (songs.isNotEmpty) {
+          debugPrint('[CatalogService] Curated genre "$categoryTitle" fetched ${songs.length} real tracks via iTunes API');
+          _cacheCategory(cacheKey, songs);
+          return songs;
+        }
+      }
+    } catch (e) {
+      debugPrint('[CatalogService] iTunes genre fetch error for "$categoryTitle": $e');
+    }
+
+    // 2. Resilient Fallback: YouTube Search
+    try {
+      final fallbackQuery = '$searchTerm best songs';
+      final results = await searchOnline(fallbackQuery, limit: 40);
+      if (results.isNotEmpty) {
+        _cacheCategory(cacheKey, results);
+        return results;
+      }
+    } catch (e) {
+      debugPrint('[CatalogService] Fallback YouTube search error: $e');
+    }
+
+    return _categoryCache[cacheKey] ?? [];
   }
 
   /// Search online catalog via YouTube NewPipe extractor

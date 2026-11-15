@@ -5,6 +5,7 @@ analyzer:
     - newpipe_repo/**
     - lib_prev/**
     - build/**
+    - .ref_repos/**
   errors:
     unnecessary_const: ignore
 

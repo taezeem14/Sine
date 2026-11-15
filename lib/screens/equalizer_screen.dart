@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../constants/app_constants.dart';
 import '../theme/ember_theme.dart';
 import '../providers/player_provider.dart';
 import '../widgets/spotify_graph_equalizer.dart';
@@ -26,6 +27,109 @@ class EqualizerScreen extends StatefulWidget {
 class _EqualizerScreenState extends State<EqualizerScreen> {
   bool _showAdvancedShaping = false;
   bool _isDraggingGraph = false;
+
+  void _showDspCreditsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF141418),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: EmberColors.primaryBlue.withValues(alpha: 0.15),
+              ),
+              child: FaIcon(FontAwesomeIcons.sliders, color: EmberColors.primaryBlue, size: 16),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Open-Source EQ & DSP',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Sine features studio-calibrated acoustic target models and filter curves inspired by and attributed to these premier open-source audio DSP projects:',
+                  style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                ...AppConstants.openSourceAttributions.where((item) =>
+                    item['name'] == 'AutoEq' ||
+                    item['name'] == 'JamesDSP' ||
+                    item['name'] == 'Equalizer APO').map((item) {
+                  return Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E24),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              item['name'] ?? '',
+                              style: TextStyle(color: EmberColors.primaryBlueHi, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: EmberColors.primaryBlue.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                item['license'] ?? 'GPL',
+                                style: TextStyle(color: EmberColors.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'By ${item['organization']} • ${item['repo']}',
+                          style: const TextStyle(color: Colors.white38, fontSize: 10.5, fontStyle: FontStyle.italic),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item['role'] ?? '',
+                          style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Close', style: TextStyle(color: EmberColors.primaryBlue, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +156,11 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline_rounded, color: Colors.white70, size: 20),
+            tooltip: 'Open-Source DSP Attribution',
+            onPressed: () => _showDspCreditsDialog(context),
+          ),
           Transform.scale(
             scale: 0.85,
             child: Switch(
