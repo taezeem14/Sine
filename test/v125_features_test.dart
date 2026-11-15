@@ -1,3 +1,4 @@
+import 'package:spotify_newpipe/constants/app_constants.dart';
 import 'package:spotify_newpipe/models/song.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spotify_newpipe/services/audio_handler.dart';
@@ -133,9 +134,9 @@ void main() {
 
       expect(decoded['format'], equals('SINE_BACKUP'));
 
-      expect(decoded['version'], equals('1.3.0'));
+      expect(decoded['version'], equals(AppConstants.version));
 
-      expect(decoded['versionCode'], equals(30));
+      expect(decoded['versionCode'], equals(AppConstants.buildNumber));
 
       expect(decoded['settings'], isNotNull);
 
