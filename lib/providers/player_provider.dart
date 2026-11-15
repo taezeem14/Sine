@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/song.dart';
@@ -2115,11 +2114,33 @@ class PlayerProvider extends ChangeNotifier {
     return _storageService.exportBackupJson();
   }
 
+  Future<File?> exportLibraryBackupToFile({String? customFileName}) {
+    return _storageService.exportBackupToFile(customFileName: customFileName);
+  }
+
+  Future<List<File>> getAvailableBackupFiles() {
+    return _storageService.listAvailableBackupFiles();
+  }
+
   Future<({int playlistsCount, int favoritesCount, int historyCount})?> importLibraryBackup(
     String jsonStr, {
     bool merge = true,
   }) async {
     final result = await _storageService.importBackupJson(jsonStr, merge: merge);
+    if (result != null) {
+      _playlists = _storageService.loadPlaylists();
+      _favorites = _storageService.loadFavorites();
+      _history = _storageService.loadHistory();
+      notifyListeners();
+    }
+    return result;
+  }
+
+  Future<({int playlistsCount, int favoritesCount, int historyCount})?> importLibraryBackupFromFile(
+    File file, {
+    bool merge = true,
+  }) async {
+    final result = await _storageService.importBackupFromFile(file, merge: merge);
     if (result != null) {
       _playlists = _storageService.loadPlaylists();
       _favorites = _storageService.loadFavorites();

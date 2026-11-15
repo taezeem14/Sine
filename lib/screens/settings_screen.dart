@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/services.dart';
 
 import 'package:flutter/material.dart';
@@ -415,78 +416,7 @@ class _SettingsContentState extends State<SettingsContent> {
   }
 
   void _showExportBackupDialog(BuildContext context, PlayerProvider player) {
-    final jsonStr = player.exportLibraryBackup();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: EmberColors.obsidianBase,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Row(
-          children: [
-            FaIcon(FontAwesomeIcons.fileExport, color: EmberColors.primaryBlue, size: 18),
-            SizedBox(width: 10),
-            Text('Export Library Backup', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Your entire music database (Playlists, Favorites, History & Custom EQ Gains) has been packaged into portable JSON format.',
-              style: TextStyle(color: EmberColors.textSecondary, fontSize: 12.5, height: 1.4),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: EmberColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.5)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('• Playlists: ${player.playlists.length}', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
-                  Text('• Favorites: ${player.favorites.length}', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
-                  Text('• History Tracks: ${player.history.length}', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
-                  Text('• Format: SINE_BACKUP v1.3.0', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
-          ),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: EmberColors.primaryBlue,
-              foregroundColor: Colors.white,
-            ),
-            icon: const Icon(Icons.copy_rounded, size: 16),
-            label: const Text('Copy JSON'),
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: jsonStr));
-              Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  backgroundColor: EmberColors.surfaceContainerHigh,
-                  content: Text('Backup JSON copied to clipboard!', style: TextStyle(color: EmberColors.primaryBlueHi)),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showRestoreBackupDialog(BuildContext context, PlayerProvider player) {
-    final controller = TextEditingController();
-    bool mergeData = true;
+    bool isExporting = false;
 
     showDialog(
       context: context,
@@ -496,80 +426,350 @@ class _SettingsContentState extends State<SettingsContent> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: Row(
             children: [
-              FaIcon(FontAwesomeIcons.fileImport, color: EmberColors.primaryBlue, size: 18),
-              SizedBox(width: 10),
-              Text('Restore Library', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+              FaIcon(FontAwesomeIcons.fileExport, color: EmberColors.primaryBlue, size: 18),
+              const SizedBox(width: 10),
+              Text('Export Library Backup', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Paste your Sine backup JSON below to restore playlists, favorites, and settings.',
-                  style: TextStyle(color: EmberColors.textSecondary, fontSize: 12.5, height: 1.35),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Saves your entire music database (Playlists, Favorites, History & Custom EQ Gains) into a persistent JSON backup file.',
+                style: TextStyle(color: EmberColors.textSecondary, fontSize: 12.5, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: EmberColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.5)),
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: controller,
-                  maxLines: 5,
-                  style: TextStyle(color: EmberColors.textPrimary, fontSize: 11, fontFamily: 'monospace'),
-                  decoration: InputDecoration(
-                    hintText: 'Paste {"format": "SINE_BACKUP", ...}',
-                    hintStyle: TextStyle(color: EmberColors.textMuted, fontSize: 11),
-                    filled: true,
-                    fillColor: EmberColors.surfaceContainerLow,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('• Playlists: ${player.playlists.length}', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    Text('• Favorites: ${player.favorites.length}', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    Text('• History Tracks: ${player.history.length}', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    Text('• Target: /Sine-Music/Backups/', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text('Persists safely across app updates and uninstalls.', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  title: Text('Merge with existing library', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
-                  subtitle: Text('Uncheck to completely overwrite current database', style: TextStyle(color: EmberColors.textMuted, fontSize: 10.5)),
-                  value: mergeData,
-                  activeColor: EmberColors.primaryBlue,
-                  onChanged: (val) => setDialogState(() => mergeData = val ?? true),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: EmberColors.primaryBlue, foregroundColor: Colors.white),
-              onPressed: () async {
-                final raw = controller.text.trim();
-                if (raw.isEmpty) return;
-                final messenger = ScaffoldMessenger.of(context);
-                final nav = Navigator.of(ctx);
-                final res = await player.importLibraryBackup(raw, merge: mergeData);
-                nav.pop();
-                if (res != null) {
-                  messenger.showSnackBar(
-                    SnackBar(
-                      backgroundColor: EmberColors.surfaceContainerHigh,
-                      content: Text('Restored ${res.playlistsCount} playlists, ${res.favoritesCount} favorites!', style: TextStyle(color: EmberColors.primaryBlueHi)),
-                    ),
-                  );
-                } else {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      backgroundColor: Colors.redAccent,
-                      content: Text('Invalid backup JSON payload. Could not restore.', style: TextStyle(color: Colors.white)),
-                    ),
-                  );
-                }
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: EmberColors.textSecondary,
+                side: BorderSide(color: EmberColors.outlineVariant),
+              ),
+              icon: const Icon(Icons.copy_rounded, size: 14),
+              label: const Text('Copy JSON', style: TextStyle(fontSize: 12)),
+              onPressed: () {
+                final jsonStr = player.exportLibraryBackup();
+                Clipboard.setData(ClipboardData(text: jsonStr));
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: EmberColors.surfaceContainerHigh,
+                    content: Text('Backup JSON copied to clipboard!', style: TextStyle(color: EmberColors.primaryBlueHi)),
+                  ),
+                );
               },
-              child: const Text('Restore Data'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: EmberColors.primaryBlue,
+                foregroundColor: Colors.white,
+              ),
+              icon: isExporting
+                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.save_alt_rounded, size: 16),
+              label: Text(isExporting ? 'Saving...' : 'Save File'),
+              onPressed: isExporting
+                  ? null
+                  : () async {
+                      setDialogState(() => isExporting = true);
+                      final file = await player.exportLibraryBackupToFile();
+                      setDialogState(() => isExporting = false);
+                      if (context.mounted) {
+                        Navigator.of(ctx).pop();
+                        final messenger = ScaffoldMessenger.of(context);
+                        if (file != null) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              backgroundColor: EmberColors.surfaceContainerHigh,
+                              duration: const Duration(seconds: 4),
+                              content: Text('Backup saved to:\n${file.path}', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12)),
+                            ),
+                          );
+                        } else {
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              backgroundColor: Colors.redAccent,
+                              content: Text('Failed to save backup file to storage.', style: TextStyle(color: Colors.white)),
+                            ),
+                          );
+                        }
+                      }
+                    },
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showRestoreBackupDialog(BuildContext context, PlayerProvider player) {
+    final controller = TextEditingController();
+    bool mergeData = true;
+    bool isScanning = true;
+    bool isRestoring = false;
+    List<File> backupFiles = [];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          if (isScanning) {
+            player.getAvailableBackupFiles().then((files) {
+              if (ctx.mounted) {
+                setDialogState(() {
+                  backupFiles = files;
+                  isScanning = false;
+                });
+              }
+            });
+          }
+
+          return AlertDialog(
+            backgroundColor: EmberColors.obsidianBase,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: Row(
+              children: [
+                FaIcon(FontAwesomeIcons.fileImport, color: EmberColors.primaryBlue, size: 18),
+                const SizedBox(width: 10),
+                Text('Restore Library', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Restore playlists, favorites, and settings from a backup file or pasted JSON.',
+                      style: TextStyle(color: EmberColors.textSecondary, fontSize: 12, height: 1.35),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('FOUND BACKUPS ON STORAGE', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                        if (!isScanning)
+                          InkWell(
+                            onTap: () {
+                              setDialogState(() => isScanning = true);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.refresh_rounded, size: 13, color: EmberColors.textMuted),
+                                  const SizedBox(width: 3),
+                                  Text('Refresh', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    if (isScanning)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        alignment: Alignment.center,
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: EmberColors.primaryBlue),
+                        ),
+                      )
+                    else if (backupFiles.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: EmberColors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'No backup files found in /Sine-Music/Backups.\nYou can paste JSON or enter a path below.',
+                          style: TextStyle(color: EmberColors.textMuted, fontSize: 11),
+                        ),
+                      )
+                    else
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 160),
+                        decoration: BoxDecoration(
+                          color: EmberColors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.4)),
+                        ),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: backupFiles.length,
+                          separatorBuilder: (_, __) => Divider(color: EmberColors.outlineVariant.withValues(alpha: 0.2), height: 1),
+                          itemBuilder: (c, idx) {
+                            final file = backupFiles[idx];
+                            final fileName = file.path.split(Platform.pathSeparator).last;
+                            int sizeKb = 0;
+                            DateTime? modified;
+                            try {
+                              sizeKb = (file.lengthSync() / 1024).round();
+                              modified = file.lastModifiedSync();
+                            } catch (_) {}
+                            final modStr = modified != null
+                                ? '${modified.month}/${modified.day} ${modified.hour.toString().padLeft(2, '0')}:${modified.minute.toString().padLeft(2, '0')}'
+                                : '';
+
+                            return ListTile(
+                              dense: true,
+                              visualDensity: VisualDensity.compact,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                              leading: FaIcon(FontAwesomeIcons.fileCode, size: 16, color: EmberColors.primaryBlue),
+                              title: Text(
+                                fileName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: EmberColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Text(
+                                '${sizeKb} KB • $modStr',
+                                style: TextStyle(color: EmberColors.textMuted, fontSize: 10.5),
+                              ),
+                              trailing: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: EmberColors.primaryBlue,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                onPressed: isRestoring
+                                    ? null
+                                    : () async {
+                                        setDialogState(() => isRestoring = true);
+                                        final messenger = ScaffoldMessenger.of(context);
+                                        final nav = Navigator.of(ctx);
+                                        final res = await player.importLibraryBackupFromFile(file, merge: mergeData);
+                                        setDialogState(() => isRestoring = false);
+                                        if (ctx.mounted) nav.pop();
+                                        if (res != null) {
+                                          messenger.showSnackBar(
+                                            SnackBar(
+                                              backgroundColor: EmberColors.surfaceContainerHigh,
+                                              content: Text(
+                                                'Restored ${res.playlistsCount} playlists, ${res.favoritesCount} favorites, ${res.historyCount} history tracks!',
+                                                style: TextStyle(color: EmberColors.primaryBlueHi),
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          messenger.showSnackBar(
+                                            const SnackBar(
+                                              backgroundColor: Colors.redAccent,
+                                              content: Text('Failed to read backup file.', style: TextStyle(color: Colors.white)),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                child: const Text('Restore', style: TextStyle(fontSize: 11)),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    const SizedBox(height: 14),
+                    Text('OR PASTE JSON MANUALLY', style: TextStyle(color: EmberColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: controller,
+                      maxLines: 3,
+                      style: TextStyle(color: EmberColors.textPrimary, fontSize: 11, fontFamily: 'monospace'),
+                      decoration: InputDecoration(
+                        hintText: 'Paste {"format": "SINE_BACKUP", ...}',
+                        hintStyle: TextStyle(color: EmberColors.textMuted, fontSize: 11),
+                        filled: true,
+                        fillColor: EmberColors.surfaceContainerLow,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: Text('Merge with existing library', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                      subtitle: Text('Uncheck to completely overwrite current database', style: TextStyle(color: EmberColors.textMuted, fontSize: 10.5)),
+                      value: mergeData,
+                      activeColor: EmberColors.primaryBlue,
+                      onChanged: (val) => setDialogState(() => mergeData = val ?? true),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: EmberColors.primaryBlue, foregroundColor: Colors.white),
+                onPressed: isRestoring
+                    ? null
+                    : () async {
+                        final raw = controller.text.trim();
+                        if (raw.isEmpty) return;
+                        setDialogState(() => isRestoring = true);
+                        final messenger = ScaffoldMessenger.of(context);
+                        final nav = Navigator.of(ctx);
+                        final res = await player.importLibraryBackup(raw, merge: mergeData);
+                        setDialogState(() => isRestoring = false);
+                        if (ctx.mounted) nav.pop();
+                        if (res != null) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              backgroundColor: EmberColors.surfaceContainerHigh,
+                              content: Text(
+                                'Restored ${res.playlistsCount} playlists, ${res.favoritesCount} favorites, ${res.historyCount} history tracks!',
+                                style: TextStyle(color: EmberColors.primaryBlueHi),
+                              ),
+                            ),
+                          );
+                        } else {
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              backgroundColor: Colors.redAccent,
+                              content: Text('Invalid backup JSON payload. Could not restore.', style: TextStyle(color: Colors.white)),
+                            ),
+                          );
+                        }
+                      },
+                child: const Text('Restore from Text'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1438,8 +1638,8 @@ class _SettingsContentState extends State<SettingsContent> {
         _SettingsTile(
           icon: FontAwesomeIcons.fileExport,
           iconColor: EmberColors.primaryBlue,
-          title: 'Export Library Backup (JSON)',
-          subtitle: 'Backup playlists, favorites, history, and custom EQ settings',
+          title: 'Export Library Backup (JSON File)',
+          subtitle: 'Save playlists, favorites, history & EQ to /Sine-Music/Backups',
           trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showExportBackupDialog(context, player),
         ),
@@ -1447,7 +1647,7 @@ class _SettingsContentState extends State<SettingsContent> {
           icon: FontAwesomeIcons.fileImport,
           iconColor: EmberColors.primaryBlue,
           title: 'Restore Library from Backup',
-          subtitle: 'Import JSON backup with merge or clean overwrite options',
+          subtitle: '1-tap restore from /Sine-Music/Backups or paste JSON',
           trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showRestoreBackupDialog(context, player),
         ),

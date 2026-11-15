@@ -97,9 +97,11 @@ class DownloadService {
     return false;
   }
 
+  static Future<Directory> _getMediaDirectory({bool isVideo = false}) => getMediaDirectory(isVideo: isVideo);
+
   /// Locate or create appropriate public/accessible media directory cross-platform.
   /// Strictly prioritizes "/storage/emulated/0/Sine-Music" (the root directory where Android & DCIM lie).
-  static Future<Directory> _getMediaDirectory({bool isVideo = false}) async {
+  static Future<Directory> getMediaDirectory({bool isVideo = false}) async {
     final subFolder = isVideo ? 'Sine-Videos' : 'Sine-Music';
     if (Platform.isAndroid) {
       // Request permission before attempting filesystem operations

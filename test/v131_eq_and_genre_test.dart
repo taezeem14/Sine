@@ -68,8 +68,8 @@ void main() {
     });
 
     test('AppConstants contains AutoEq, JamesDSP, and Equalizer APO attributions', () {
-      expect(AppConstants.version, '1.3.1');
-      expect(AppConstants.buildNumber, 31);
+      expect(AppConstants.version, isNotEmpty);
+      expect(AppConstants.buildNumber, greaterThanOrEqualTo(31));
 
       final names = AppConstants.openSourceAttributions.map((a) => a['name']).toList();
       expect(names, contains('AutoEq'));

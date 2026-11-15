@@ -1,8 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/app_constants.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
+import 'download_service.dart';
 
 class StorageService {
   static const String _favsKey = 'sine_favorites_v1';
@@ -541,8 +545,8 @@ class StorageService {
   String exportBackupJson() {
     final payload = {
       'format': 'SINE_BACKUP',
-      'version': '1.3.0',
-      'versionCode': 30,
+      'version': AppConstants.version,
+      'versionCode': AppConstants.buildNumber,
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
       'playlists': loadPlaylists().map((p) => p.toMap()).toList(),
       'favorites': loadFavorites().map((s) => s.toMap()).toList(),
@@ -561,6 +565,125 @@ class StorageService {
       },
     };
     return const JsonEncoder.withIndent('  ').convert(payload);
+  }
+
+  /// Exports full database backup into a persistent JSON file in storage:
+  /// e.g. /storage/emulated/0/Sine-Music/Backups/sine_backup_YYYYMMDD_HHMMSS.json
+  /// Returns the written File.
+  Future<File?> exportBackupToFile({String? customFileName}) async {
+    try {
+      final jsonStr = exportBackupJson();
+      final backupDir = await getBackupDirectory();
+
+      final now = DateTime.now();
+      final dateStr = '${now.year.toString().padLeft(4, '0')}'
+          '${now.month.toString().padLeft(2, '0')}'
+          '${now.day.toString().padLeft(2, '0')}_'
+          '${now.hour.toString().padLeft(2, '0')}'
+          '${now.minute.toString().padLeft(2, '0')}'
+          '${now.second.toString().padLeft(2, '0')}';
+
+      final fileName = customFileName ?? 'sine_backup_$dateStr.json';
+      final file = File('${backupDir.path}/$fileName');
+      await file.writeAsString(jsonStr, flush: true);
+
+      // Also maintain a convenient 'sine_backup_latest.json'
+      try {
+        final latestFile = File('${backupDir.path}/sine_backup_latest.json');
+        await latestFile.writeAsString(jsonStr, flush: true);
+      } catch (_) {}
+
+      debugPrint('[StorageService] Backup exported successfully to ${file.path}');
+      return file;
+    } catch (e) {
+      debugPrint('[StorageService] exportBackupToFile error: $e');
+      return null;
+    }
+  }
+
+  /// Discovers existing backup files in public storage and documents directory
+  Future<List<File>> listAvailableBackupFiles() async {
+    final results = <File>[];
+    final seenPaths = <String>{};
+
+    void scanDir(Directory dir) {
+      try {
+        if (!dir.existsSync()) return;
+        final entities = dir.listSync();
+        for (final entity in entities) {
+          if (entity is File && entity.path.toLowerCase().endsWith('.json')) {
+            if (!seenPaths.contains(entity.path)) {
+              seenPaths.add(entity.path);
+              results.add(entity);
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('[StorageService] scanDir error in ${dir.path}: $e');
+      }
+    }
+
+    try {
+      final backupDir = await getBackupDirectory();
+      scanDir(backupDir);
+
+      // Also check the parent Sine-Music directory in case a user dropped a backup there
+      final mediaDir = await DownloadService.getMediaDirectory(isVideo: false);
+      scanDir(mediaDir);
+
+      // Also check standard documents directory
+      try {
+        final docs = await getApplicationDocumentsDirectory();
+        scanDir(Directory('${docs.path}/Backups'));
+        scanDir(docs);
+      } catch (_) {}
+
+      // Sort newest modified first
+      results.sort((a, b) {
+        try {
+          return b.lastModifiedSync().compareTo(a.lastModifiedSync());
+        } catch (_) {
+          return 0;
+        }
+      });
+    } catch (e) {
+      debugPrint('[StorageService] listAvailableBackupFiles error: $e');
+    }
+    return results;
+  }
+
+  /// Locates the primary backup directory cross-platform
+  static Future<Directory> getBackupDirectory() async {
+    try {
+      final mediaDir = await DownloadService.getMediaDirectory(isVideo: false);
+      final backupDir = Directory('${mediaDir.path}/Backups');
+      if (!await backupDir.exists()) {
+        await backupDir.create(recursive: true);
+      }
+      return backupDir;
+    } catch (e) {
+      debugPrint('[StorageService] Primary backup dir error: $e. Falling back to documents.');
+      final docs = await getApplicationDocumentsDirectory();
+      final backupDir = Directory('${docs.path}/Backups');
+      if (!await backupDir.exists()) {
+        await backupDir.create(recursive: true);
+      }
+      return backupDir;
+    }
+  }
+
+  /// Imports backup from a File directly
+  Future<({int playlistsCount, int favoritesCount, int historyCount})?> importBackupFromFile(
+    File file, {
+    bool merge = true,
+  }) async {
+    try {
+      final content = await file.readAsString();
+      return importBackupJson(content, merge: merge);
+    } catch (e) {
+      debugPrint('[StorageService] importBackupFromFile error: $e');
+      return null;
+    }
   }
 
   /// Imports and validates backup JSON, merging or restoring library data safely
