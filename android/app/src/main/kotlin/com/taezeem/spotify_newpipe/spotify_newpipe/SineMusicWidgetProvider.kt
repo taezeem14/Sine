@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.view.KeyEvent
 import android.widget.RemoteViews
 
@@ -27,10 +28,11 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
         private const val KEY_PLAYING = "widget_playing"
 
         fun updateAllWidgets(context: Context, title: String?, artist: String?, isPlaying: Boolean) {
+            val appContext = context.applicationContext ?: context
             val safeTitle = if (title.isNullOrBlank()) "No Song Playing" else title
             val safeArtist = if (artist.isNullOrBlank()) "Tap to open Sine" else artist
 
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val prevTitle = prefs.getString(KEY_TITLE, null)
             val prevArtist = prefs.getString(KEY_ARTIST, null)
             val prevPlaying = prefs.getBoolean(KEY_PLAYING, false)
@@ -42,8 +44,8 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
                 .putBoolean(KEY_PLAYING, isPlaying)
                 .apply()
 
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val thisWidget = ComponentName(context, SineMusicWidgetProvider::class.java)
+            val appWidgetManager = AppWidgetManager.getInstance(appContext)
+            val thisWidget = ComponentName(appContext, SineMusicWidgetProvider::class.java)
             val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
 
             if (allWidgetIds.isEmpty()) {
@@ -56,7 +58,7 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
             }
 
             for (widgetId in allWidgetIds) {
-                val views = buildRemoteViews(context, safeTitle, safeArtist, isPlaying)
+                val views = buildRemoteViews(appContext, safeTitle, safeArtist, isPlaying)
                 appWidgetManager.updateAppWidget(widgetId, views)
             }
         }
@@ -76,6 +78,14 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
                 if (isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play
             )
 
+            val pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT or (
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    PendingIntent.FLAG_IMMUTABLE
+                } else {
+                    0
+                }
+            )
+
             // Open Sine MainActivity on tapping widget body
             val openAppIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -84,22 +94,27 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
                 context,
                 0,
                 openAppIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                pendingFlags
             )
             views.setOnClickPendingIntent(R.id.widget_root, openAppPendingIntent)
             views.setOnClickPendingIntent(R.id.widget_info_container, openAppPendingIntent)
 
-            // Play/Pause Action
-            val playIntent = Intent(context, SineMusicWidgetProvider::class.java).apply {
-                action = ACTION_WIDGET_PLAY_PAUSE
+            // Play/Pause Action: if no song is playing, bind openAppPendingIntent directly so touching play launches app
+            // without being blocked by MIUI background activity start restrictions.
+            if (title == "No Song Playing" || title.isNullOrBlank()) {
+                views.setOnClickPendingIntent(R.id.widget_btn_play, openAppPendingIntent)
+            } else {
+                val playIntent = Intent(context, SineMusicWidgetProvider::class.java).apply {
+                    action = ACTION_WIDGET_PLAY_PAUSE
+                }
+                val playPendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    1,
+                    playIntent,
+                    pendingFlags
+                )
+                views.setOnClickPendingIntent(R.id.widget_btn_play, playPendingIntent)
             }
-            val playPendingIntent = PendingIntent.getBroadcast(
-                context,
-                1,
-                playIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.widget_btn_play, playPendingIntent)
 
             // Next Action
             val nextIntent = Intent(context, SineMusicWidgetProvider::class.java).apply {
@@ -109,7 +124,7 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
                 context,
                 2,
                 nextIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                pendingFlags
             )
             views.setOnClickPendingIntent(R.id.widget_btn_next, nextPendingIntent)
 
@@ -121,7 +136,7 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
                 context,
                 3,
                 prevIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                pendingFlags
             )
             views.setOnClickPendingIntent(R.id.widget_btn_prev, prevPendingIntent)
 
@@ -134,13 +149,14 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val appContext = context.applicationContext ?: context
+        val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val title = prefs.getString(KEY_TITLE, "No Song Playing")
         val artist = prefs.getString(KEY_ARTIST, "Tap to open Sine")
         val isPlaying = prefs.getBoolean(KEY_PLAYING, false)
 
         for (appWidgetId in appWidgetIds) {
-            val views = buildRemoteViews(context, title, artist, isPlaying)
+            val views = buildRemoteViews(appContext, title, artist, isPlaying)
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
     }
@@ -158,19 +174,22 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
             ACTION_WIDGET_PLAY_PAUSE -> {
                 sendMediaKeyEvent(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
                 // Optimistically toggle icon state immediately in SharedPreferences & RemoteViews
-                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val appContext = context.applicationContext ?: context
+                val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 val currentPlaying = prefs.getBoolean(KEY_PLAYING, false)
                 val newPlaying = !currentPlaying
                 val title = prefs.getString(KEY_TITLE, "No Song Playing")
                 val artist = prefs.getString(KEY_ARTIST, "Tap to open Sine")
-                updateAllWidgets(context, title, artist, newPlaying)
+                updateAllWidgets(appContext, title, artist, newPlaying)
 
                 // If no song was ever loaded, launch app so user can choose music
                 if (title == "No Song Playing" || title.isNullOrEmpty()) {
-                    val openAppIntent = Intent(context, MainActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                    }
-                    context.startActivity(openAppIntent)
+                    try {
+                        val openAppIntent = Intent(appContext, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        }
+                        appContext.startActivity(openAppIntent)
+                    } catch (_: Exception) {}
                 }
             }
             ACTION_WIDGET_NEXT -> {
@@ -183,6 +202,7 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
     }
 
     private fun sendMediaKeyEvent(context: Context, keyCode: Int) {
+        val appContext = context.applicationContext ?: context
         try {
             // Direct AudioService transport dispatch if available (bypasses Android 12+ background broadcast restrictions)
             try {
@@ -191,8 +211,9 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
                 instanceField.isAccessible = true
                 val audioServiceInstance = instanceField.get(null)
                 if (audioServiceInstance != null) {
-                    val getMediaSessionMethod = audioServiceClass.getMethod("getMediaSession")
-                    val mediaSession = getMediaSessionMethod.invoke(audioServiceInstance)
+                    val mediaSessionField = audioServiceClass.getDeclaredField("mediaSession")
+                    mediaSessionField.isAccessible = true
+                    val mediaSession = mediaSessionField.get(audioServiceInstance)
                     if (mediaSession != null) {
                         val controllerMethod = mediaSession.javaClass.getMethod("getController")
                         val controller = controllerMethod.invoke(mediaSession)
@@ -229,28 +250,35 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
                 }
             } catch (_: Throwable) {}
 
+            fallbackToMediaButtonReceiver(appContext, keyCode)
+        } catch (_: Exception) {}
+    }
+
+    private fun fallbackToMediaButtonReceiver(appContext: Context, keyCode: Int) {
+        try {
             // Fallback: Explicit component routing for Android 8+ (Oreo through Android 15)
-            val component = ComponentName(context, "com.ryanheise.audioservice.MediaButtonReceiver")
+            val component = ComponentName(appContext, "com.ryanheise.audioservice.MediaButtonReceiver")
 
             val downIntent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
                 this.component = component
                 putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
             }
-            context.sendOrderedBroadcast(downIntent, null)
+            appContext.sendOrderedBroadcast(downIntent, null)
 
             val upIntent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
                 this.component = component
                 putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(KeyEvent.ACTION_UP, keyCode))
             }
-            context.sendOrderedBroadcast(upIntent, null)
+            appContext.sendOrderedBroadcast(upIntent, null)
         } catch (_: Exception) {
             try {
                 val downIntent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
-                    setPackage(context.packageName)
+                    setPackage(appContext.packageName)
                     putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
                 }
-                context.sendBroadcast(downIntent)
+                appContext.sendBroadcast(downIntent)
             } catch (_: Exception) {}
         }
+    }
     }
 }

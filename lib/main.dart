@@ -78,11 +78,12 @@ class SineMobileApp extends StatelessWidget {
           create: (_) => PlayerProvider(audioHandler, storageService),
         ),
       ],
-      child: Consumer<PlayerProvider>(
-        builder: (context, player, _) => MaterialApp(
+      child: Selector<PlayerProvider, ThemeData>(
+        selector: (_, player) => player.themeData,
+        builder: (context, themeData, _) => MaterialApp(
           title: 'Sine',
           debugShowCheckedModeBanner: false,
-          theme: player.themeData,
+          theme: themeData,
           home: const PerformanceHudOverlay(child: PulsePipeShellScreen()),
         ),
       ),

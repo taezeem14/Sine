@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.3.2%20(Build%2032)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.3.3%20(Build%2033)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.3.2)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.2.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.3.3)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.3.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy studio-grade ad-free music instantly.*
 
@@ -36,7 +36,7 @@
 
 ## 📖 Table of Contents
 - [What Is Sine?](#-what-is-sine)
-- [What's New in v1.3.1](#-whats-new-in-v131)
+- [What's New in v1.3.3](#-whats-new-in-v133)
 - [Key Features](#-key-features)
 - [Architecture & Playback Pipeline](#-architecture--playback-pipeline)
 - [FOSS & Privacy Guarantee](#-foss--privacy-guarantee)
@@ -64,28 +64,27 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 
 ---
 
-## 🌟 What's New in v1.3.1
+## 🌟 What's New in v1.3.3
 
-1. **Studio Open-Source Equalizer (AutoEq & JamesDSP)**:
-   - Integrated acoustic target curves from **AutoEq** (Jaakko Pasanen, MIT): *AutoEq: Harman Target*, *AutoEq: Audiophile Neutral*, *AutoEq: Harman Bass Boost*, *AutoEq: Vocal Forward*.
-   - Integrated acoustic models from **JamesDSP** (James34602, GPL-3.0): *JamesDSP: Pure Clarity*, *JamesDSP: Bass Resonance*, *JamesDSP: Tube Amp Warmth*, *JamesDSP: Studio Master*.
-   - Integrated ISO 226 equal-loudness contours from **Equalizer APO** (jthedering, GPL).
-   - Horizontal category filter chips (`All`, `AutoEq Studio`, `JamesDSP Acoustic`, `APO / Loudness`, `Genre Classics`).
-   - Interactive touch-draggable Bezier spline curve with real-time floating dB readout bubble (`+5.2 dB (AutoEq Harman)`).
-   - Double-tap any frequency node to reset that individual band to `0.0 dB Unity`, plus a "Reset to Flat" button.
-   - In-app open-source DSP attribution and credits dialog.
+1. **Xiaomi MIUI & Redmi Note 5 Pro Home Screen Widget Fix**:
+   - Replaced forbidden bare `<View>` spacer tags with RemoteViews-safe `<FrameLayout>` containers, eliminating fatal `InflateException: Class not allowed to be inflated android.view.View` in `com.miui.home`.
+   - Replaced unresolvable `?android:attr/selectableItemBackgroundBorderless` styles with transparent drawables.
+   - Guarded PendingIntent flags with `FLAG_IMMUTABLE` fallback for Android 8.1+ / MIUI.
+   - Direct app activation on empty widget tap to bypass aggressive MIUI background activity suppression.
 
-2. **Curated Genre Deep Explorer (Real High-Precision Tracks)**:
-   - Upgraded search genres to query the **iTunes Search API** with resilient failover to YouTube search.
-   - Delivers real, genre-accurate tracks across *Classical & Piano*, *Rock & Alt*, *Pop Global*, *Bollywood Hits*, *Electric & Dance*, *Hip-Hop & Rap*, *Indie Vibes*, *Chill & Lo-Fi*, and *Workout & Hype*.
-   - Fixed category fallback bug where unmatched keys reverted to "Today's Top Hits".
+2. **App-Wide 60/120 FPS Butter Smoothness & Rebuild Elimination**:
+   - Pruned global tree rebuilds in `main.dart` with targeted `Selector<PlayerProvider, ThemeData>`.
+   - Isolated continuous animated painters (`VinylDisc`, `AmbientGlow`, `SpectrumBars`) in `RepaintBoundary` widgets.
+   - Synchronized seamless `Hero` transitions between `MiniPlayer` and `NowPlayingScreen` album art.
+   - Upgraded all screen routes and sheet transitions to cubic easing curves (`Curves.easeOutQuint` & `Curves.easeInOutCubic`).
 
-3. **Lossless Pitch & Speed Anti-Distortion Headroom Guard**:
-   - Dynamic `-3.7 dB` (0.65) pre-amp limiter absorbing Sonic SOLA constructive interference spikes during tempo or pitch shifts, eliminating digital clipping and audio crackle.
-   - Automatic re-anchoring of Android's hardware `AndroidEqualizer` after Sonic pipeline shifts, ensuring the EQ never detaches or goes flat when pitch or speed is adjusted.
+3. **Modernized Settings, Theme Studio & Queue UX**:
+   - **Settings UI**: Material 3 grouped cards, instant settings search, and smooth slider touch ergonomics.
+   - **Theme Studio**: Live interactive player preview card, pure OLED true-black mode toggle (`0x000000`), and smooth color transitions across all 8 presets.
+   - **Queue UI**: Drag-and-drop reordering with haptic feedback, swipe-to-dismiss with undo, and subtle active track glow.
 
-4. **Real Device App Showcase**:
-   - Replaced legacy NewPipe placeholders with genuine Sine screenshots across the README, Fastlane store assets, and official website.
+4. **Permanent Release Keystore**:
+   - Released via GitHub Actions using the permanent `sine-release.jks` certificate, guaranteeing seamless in-place updates without "App not installed" errors.
 
 ---
 

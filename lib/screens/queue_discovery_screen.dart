@@ -30,10 +30,17 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
         : <Song>[];
     final recommendations = player.recommendations;
 
-    return Scaffold(
-      backgroundColor: EmberColors.obsidianBase,
-      appBar: AppBar(
-        backgroundColor: EmberColors.obsidianBase,
+    final isOled = player.isOledBlack;
+    final bgColor = isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase;
+
+    return AnimatedTheme(
+      data: player.themeData,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOutCubic,
+      child: Scaffold(
+        backgroundColor: bgColor,
+        appBar: AppBar(
+          backgroundColor: bgColor,
         elevation: 0,
         leading: IconButton(
           icon: FaIcon(FontAwesomeIcons.chevronDown, size: 18, color: EmberColors.textPrimary),
@@ -94,124 +101,14 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: EmberColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: EmberColors.primaryBlue.withValues(alpha: 0.35),
-                      width: 1.2,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        // Album Art with Playing Overlay
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              CachedNetworkImage(
-                                imageUrl: currentSong.artworkUrl,
-                                width: 52,
-                                height: 52,
-                                memCacheWidth: 150,
-                                memCacheHeight: 150,
-                                fit: BoxFit.cover,
-                                errorWidget: (_, _, _) => Container(
-                                  width: 52,
-                                  height: 52,
-                                  color: EmberColors.surfaceContainerHigh,
-                                  child: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
-                                ),
-                              ),
-                              if (player.isPlaying)
-                                Container(
-                                  width: 52,
-                                  height: 52,
-                                  color: Colors.black.withValues(alpha: 0.35),
-                                  child: const Center(
-                                    child: RepaintBoundary(
-                                      child: SpectrumBars(isPlaying: true, height: 16),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        // Track Title & Artist
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                currentSong.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: EmberColors.primaryBlueHi,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                    decoration: BoxDecoration(
-                                      color: EmberColors.primaryBlue.withValues(alpha: 0.18),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      'Opus HQ',
-                                      style: TextStyle(
-                                        color: EmberColors.primaryBlue,
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      currentSong.artist,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: EmberColors.textSecondary,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Favorite Heart Button
-                        IconButton(
-                          icon: FaIcon(
-                            player.isFavorite(currentSong.id)
-                                ? FontAwesomeIcons.solidHeart
-                                : FontAwesomeIcons.heart,
-                            size: 18,
-                            color: player.isFavorite(currentSong.id)
-                                ? EmberColors.primaryBlue
-                                : EmberColors.textMuted,
-                          ),
-                          onPressed: () {
-                            HapticFeedback.lightImpact();
-                            player.toggleFavorite(currentSong);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+                child: _NowPlayingHighlightCard(
+                  currentSong: currentSong,
+                  isPlaying: player.isPlaying,
+                  isFavorite: player.isFavorite(currentSong.id),
+                  onFavoriteToggle: () {
+                    HapticFeedback.lightImpact();
+                    player.toggleFavorite(currentSong);
+                  },
                 ),
               ),
             )
@@ -295,13 +192,49 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                   final actualNew = currentIndex + 1 + newIdx;
                   player.reorderQueue(actualOld, actualNew);
                 },
+                proxyDecorator: (Widget child, int index, Animation<double> animation) {
+                  return AnimatedBuilder(
+                    animation: animation,
+                    builder: (context, _) {
+                      final animValue = Curves.easeInOutCubic.transform(animation.value);
+                      final scale = 1.0 + (0.03 * animValue);
+                      final activeAccent = Theme.of(context).colorScheme.primary;
+                      return Transform.scale(
+                        scale: scale,
+                        child: Material(
+                          color: Colors.transparent,
+                          elevation: 8.0 * animValue,
+                          shadowColor: activeAccent.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: EmberColors.surfaceContainerHigh.withValues(alpha: 0.95),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: activeAccent.withValues(alpha: 0.6),
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: activeAccent.withValues(alpha: 0.25 * animValue),
+                                  blurRadius: 16,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: child,
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
                 itemBuilder: (context, index) {
                   final song = upNext[index];
                   final globalIdx = currentIndex + 1 + index;
 
-                  return ReorderableDelayedDragStartListener(
-                    key: ValueKey('queue_${song.id}_$globalIdx'),
-                    index: index,
+                  return RepaintBoundary(
+                    key: ValueKey('queue_item_${song.id}'),
                     child: Dismissible(
                       key: ValueKey('dismiss_${song.id}_$globalIdx'),
                       direction: DismissDirection.endToStart,
@@ -309,15 +242,27 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                         alignment: Alignment.centerRight,
                         padding: const EdgeInsets.only(right: 20),
                         decoration: BoxDecoration(
-                          color: EmberColors.error.withValues(alpha: 0.85),
-                          borderRadius: BorderRadius.circular(8),
+                          gradient: LinearGradient(
+                            colors: [
+                              EmberColors.error.withValues(alpha: 0.1),
+                              EmberColors.error.withValues(alpha: 0.85),
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               'Remove',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12.5,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                             SizedBox(width: 8),
                             FaIcon(FontAwesomeIcons.trashCan, color: Colors.white, size: 14),
@@ -327,18 +272,30 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                       onDismissed: (_) {
                         HapticFeedback.mediumImpact();
                         final targetIdx = player.queue.indexWhere((s) => s.id == song.id);
+                        final removedSong = song;
+                        final removalIndex = targetIdx != -1 ? targetIdx : (globalIdx < player.queue.length ? globalIdx : player.queue.length - 1);
                         if (targetIdx != -1) {
                           player.removeTrackAt(targetIdx);
                         } else if (globalIdx < player.queue.length) {
                           player.removeTrackAt(globalIdx);
                         }
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             backgroundColor: EmberColors.surfaceContainerHigh,
-                            duration: const Duration(seconds: 2),
+                            duration: const Duration(seconds: 4),
                             content: Text(
-                              'Removed "${song.title}" from queue',
-                              style: TextStyle(color: EmberColors.textPrimary, fontSize: 12.5),
+                              'Removed "${removedSong.title}" from queue',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12.5),
+                            ),
+                            action: SnackBarAction(
+                              label: 'Undo',
+                              textColor: Theme.of(context).colorScheme.primary,
+                              onPressed: () {
+                                player.insertInQueue(removalIndex, removedSong);
+                              },
                             ),
                           ),
                         );
@@ -400,7 +357,10 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                               ),
                               ReorderableDragStartListener(
                                 index: index,
-                                child: Icon(Icons.drag_handle_rounded, color: EmberColors.textMuted, size: 22),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                  child: Icon(Icons.drag_handle_rounded, color: EmberColors.textMuted, size: 22),
+                                ),
                               ),
                             ],
                           ),
@@ -542,6 +502,200 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
       ),
+    ),
+  );
+}
+}
+
+class _NowPlayingHighlightCard extends StatefulWidget {
+  final Song currentSong;
+  final bool isPlaying;
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
+
+  const _NowPlayingHighlightCard({
+    required this.currentSong,
+    required this.isPlaying,
+    required this.isFavorite,
+    required this.onFavoriteToggle,
+  });
+
+  @override
+  State<_NowPlayingHighlightCard> createState() => _NowPlayingHighlightCardState();
+}
+
+class _NowPlayingHighlightCardState extends State<_NowPlayingHighlightCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+    _pulseAnimation = CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOutCubic,
+    );
+    if (widget.isPlaying) {
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _NowPlayingHighlightCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPlaying && !_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    } else if (!widget.isPlaying && _pulseController.isAnimating) {
+      _pulseController.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final activeAccent = Theme.of(context).colorScheme.primary;
+
+    return AnimatedBuilder(
+      animation: _pulseAnimation,
+      builder: (context, _) {
+        final pulseVal = widget.isPlaying ? _pulseAnimation.value : 0.0;
+        final borderAlpha = 0.35 + (0.35 * pulseVal);
+        final glowAlpha = 0.10 + (0.15 * pulseVal);
+
+        return Container(
+          decoration: BoxDecoration(
+            color: EmberColors.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: activeAccent.withValues(alpha: borderAlpha),
+              width: 1.4,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: activeAccent.withValues(alpha: glowAlpha),
+                blurRadius: 14,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // Album Art with Playing Overlay & Equalizer Bars
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CachedNetworkImage(
+                        imageUrl: widget.currentSong.artworkUrl,
+                        width: 52,
+                        height: 52,
+                        memCacheWidth: 150,
+                        memCacheHeight: 150,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, _, _) => Container(
+                          width: 52,
+                          height: 52,
+                          color: EmberColors.surfaceContainerHigh,
+                          child: Icon(Icons.music_note_rounded, color: activeAccent),
+                        ),
+                      ),
+                      if (widget.isPlaying)
+                        Container(
+                          width: 52,
+                          height: 52,
+                          color: Colors.black.withValues(alpha: 0.4),
+                          child: const Center(
+                            child: RepaintBoundary(
+                              child: SpectrumBars(isPlaying: true, height: 16),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                // Track Title & Artist
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.currentSong.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: activeAccent,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: activeAccent.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Opus HQ',
+                              style: TextStyle(
+                                color: activeAccent,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              widget.currentSong.artist,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: EmberColors.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // Favorite Heart Button
+                IconButton(
+                  icon: FaIcon(
+                    widget.isFavorite
+                        ? FontAwesomeIcons.solidHeart
+                        : FontAwesomeIcons.heart,
+                    size: 18,
+                    color: widget.isFavorite
+                        ? activeAccent
+                        : EmberColors.textMuted,
+                  ),
+                  onPressed: widget.onFavoriteToggle,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

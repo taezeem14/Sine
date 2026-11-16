@@ -240,10 +240,32 @@ class PlayerProvider extends ChangeNotifier {
 
   SineThemePreset _activeThemePreset = SineThemePreset.blue;
   Color _customThemeColor = const Color(0xFF2979FF);
+  bool _isOledBlack = false;
+
+  late ThemeData _themeData = EmberTheme.buildTheme(
+    accentColor: EmberColors.currentPrimary,
+    isOledBlack: _isOledBlack,
+  );
 
   SineThemePreset get activeThemePreset => _activeThemePreset;
   Color get customThemeColor => _customThemeColor;
-  ThemeData get themeData => EmberTheme.buildTheme(accentColor: EmberColors.currentPrimary);
+  bool get isOledBlack => _isOledBlack;
+  ThemeData get themeData => _themeData;
+
+  void _updateThemeData() {
+    _themeData = EmberTheme.buildTheme(
+      accentColor: EmberColors.currentPrimary,
+      isOledBlack: _isOledBlack,
+    );
+  }
+
+  Future<void> setOledBlack(bool enabled) async {
+    _isOledBlack = enabled;
+    EmberColors.setOledBlack(enabled);
+    _updateThemeData();
+    await _storageService.saveOledBlack(enabled);
+    notifyListeners();
+  }
 
   Future<void> setThemePreset(SineThemePreset preset, {Color? customColor}) async {
     _activeThemePreset = preset;
@@ -259,6 +281,7 @@ class PlayerProvider extends ChangeNotifier {
       EmberColors.applyThemePreset(preset);
     }
 
+    _updateThemeData();
     notifyListeners();
   }
 
@@ -350,6 +373,10 @@ class PlayerProvider extends ChangeNotifier {
     } else {
       EmberColors.applyThemePreset(_activeThemePreset);
     }
+
+    _isOledBlack = _storageService.loadOledBlack();
+    EmberColors.setOledBlack(_isOledBlack);
+    _updateThemeData();
 
     // Check for recoverable previous playback session
     final savedSessionMap = _storageService.loadSavedSession();
@@ -1454,6 +1481,18 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void insertInQueue(int index, Song song) {
+    final targetIndex = index.clamp(0, _queue.length);
+    _queue.insert(targetIndex, song);
+    if (_isShuffle) {
+      _unshuffledQueue.add(song);
+    }
+    if (targetIndex <= _currentIndex) {
+      _currentIndex++;
+    }
+    notifyListeners();
+  }
+
   void clearQueue() {
     final cur = currentSong;
     _queue.clear();
@@ -2063,9 +2102,9 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> setCrossfadeSeconds(int seconds) async {
     _crossfadeSeconds = seconds.clamp(0, 12);
+    notifyListeners();
     await _storageService.saveCrossfadeSeconds(_crossfadeSeconds);
     await _audioHandler.setCrossfadeSeconds(_crossfadeSeconds);
-    notifyListeners();
   }
 
   Future<void> setGaplessPlayback(bool enabled) async {

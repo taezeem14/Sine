@@ -29,7 +29,7 @@
             android:textSize="12sp"
             android:textStyle="bold" />
 
-        <View
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_weight="1" />
@@ -90,7 +90,7 @@
             android:id="@+id/widget_btn_prev"
             android:layout_width="38dp"
             android:layout_height="38dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:background="@android:color/transparent"
             android:src="@drawable/ic_widget_prev"
             android:scaleType="centerInside"
             android:contentDescription="Previous" />
@@ -110,7 +110,7 @@
             android:id="@+id/widget_btn_next"
             android:layout_width="38dp"
             android:layout_height="38dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:background="@android:color/transparent"
             android:src="@drawable/ic_widget_next"
             android:scaleType="centerInside"
             android:contentDescription="Next" />

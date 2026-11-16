@@ -29,7 +29,8 @@ class PerformanceHudOverlay extends StatelessWidget {
                       : (snap.currentFps >= 40.0 ? Colors.orangeAccent : EmberColors.error);
 
                   return IgnorePointer(
-                    child: Container(
+                    child: RepaintBoundary(
+                      child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.85),
@@ -122,7 +123,8 @@ class PerformanceHudOverlay extends StatelessWidget {
                         ],
                       ),
                     ),
-                  );
+                  ),
+                );
                 },
               ),
             );

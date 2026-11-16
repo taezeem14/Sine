@@ -47,6 +47,7 @@ class StorageService {
   static const String _performanceHudKey = 'sine_performance_hud_enabled';
   static const String _themePresetKey = 'sine_theme_preset_v1';
   static const String _customThemeColorKey = 'sine_custom_theme_color_v1';
+  static const String _oledBlackKey = 'sine_oled_black_mode_v1';
 
   final SharedPreferences? _prefs;
   final List<Song> _memFavorites = [];
@@ -825,5 +826,15 @@ class StorageService {
   /// Persists custom theme color ARGB integer
   Future<void> saveCustomThemeColor(int colorValue) async {
     await _prefs?.setInt(_customThemeColorKey, colorValue);
+  }
+
+  /// Loads true pitch black OLED preference (defaults to false / Obsidian Charcoal)
+  bool loadOledBlack() {
+    return _prefs?.getBool(_oledBlackKey) ?? false;
+  }
+
+  /// Persists true pitch black OLED preference
+  Future<void> saveOledBlack(bool enabled) async {
+    await _prefs?.setBool(_oledBlackKey, enabled);
   }
 }

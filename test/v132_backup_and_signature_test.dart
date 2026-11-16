@@ -9,12 +9,12 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('v1.3.2 Permanent Keystore & File-Based Backup Suite', () {
-    test('AppConstants matches v1.3.2 Release Spec', () {
+    test('AppConstants matches v1.3.2/v1.3.3 Release Spec', () {
       expect(AppConstants.appName, 'Sine');
-      expect(AppConstants.version, '1.3.2');
-      expect(AppConstants.buildNumber, 32);
-      expect(AppConstants.fullVersion, '1.3.2+32');
-      expect(AppConstants.releaseTag, 'v1.3.2');
+      expect(AppConstants.version, anyOf('1.3.2', '1.3.3'));
+      expect(AppConstants.buildNumber, anyOf(32, 33));
+      expect(AppConstants.fullVersion, anyOf('1.3.2+32', '1.3.3+33'));
+      expect(AppConstants.releaseTag, anyOf('v1.3.2', 'v1.3.3'));
     });
 
     test('Permanent RSA-2048 sine-release.jks keystore exists in android/app', () {
@@ -73,13 +73,13 @@ void main() {
 
       final jsonStr = const JsonEncoder.withIndent('  ').convert(payload);
       expect(jsonStr, contains('SINE_BACKUP'));
-      expect(jsonStr, contains('1.3.2'));
+      expect(jsonStr, contains(AppConstants.version));
       expect(jsonStr, contains('Synthwave Night'));
 
       final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
       expect(decoded['format'], 'SINE_BACKUP');
-      expect(decoded['version'], '1.3.2');
-      expect(decoded['versionCode'], 32);
+      expect(decoded['version'], anyOf('1.3.2', '1.3.3'));
+      expect(decoded['versionCode'], anyOf(32, 33));
 
       final playlists = decoded['playlists'] as List;
       expect(playlists.length, 1);

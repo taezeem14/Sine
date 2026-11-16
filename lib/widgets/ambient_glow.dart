@@ -57,34 +57,36 @@ class _AmbientGlowState extends State<AmbientGlow>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Static blurred background with animated opacity (GPU composited, zero re-rasterization)
-        FadeTransition(
-          opacity: _opacityAnimation,
-          child: Container(
-            width: 250,
-            height: 250,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: (widget.glowColor ?? EmberColors.primaryAmber).withValues(alpha: widget.isPlaying ? 0.32 : 0.12),
-                  blurRadius: 52,
-                  spreadRadius: 22,
-                ),
-                BoxShadow(
-                  color: EmberColors.secondaryHoney.withValues(alpha: widget.isPlaying ? 0.18 : 0.06),
-                  blurRadius: 78,
-                  spreadRadius: 16,
-                ),
-              ],
+    return RepaintBoundary(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Static blurred background with animated opacity (GPU composited, zero re-rasterization)
+          FadeTransition(
+            opacity: _opacityAnimation,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: (widget.glowColor ?? EmberColors.primaryAmber).withValues(alpha: widget.isPlaying ? 0.32 : 0.12),
+                    blurRadius: 52,
+                    spreadRadius: 22,
+                  ),
+                  BoxShadow(
+                    color: EmberColors.secondaryHoney.withValues(alpha: widget.isPlaying ? 0.18 : 0.06),
+                    blurRadius: 78,
+                    spreadRadius: 16,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        widget.child,
-      ],
+          widget.child,
+        ],
+      ),
     );
   }
 }

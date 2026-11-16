@@ -13,3 +13,4 @@ key.properties
 **/*.keystore
 **/*.jks
 !app/sine-release.jks
+!sine-release.jks

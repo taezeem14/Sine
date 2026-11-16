@@ -46,8 +46,14 @@ class EmberColors {
   EmberColors._();
 
   static Color _currentPrimary = const Color(0xFF2979FF);
+  static bool _isOledBlack = false;
 
   static Color get currentPrimary => _currentPrimary;
+  static bool get isOledBlack => _isOledBlack;
+
+  static void setOledBlack(bool enabled) {
+    _isOledBlack = enabled;
+  }
 
   static void applyThemeColor(Color color) {
     _currentPrimary = color;
@@ -58,7 +64,10 @@ class EmberColors {
   }
 
   // Surface & Foundations (Pitch Black & Obsidian Surfaces)
+  static const Color pitchBlack = Color(0xFF000000);
+  static const Color obsidianCharcoal = Color(0xFF121212);
   static const Color obsidianBase = Color(0xFF121212);
+  static Color get currentBackground => _isOledBlack ? pitchBlack : obsidianCharcoal;
   static const Color surface = Color(0xFF121212);
   static const Color surfaceContainerLowest = Color(0xFF000000);
   static const Color surfaceContainerLow = Color(0xFF181818);
@@ -104,12 +113,28 @@ class EmberColors {
 class EmberTheme {
   EmberTheme._();
 
-  static ThemeData get darkTheme => buildTheme(accentColor: EmberColors.currentPrimary, useGoogleFonts: true);
+  static const Curve entryCurve = Curves.easeOutQuint;
+  static const Curve modalCurve = Curves.easeInOutCubic;
 
-  static ThemeData buildTheme({Color? accentColor, bool useGoogleFonts = true}) {
+  static ThemeData get darkTheme => buildTheme(
+    accentColor: EmberColors.currentPrimary,
+    isOledBlack: EmberColors.isOledBlack,
+    useGoogleFonts: true,
+  );
+
+  static ThemeData buildTheme({
+    Color? accentColor,
+    bool? isOledBlack,
+    bool useGoogleFonts = true,
+  }) {
     final activeAccent = accentColor ?? EmberColors.currentPrimary;
+    final oled = isOledBlack ?? EmberColors.isOledBlack;
+    final bg = oled ? EmberColors.pitchBlack : EmberColors.obsidianBase;
+    final surfaceBg = oled ? EmberColors.pitchBlack : EmberColors.surface;
+    final cardBg = oled ? const Color(0xFF0D0D0D) : EmberColors.surfaceContainerLow;
     TextTheme mergedTextTheme;
-    if (useGoogleFonts) {
+    final canFetchFonts = useGoogleFonts && GoogleFonts.config.allowRuntimeFetching;
+    if (canFetchFonts) {
       try {
         final baseTextTheme = Typography.material2021().white;
 
@@ -143,18 +168,18 @@ class EmberTheme {
 
     return ThemeData(
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: EmberColors.obsidianBase,
-      canvasColor: EmberColors.surface,
-      cardColor: EmberColors.surfaceContainerLow,
+      scaffoldBackgroundColor: bg,
+      canvasColor: surfaceBg,
+      cardColor: cardBg,
       dividerColor: EmberColors.outlineVariant,
       colorScheme: ColorScheme.dark(
-        surface: EmberColors.surface,
+        surface: surfaceBg,
         primary: activeAccent,
         secondary: activeAccent,
         tertiary: activeAccent,
         error: EmberColors.error,
         onSurface: EmberColors.textPrimary,
-        onPrimary: EmberColors.obsidianBase,
+        onPrimary: bg,
       ),
       textTheme: mergedTextTheme,
       iconTheme: const IconThemeData(color: EmberColors.textSecondary, size: 22),
@@ -175,6 +200,58 @@ class EmberTheme {
           shape: const StadiumBorder(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           textStyle: mergedTextTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: SmoothCubicPageTransitionsBuilder(),
+          TargetPlatform.iOS: SmoothCubicPageTransitionsBuilder(),
+          TargetPlatform.linux: SmoothCubicPageTransitionsBuilder(),
+          TargetPlatform.macOS: SmoothCubicPageTransitionsBuilder(),
+          TargetPlatform.windows: SmoothCubicPageTransitionsBuilder(),
+        },
+      ),
+    );
+  }
+}
+
+/// Smooth cubic page transition builder utilizing [Curves.easeOutQuint] for entry
+/// and [Curves.easeInOutCubic] for shared-axis/secondary transitions.
+class SmoothCubicPageTransitionsBuilder extends PageTransitionsBuilder {
+  const SmoothCubicPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final entryCurvedAnimation = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutQuint,
+      reverseCurve: Curves.easeInOutCubic,
+    );
+    final secondaryCurvedAnimation = CurvedAnimation(
+      parent: secondaryAnimation,
+      curve: Curves.easeInOutCubic,
+      reverseCurve: Curves.easeOutQuint,
+    );
+
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(0.08, 0.0),
+        end: Offset.zero,
+      ).animate(entryCurvedAnimation),
+      child: FadeTransition(
+        opacity: Tween<double>(begin: 0.0, end: 1.0).animate(entryCurvedAnimation),
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: Offset.zero,
+            end: const Offset(-0.04, 0.0),
+          ).animate(secondaryCurvedAnimation),
+          child: child,
         ),
       ),
     );

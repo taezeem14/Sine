@@ -61,17 +61,19 @@ class _VinylDiscState extends State<VinylDisc>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Transform.rotate(
-          angle: _controller.value * 2 * math.pi,
-          child: child,
-        );
-      },
-      child: CustomPaint(
-        size: Size(widget.size, widget.size),
-        painter: _VinylPainter(),
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.rotate(
+            angle: _controller.value * 2 * math.pi,
+            child: child,
+          );
+        },
+        child: CustomPaint(
+          size: Size(widget.size, widget.size),
+          painter: _VinylPainter(),
+        ),
       ),
     );
   }

@@ -264,33 +264,36 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                                         ),
                                                       ),
                                                       // Square album cover
-                                                      ClipRRect(
-                                                        borderRadius: BorderRadius.circular(24),
-                                                        child: Container(
-                                                          width: 260,
-                                                          height: 260,
-                                                          decoration: BoxDecoration(
-                                                            color: EmberColors.surfaceContainerHigh,
-                                                            boxShadow: [
-                                                              BoxShadow(
-                                                                color: Colors.black.withValues(alpha: 0.5),
-                                                                blurRadius: 20,
-                                                                offset: const Offset(4, 4),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          child: song.artworkUrl.isNotEmpty
-                                                              ? CachedNetworkImage(
-                                                                  imageUrl: song.artworkUrl,
-                                                                  memCacheWidth: 600,
-                                                                  fit: BoxFit.cover,
-                                                                  errorWidget: (_, _, _) => Center(
+                                                      Hero(
+                                                        tag: 'player_art_${song.id.isNotEmpty ? song.id : "default"}',
+                                                        child: ClipRRect(
+                                                          borderRadius: BorderRadius.circular(24),
+                                                          child: Container(
+                                                            width: 260,
+                                                            height: 260,
+                                                            decoration: BoxDecoration(
+                                                              color: EmberColors.surfaceContainerHigh,
+                                                              boxShadow: [
+                                                                BoxShadow(
+                                                                  color: Colors.black.withValues(alpha: 0.5),
+                                                                  blurRadius: 20,
+                                                                  offset: const Offset(4, 4),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            child: song.artworkUrl.isNotEmpty
+                                                                ? CachedNetworkImage(
+                                                                    imageUrl: song.artworkUrl,
+                                                                    memCacheWidth: 600,
+                                                                    fit: BoxFit.cover,
+                                                                    errorWidget: (_, _, _) => Center(
+                                                                      child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
+                                                                    ),
+                                                                  )
+                                                                : Center(
                                                                     child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
                                                                   ),
-                                                                )
-                                                              : Center(
-                                                                  child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
-                                                                ),
+                                                          ),
                                                         ),
                                                       ),
                                                     ],

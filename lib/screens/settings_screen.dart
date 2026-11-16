@@ -20,7 +20,7 @@ class SettingsScreen extends StatefulWidget {
   static void show(BuildContext context, {int initialTab = 0}) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: EmberColors.obsidianBase,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(
@@ -51,119 +51,135 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.9,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (context, scrollController) {
-        return Column(
-          children: [
-            Container(
-              width: 38,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: EmberColors.textMuted.withValues(alpha: 0.35),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: EmberColors.primaryBlue.withValues(alpha: 0.16),
-                    ),
-                    child: FaIcon(FontAwesomeIcons.gear, color: EmberColors.primaryBlue, size: 18),
+    final player = context.watch<PlayerProvider>();
+    final isOled = player.isOledBlack;
+    final sheetBg = isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase;
+
+    return AnimatedTheme(
+      data: player.themeData,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOutCubic,
+      child: Container(
+        decoration: BoxDecoration(
+          color: sheetBg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            final activeAccent = Theme.of(context).colorScheme.primary;
+            return Column(
+              children: [
+                Container(
+                  width: 38,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: EmberColors.textMuted.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Settings & About',
-                      style: TextStyle(
-                        color: EmberColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close_rounded, color: EmberColors.textMuted, size: 20),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: EmberColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.4)),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  color: EmberColors.primaryBlue,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: EmberColors.primaryBlue.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                    ),
-                  ],
                 ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor: Colors.transparent,
-                labelColor: EmberColors.obsidianBase,
-                unselectedLabelColor: EmberColors.textSecondary,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                tabs: const [
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        FaIcon(FontAwesomeIcons.sliders, size: 13),
-                        SizedBox(width: 8),
-                        Text('Settings'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: activeAccent.withValues(alpha: 0.16),
+                        ),
+                        child: FaIcon(FontAwesomeIcons.gear, color: activeAccent, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Settings & About',
+                          style: TextStyle(
+                            color: EmberColors.textPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, color: EmberColors.textMuted, size: 20),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: isOled ? const Color(0xFF0D0D0D) : EmberColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.4)),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicator: BoxDecoration(
+                      color: activeAccent,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: activeAccent.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                        ),
                       ],
                     ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
+                    labelColor: sheetBg,
+                    unselectedLabelColor: EmberColors.textSecondary,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                    tabs: const [
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            FaIcon(FontAwesomeIcons.sliders, size: 13),
+                            SizedBox(width: 8),
+                            Text('Settings'),
+                          ],
+                        ),
+                      ),
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            FaIcon(FontAwesomeIcons.heart, size: 13),
+                            SizedBox(width: 8),
+                            Text('Donate (UPI)'),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        FaIcon(FontAwesomeIcons.heart, size: 13),
-                        SizedBox(width: 8),
-                        Text('Donate (UPI)'),
-                      ],
-                    ),
+                ),
+                const Divider(color: EmberColors.outlineVariant, height: 12),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      SettingsContent(
+                        scrollController: scrollController,
+                        onNavigateToDonate: () => _tabController.animateTo(1),
+                      ),
+                      UpiDonationView(scrollController: scrollController),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            const Divider(color: EmberColors.outlineVariant, height: 12),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  SettingsContent(
-                    scrollController: scrollController,
-                    onNavigateToDonate: () => _tabController.animateTo(1),
-                  ),
-                  UpiDonationView(scrollController: scrollController),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -180,11 +196,19 @@ class SettingsContent extends StatefulWidget {
 
 class _SettingsContentState extends State<SettingsContent> {
   bool _isLockEnabled = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _loadLockStatus();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadLockStatus() async {
@@ -551,7 +575,7 @@ class _SettingsContentState extends State<SettingsContent> {
           }
 
           return AlertDialog(
-            backgroundColor: EmberColors.obsidianBase,
+            backgroundColor: player.isOledBlack ? EmberColors.pitchBlack : EmberColors.obsidianBase,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
             title: Row(
               children: [
@@ -776,19 +800,28 @@ class _SettingsContentState extends State<SettingsContent> {
 
   Widget _buildThemeSection(BuildContext context, PlayerProvider player) {
     final currentPreset = player.activeThemePreset;
-    final activeAccent = EmberColors.currentPrimary;
+    final activeAccent = Theme.of(context).colorScheme.primary;
+    final isOled = player.isOledBlack;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: EmberColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.3)),
+        color: isOled ? const Color(0xFF0D0D0D) : EmberColors.surfaceContainerLow.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: isOled ? 0.25 : 0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Live Interactive Theme Preview Card
+          _LiveThemePreviewCard(
+            accentColor: activeAccent,
+            presetName: currentPreset == SineThemePreset.custom
+                ? 'Custom Accent (#${activeAccent.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()})'
+                : currentPreset.label,
+            isOled: isOled,
+          ),
           Row(
             children: [
               Container(
@@ -852,7 +885,10 @@ class _SettingsContentState extends State<SettingsContent> {
                 ...SineThemePreset.values.where((p) => p != SineThemePreset.custom).map((preset) {
                   final isSelected = currentPreset == preset;
                   return GestureDetector(
-                    onTap: () => player.setThemePreset(preset),
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      player.setThemePreset(preset);
+                    },
                     child: Padding(
                       padding: const EdgeInsets.only(right: 12),
                       child: Column(
@@ -957,6 +993,61 @@ class _SettingsContentState extends State<SettingsContent> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          Divider(height: 1, color: EmberColors.outlineVariant.withValues(alpha: 0.15)),
+          const SizedBox(height: 14),
+          // True OLED Pitch Black Mode Toggle
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: (isOled ? Colors.white : activeAccent).withValues(alpha: 0.16),
+                ),
+                child: Icon(
+                  Icons.brightness_2_rounded,
+                  color: isOled ? Colors.white : activeAccent,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'True OLED Black Mode',
+                      style: TextStyle(
+                        color: EmberColors.textPrimary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isOled
+                          ? 'Pure Pitch Black (#000000) • Maximizes battery life'
+                          : 'Deep Obsidian Charcoal (#121212) • Smooth dark contrast',
+                      style: const TextStyle(
+                        color: EmberColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: isOled,
+                activeThumbColor: activeAccent,
+                onChanged: (val) {
+                  HapticFeedback.lightImpact();
+                  player.setOledBlack(val);
+                },
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -967,6 +1058,10 @@ class _SettingsContentState extends State<SettingsContent> {
     int r = (pickerColor.r * 255).round();
     int g = (pickerColor.g * 255).round();
     int b = (pickerColor.b * 255).round();
+    HSVColor hsvColor = HSVColor.fromColor(pickerColor);
+    final hexController = TextEditingController(
+      text: pickerColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase(),
+    );
 
     final curatedSwatches = const [
       Color(0xFF00E5FF),
@@ -990,7 +1085,7 @@ class _SettingsContentState extends State<SettingsContent> {
           final hexStr = '#${pickerColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
 
           return AlertDialog(
-            backgroundColor: EmberColors.obsidianBase,
+            backgroundColor: player.isOledBlack ? EmberColors.pitchBlack : EmberColors.obsidianBase,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Row(
               children: [

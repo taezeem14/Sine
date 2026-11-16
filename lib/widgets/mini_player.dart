@@ -48,9 +48,9 @@ class MiniPlayer extends StatelessWidget {
               reverseTransitionDuration: const Duration(milliseconds: 280),
               transitionsBuilder: (context, anim, secAnim, child) {
                 final slideTween = Tween(begin: const Offset(0.0, 0.15), end: Offset.zero)
-                    .chain(CurveTween(curve: Curves.easeOutCubic));
+                    .chain(CurveTween(curve: Curves.easeOutQuint));
                 final fadeTween = Tween(begin: 0.0, end: 1.0)
-                    .chain(CurveTween(curve: Curves.easeOut));
+                    .chain(CurveTween(curve: Curves.easeOutQuint));
                 return SlideTransition(
                   position: anim.drive(slideTween),
                   child: FadeTransition(
@@ -113,19 +113,22 @@ class MiniPlayer extends StatelessWidget {
                           size: 42,
                           isPlaying: player.isPlaying,
                         ),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(21),
-                          child: song.artworkUrl.isNotEmpty
-                              ? CachedNetworkImage(
-                                  imageUrl: song.artworkUrl,
-                                  width: 28,
-                                  height: 28,
-                                  memCacheWidth: 80,
-                                  memCacheHeight: 80,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (_, _, _) => FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryBlue),
-                                )
-                              : FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryBlue),
+                        Hero(
+                          tag: 'player_art_${song.id.isNotEmpty ? song.id : "default"}',
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(21),
+                            child: song.artworkUrl.isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: song.artworkUrl,
+                                    width: 28,
+                                    height: 28,
+                                    memCacheWidth: 80,
+                                    memCacheHeight: 80,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (_, _, _) => FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryBlue),
+                                  )
+                                : FaIcon(FontAwesomeIcons.music, size: 14, color: EmberColors.primaryBlue),
+                          ),
                         ),
                       ],
                     ),

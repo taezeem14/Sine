@@ -52,29 +52,31 @@ class _SpectrumBarsState extends State<SpectrumBars>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: List.generate(widget.barCount, (i) {
-            final phase = (i * 0.45);
-            final val = widget.isPlaying
-                ? (math.sin((_controller.value * 2 * math.pi) + phase).abs() * 0.75 + 0.25)
-                : 0.2;
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 1.2),
-              width: 2.5,
-              height: widget.height * val,
-              decoration: BoxDecoration(
-                color: EmberColors.primaryAmber,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            );
-          }),
-        );
-      },
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(widget.barCount, (i) {
+              final phase = (i * 0.45);
+              final val = widget.isPlaying
+                  ? (math.sin((_controller.value * 2 * math.pi) + phase).abs() * 0.75 + 0.25)
+                  : 0.2;
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 1.2),
+                width: 2.5,
+                height: widget.height * val,
+                decoration: BoxDecoration(
+                  color: EmberColors.primaryAmber,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              );
+            }),
+          );
+        },
+      ),
     );
   }
 }

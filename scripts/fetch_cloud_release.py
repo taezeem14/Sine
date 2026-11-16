@@ -19,7 +19,10 @@ def main():
     for attempt in range(1, max_retries + 1):
         try:
             with urllib.request.urlopen(req) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode('utf-8'))
+                else:
+                    continue
                 release_name = data.get('name', tag)
                 assets = data.get('assets', [])
                 
