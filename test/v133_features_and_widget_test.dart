@@ -531,29 +531,29 @@ void main() {
     // -----------------------------------------------------------------------
     // Feature 12: Version Bump to 1.3.3+33
     // -----------------------------------------------------------------------
-    test('T1.12.1: AppConstants.appName is Sine and version matches 1.3.2 or 1.3.3', () {
+    test('T1.12.1: AppConstants.appName is Sine and version matches 1.3.2 or 1.3.3 or 1.3.4', () {
       expect(AppConstants.appName, 'Sine');
-      expect(AppConstants.version, anyOf('1.3.2', '1.3.3'));
+      expect(AppConstants.version, anyOf('1.3.2', '1.3.3', '1.3.4'));
     });
 
-    test('T1.12.2: AppConstants.buildNumber matches 32 or 33', () {
-      expect(AppConstants.buildNumber, anyOf(32, 33));
+    test('T1.12.2: AppConstants.buildNumber matches 32 or 33 or 34', () {
+      expect(AppConstants.buildNumber, anyOf(32, 33, 34));
     });
 
     test('T1.12.3: pubspec.yaml specifies compliant version string', () {
       final pubspec = File('pubspec.yaml').readAsStringSync();
-      expect(pubspec, anyOf(contains('version: 1.3.2+32'), contains('version: 1.3.3+33')));
+      expect(pubspec, anyOf(contains('version: 1.3.2+32'), contains('version: 1.3.3+33'), contains('version: 1.3.4+34')));
     });
 
     test('T1.12.4: F-Droid metadata yml matches version specifications', () {
       final yml = File('metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml').readAsStringSync();
-      expect(yml, anyOf(contains('CurrentVersion: 1.3.2'), contains('CurrentVersion: 1.3.3')));
-      expect(yml, anyOf(contains('CurrentVersionCode: 32'), contains('CurrentVersionCode: 33')));
+      expect(yml, anyOf(contains('CurrentVersion: 1.3.2'), contains('CurrentVersion: 1.3.3'), contains('CurrentVersion: 1.3.4')));
+      expect(yml, anyOf(contains('CurrentVersionCode: 32'), contains('CurrentVersionCode: 33'), contains('CurrentVersionCode: 34')));
     });
 
-    test('T1.12.5: scripts/fetch_cloud_release.py fallback release tag matches v1.3.2 or v1.3.3', () {
+    test('T1.12.5: scripts/fetch_cloud_release.py fallback release tag matches v1.3.2 or v1.3.3 or v1.3.4', () {
       final script = File('scripts/fetch_cloud_release.py').readAsStringSync();
-      expect(script, anyOf(contains("'v1.3.2'"), contains("'v1.3.3'")));
+      expect(script, anyOf(contains("'v1.3.2'"), contains("'v1.3.3'"), contains("'v1.3.4'")));
     });
 
     // -----------------------------------------------------------------------
@@ -561,12 +561,12 @@ void main() {
     // -----------------------------------------------------------------------
     test('T1.13.1: README.md contains version badge with build number', () {
       final readme = File('README.md').readAsStringSync();
-      expect(readme, anyOf(contains('Build%2032'), contains('Build%2033')));
+      expect(readme, anyOf(contains('Build%2032'), contains('Build%2033'), contains('Build%2034')));
     });
 
     test('T1.13.2: README.md contains release APK download link', () {
       final readme = File('README.md').readAsStringSync();
-      expect(readme, anyOf(contains('Sine-v1.3.2.apk'), contains('Sine-v1.3.3.apk')));
+      expect(readme, anyOf(contains('Sine-v1.3.2.apk'), contains('Sine-v1.3.3.apk'), contains('Sine-v1.3.4.apk')));
     });
 
     test('T1.13.3: README.md documents open source DSP and cipher components', () {
@@ -575,14 +575,14 @@ void main() {
       expect(readme, contains('JamesDSP'));
     });
 
-    test('T1.13.4: index.html references version 1.3.2 or 1.3.3', () {
+    test('T1.13.4: index.html references version 1.3.2 or 1.3.3 or 1.3.4', () {
       final html = File('index.html').readAsStringSync();
-      expect(html, anyOf(contains('v1.3.2'), contains('v1.3.3')));
+      expect(html, anyOf(contains('v1.3.2'), contains('v1.3.3'), contains('v1.3.4')));
     });
 
     test('T1.13.5: index.html download buttons link to official Sine APK release', () {
       final html = File('index.html').readAsStringSync();
-      expect(html, anyOf(contains('Sine-v1.3.2.apk'), contains('Sine-v1.3.3.apk')));
+      expect(html, anyOf(contains('Sine-v1.3.2.apk'), contains('Sine-v1.3.3.apk'), contains('Sine-v1.3.4.apk')));
     });
 
     // -----------------------------------------------------------------------
@@ -1601,9 +1601,9 @@ void main() {
     test('T4.5: Scenario 5 - Cloud CI/CD Release, Version Integrity & Keystore Security Workflow', () {
       // 1. Validate version alignment between AppConstants and pubspec.yaml
       final pubspec = File('pubspec.yaml').readAsStringSync();
-      expect(pubspec, anyOf(contains('version: 1.3.2+32'), contains('version: 1.3.3+33')));
-      expect(AppConstants.version, anyOf('1.3.2', '1.3.3'));
-      expect(AppConstants.buildNumber, anyOf(32, 33));
+      expect(pubspec, anyOf(contains('version: 1.3.2+32'), contains('version: 1.3.3+33'), contains('version: 1.3.4+34')));
+      expect(AppConstants.version, anyOf('1.3.2', '1.3.3', '1.3.4'));
+      expect(AppConstants.buildNumber, anyOf(32, 33, 34));
 
       // 2. Validate release keystore integrity
       final keystore = File('android/app/sine-release.jks');

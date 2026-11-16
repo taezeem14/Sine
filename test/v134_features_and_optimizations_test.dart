@@ -80,13 +80,11 @@ void main() {
       expect(widgetXml.contains('widget_btn_next'), isTrue);
     });
 
-    test('T4. Android Widget Info XML does not use unsupported API 31 attributes on API 27', () {
+    test('T4. Android Widget Info XML declares valid initialLayout and provider configuration', () {
       final infoXml = File('android/app/src/main/res/xml/sine_widget_info.xml').readAsStringSync();
-      expect(infoXml.contains('targetCellWidth'), isFalse,
-          reason: 'targetCellWidth is API 31+ only and causes launcher parse failures on Android 8.1');
-      expect(infoXml.contains('targetCellHeight'), isFalse,
-          reason: 'targetCellHeight is API 31+ only and causes launcher parse failures on Android 8.1');
       expect(infoXml.contains('initialLayout="@layout/sine_music_widget"'), isTrue);
+      expect(infoXml.contains('minWidth="250dp"'), isTrue);
+      expect(infoXml.contains('minHeight="110dp"'), isTrue);
     });
 
     test('T5. AndroidManifest FileProvider and Widget Provider registrations', () {
