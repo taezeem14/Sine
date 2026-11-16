@@ -14,8 +14,8 @@ def main():
 
     print(f"Checking GitHub Actions Cloud CI/CD release for tag: {tag}...")
     
-    max_retries = 30
-    delay = 15
+    max_retries = 50
+    delay = 12
     for attempt in range(1, max_retries + 1):
         try:
             with urllib.request.urlopen(req) as resp:

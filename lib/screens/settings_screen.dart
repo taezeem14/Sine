@@ -1164,6 +1164,113 @@ class _SettingsContentState extends State<SettingsContent> {
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    // Hex Code Input Field
+                    const Text(
+                      'Hex Color Code',
+                      style: TextStyle(color: EmberColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: 42,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: EmberColors.surfaceContainerHigh.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.5)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Text('#', style: TextStyle(color: EmberColors.textMuted, fontSize: 14, fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: TextField(
+                              controller: hexController,
+                              maxLength: 6,
+                              style: const TextStyle(
+                                color: EmberColors.textPrimary,
+                                fontSize: 13.5,
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.bold,
+                              ),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                counterText: '',
+                                hintText: 'RRGGBB',
+                                hintStyle: TextStyle(color: EmberColors.textMuted),
+                                isDense: true,
+                              ),
+                              onChanged: (val) {
+                                final clean = val.replaceAll('#', '').trim();
+                                if (clean.length == 6) {
+                                  final parsed = int.tryParse('0xFF$clean');
+                                  if (parsed != null) {
+                                    setPickerState(() {
+                                      pickerColor = Color(parsed);
+                                      r = (pickerColor.r * 255).round();
+                                      g = (pickerColor.g * 255).round();
+                                      b = (pickerColor.b * 255).round();
+                                      hsvColor = HSVColor.fromColor(pickerColor);
+                                    });
+                                  }
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Hue Spectrum Bar
+                    const Text(
+                      'Hue Spectrum Picker',
+                      style: TextStyle(color: EmberColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: 28,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFFFF0000),
+                            Color(0xFFFFFF00),
+                            Color(0xFF00FF00),
+                            Color(0xFF00FFFF),
+                            Color(0xFF0000FF),
+                            Color(0xFFFF00FF),
+                            Color(0xFFFF0000),
+                          ],
+                        ),
+                      ),
+                      child: SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 28,
+                          activeTrackColor: Colors.transparent,
+                          inactiveTrackColor: Colors.transparent,
+                          thumbColor: Colors.white,
+                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10, elevation: 4),
+                          overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                        ),
+                        child: Slider(
+                          value: hsvColor.hue,
+                          min: 0,
+                          max: 360,
+                          onChanged: (val) {
+                            setPickerState(() {
+                              hsvColor = hsvColor.withHue(val);
+                              pickerColor = hsvColor.toColor();
+                              r = (pickerColor.r * 255).round();
+                              g = (pickerColor.g * 255).round();
+                              b = (pickerColor.b * 255).round();
+                              hexController.text = pickerColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     const Text(
                       'Curated Neon & Vivid Accents',
                       style: TextStyle(color: EmberColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
@@ -1181,6 +1288,8 @@ class _SettingsContentState extends State<SettingsContent> {
                               r = (color.r * 255).round();
                               g = (color.g * 255).round();
                               b = (color.b * 255).round();
+                              hsvColor = HSVColor.fromColor(color);
+                              hexController.text = color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
                             });
                           },
                           child: Container(
@@ -1224,6 +1333,8 @@ class _SettingsContentState extends State<SettingsContent> {
                               setPickerState(() {
                                 r = val.round();
                                 pickerColor = Color.fromARGB(255, r, g, b);
+                                hsvColor = HSVColor.fromColor(pickerColor);
+                                hexController.text = pickerColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
                               });
                             },
                           ),
@@ -1244,6 +1355,8 @@ class _SettingsContentState extends State<SettingsContent> {
                               setPickerState(() {
                                 g = val.round();
                                 pickerColor = Color.fromARGB(255, r, g, b);
+                                hsvColor = HSVColor.fromColor(pickerColor);
+                                hexController.text = pickerColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
                               });
                             },
                           ),
@@ -1264,6 +1377,8 @@ class _SettingsContentState extends State<SettingsContent> {
                               setPickerState(() {
                                 b = val.round();
                                 pickerColor = Color.fromARGB(255, r, g, b);
+                                hsvColor = HSVColor.fromColor(pickerColor);
+                                hexController.text = pickerColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
                               });
                             },
                           ),
@@ -1324,260 +1439,126 @@ class _SettingsContentState extends State<SettingsContent> {
   }
 
 
-  @override
-  Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
-
-    return ListView(
-      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-      controller: widget.scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      children: [
-        // ==========================================
-        // SOLE CREATOR & AUTHOR SPOTLIGHT CARD
-        // ==========================================
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                EmberColors.primaryBlue.withValues(alpha: 0.18),
-                EmberColors.surfaceContainerHigh.withValues(alpha: 0.8),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: EmberColors.primaryBlue.withValues(alpha: 0.45),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: EmberColors.primaryBlue.withValues(alpha: 0.08),
-                blurRadius: 18,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: EmberColors.primaryBlue,
-                      boxShadow: [
-                        BoxShadow(
-                          color: EmberColors.primaryBlue.withValues(alpha: 0.4),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: FaIcon(
-                        FontAwesomeIcons.fire,
-                        size: 26,
-                        color: EmberColors.obsidianBase,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                'Muhammad Taezeem Tariq',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: EmberColors.textPrimary,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 6),
-                            FaIcon(
-                              FontAwesomeIcons.solidCircleCheck,
-                              color: EmberColors.primaryBlue,
-                              size: 14,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 3),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: EmberColors.primaryBlue.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            'Author & Creator',
-                            style: TextStyle(
-                              color: EmberColors.primaryBlueHi,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Sine was architected by Muhammad Taezeem Tariq (@taezeem14). Built with a deep obsession for pristine audio quality, zero ads, real-time lyrics, and high-fidelity YouTube audio extraction.',
-                style: TextStyle(
-                  color: EmberColors.textSecondary.withValues(alpha: 0.9),
-                  fontSize: 12.5,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  FaIcon(FontAwesomeIcons.github, size: 14, color: EmberColors.textMuted),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'github.com/taezeem14',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: EmberColors.primaryBlue,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              InkWell(
-                onTap: widget.onNavigateToDonate,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: EmberColors.primaryBlue,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: EmberColors.primaryBlue.withValues(alpha: 0.35),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'Support Taezeem via UPI (7006616470@fam)',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: EmberColors.obsidianBase,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+    Widget _buildSearchBar(Color activeAccent) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: EmberColors.surfaceContainerLow.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _searchQuery.isNotEmpty
+              ? activeAccent.withValues(alpha: 0.6)
+              : EmberColors.outlineVariant.withValues(alpha: 0.3),
         ),
+      ),
+      child: TextField(
+        controller: _searchController,
+        style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13),
+        decoration: InputDecoration(
+          hintText: 'Search settings, audio, backup...',
+          hintStyle: const TextStyle(color: EmberColors.textMuted, fontSize: 13),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            color: _searchQuery.isNotEmpty ? activeAccent : EmberColors.textMuted,
+            size: 20,
+          ),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close_rounded, color: EmberColors.textMuted, size: 18),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        ),
+        onChanged: (val) {
+          setState(() => _searchQuery = val.trim());
+        },
+      ),
+    );
+  }
 
-        const SizedBox(height: 20),
+  List<Widget> _buildFilteredItems(BuildContext context, PlayerProvider player, Color activeAccent, String query) {
+    final q = query.toLowerCase();
+    final items = <Widget>[];
 
-        // ==========================================
-        // SECTION 0: CREATOR SUPPORT & DONATIONS
-        // ==========================================
-        const _SectionHeader(title: 'Creator Support & Donations'),
+    bool matches(String text) => text.toLowerCase().contains(q);
+
+    if (matches('donate') || matches('upi') || matches('support') || matches('creator') || matches('taezeem')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.indianRupeeSign,
-          iconColor: EmberColors.primaryBlue,
+          iconColor: activeAccent,
           title: 'Donate via UPI (7006616470@fam)',
           subtitle: 'Support development directly using GPay, PhonePe, Paytm or FamPay',
-          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.primaryBlue),
+          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: activeAccent),
           onTap: widget.onNavigateToDonate,
         ),
+      );
+    }
 
-        const SizedBox(height: 16),
-
-        // ==========================================
-        // SECTION: SECURITY & APP LOCK
-        // ==========================================
-        const _SectionHeader(title: 'Security & App Lock'),
+    if (matches('lock') || matches('passcode') || matches('pin') || matches('security') || matches('protect')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.lock,
-          iconColor: EmberColors.primaryBlue,
+          iconColor: activeAccent,
           title: 'App Lock Passcode',
           subtitle: _isLockEnabled ? 'Passcode active • Require 4-digit PIN on app launch' : 'Secure your Sine music player with a 4-digit PIN',
           trailing: Switch(
             value: _isLockEnabled,
-            activeThumbColor: EmberColors.primaryBlue,
+            activeThumbColor: activeAccent,
             onChanged: (val) => _toggleLock(val),
           ),
           onTap: () => _toggleLock(!_isLockEnabled),
         ),
-        if (_isLockEnabled)
+      );
+      if (_isLockEnabled) {
+        items.add(
           _SettingsTile(
             icon: FontAwesomeIcons.key,
             title: 'Change Passcode',
             subtitle: 'Update your 4-digit security PIN',
-            trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+            trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
             onTap: _changePasscode,
           ),
+        );
+      }
+    }
 
-        const SizedBox(height: 16),
+    if (matches('theme') || matches('accent') || matches('color') || matches('oled') || matches('black') || matches('palette')) {
+      items.add(_buildThemeSection(context, player));
+    }
 
-        // ==========================================
-        // SECTION: THEME & ACCENT CUSTOMIZATION
-        // ==========================================
-        const _SectionHeader(title: 'Theme & Accent Customization'),
-        _buildThemeSection(context, player),
-
-        const SizedBox(height: 16),
-
-        // ==========================================
-        // SECTION: HOME SCREEN WIDGETS
-        // ==========================================
-        const _SectionHeader(title: 'Android Home Screen Widgets'),
+    if (matches('widget') || matches('home') || matches('screen') || matches('now playing')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.tableCellsLarge,
           iconColor: EmberColors.secondaryCyan,
           title: 'Sine Now Playing Widget (4x2)',
           subtitle: 'Control playback, view track title and artist directly from your home screen. Long-press home screen to add!',
-          trailing: Text('Available', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 11, fontWeight: FontWeight.bold)),
+          trailing: Text('Available', style: TextStyle(color: activeAccent, fontSize: 11, fontWeight: FontWeight.bold)),
           onTap: null,
         ),
+      );
+    }
 
-        const SizedBox(height: 16),
-
-        // ==========================================
-        // SECTION 1: AUDIO & SOUND SHAPING
-        // ==========================================
-        const _SectionHeader(title: 'Audio & Sound Engine'),
+    if (matches('equalizer') || matches('eq') || matches('sound') || matches('bass') || matches('audio')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.sliders,
           title: 'Equalizer & Audio Shaping',
           subtitle: 'Preset: ${player.eqPreset} • Bass Boost: ${(player.bassBoost * 100).round()}%',
-          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => EqualizerScreen.open(context),
         ),
+      );
+    }
+
+    if (matches('clip') || matches('clipping') || matches('headroom') || matches('protection') || matches('distortion')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.shieldHalved,
           iconColor: Colors.greenAccent,
@@ -1590,22 +1571,37 @@ class _SettingsContentState extends State<SettingsContent> {
           ),
           onTap: () => player.setClippingProtection(!player.clippingProtectionEnabled),
         ),
+      );
+    }
+
+    if (matches('stem') || matches('neural') || matches('vocal') || matches('karaoke') || matches('acapella') || matches('demucs') || matches('roformer')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.brain,
-          iconColor: EmberColors.primaryBlue,
+          iconColor: activeAccent,
           title: 'Neural Stem Engine Preference',
           subtitle: 'AI Model: ${player.stemEnginePreference.toUpperCase()} • SOTA Vocal & Backing Separation',
-          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showStemEngineSheet(context, player),
         ),
+      );
+    }
+
+    if (matches('recover') || matches('session') || matches('restart') || matches('prompt') || matches('restore')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.clockRotateLeft,
-          iconColor: EmberColors.primaryBlue,
+          iconColor: activeAccent,
           title: 'Playback Session Recovery',
           subtitle: 'Mode: ${player.playbackRecoveryMode.toUpperCase()} • Reliable app restart recovery',
-          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showRecoveryModeSheet(context, player),
         ),
+      );
+    }
+
+    if (matches('hud') || matches('fps') || matches('frame') || matches('performance') || matches('monitor')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.chartLine,
           iconColor: Colors.pinkAccent,
@@ -1618,55 +1614,53 @@ class _SettingsContentState extends State<SettingsContent> {
           ),
           onTap: () => player.setPerformanceHudEnabled(!player.performanceHudEnabled),
         ),
-        _SettingsTile(
-          icon: FontAwesomeIcons.shuffle,
-          title: 'Crossfade Audio',
-          subtitle: player.crossfadeSeconds > 0
-              ? 'Overlap track transitions by ${player.crossfadeSeconds}s'
-              : 'Off • Seamless direct transitions',
-          trailing: SizedBox(
-            width: 120,
-            child: Slider(
-              value: player.crossfadeSeconds.toDouble(),
-              min: 0,
-              max: 12,
-              divisions: 12,
-              activeColor: EmberColors.primaryBlue,
-              inactiveColor: EmberColors.outlineVariant,
-              label: player.crossfadeSeconds > 0 ? '${player.crossfadeSeconds}s' : 'Off',
-              onChanged: (val) => player.setCrossfadeSeconds(val.toInt()),
-            ),
-          ),
-          onTap: null,
-        ),
+      );
+    }
+
+    if (matches('crossfade') || matches('fade') || matches('overlap') || matches('transition')) {
+      items.add(_CrossfadeSettingsTile(player: player));
+    }
+
+    if (matches('gapless') || matches('pause') || matches('seamless')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.arrowsLeftRight,
           title: 'Gapless Playback',
           subtitle: 'Eliminate pause between sequential tracks',
           trailing: Switch(
             value: player.gaplessPlayback,
-            activeThumbColor: EmberColors.primaryBlue,
+            activeThumbColor: activeAccent,
             onChanged: (val) => player.setGaplessPlayback(val),
           ),
           onTap: () => player.setGaplessPlayback(!player.gaplessPlayback),
         ),
+      );
+    }
+
+    if (matches('autoplay') || matches('smart') || matches('radio') || matches('recommend')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.bolt,
           title: 'Autoplay Smart Radio',
           subtitle: 'Automatically queue recommended tracks when songs end',
           trailing: Switch(
             value: player.isAutoplayEnabled,
-            activeThumbColor: EmberColors.primaryBlue,
+            activeThumbColor: activeAccent,
             onChanged: (_) => player.toggleAutoplay(),
           ),
           onTap: () => player.toggleAutoplay(),
         ),
+      );
+    }
+
+    if (matches('stop') || matches('cut') || matches('dismiss') || matches('clear')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.stop,
           iconColor: EmberColors.error,
           title: 'Cut Active Playback',
           subtitle: 'Immediately stop audio and dismiss the playing song',
-          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () {
             final messenger = ScaffoldMessenger.of(context);
             player.stopPlayback();
@@ -1681,34 +1675,37 @@ class _SettingsContentState extends State<SettingsContent> {
             );
           },
         ),
+      );
+    }
 
-        const SizedBox(height: 16),
-
-        // ==========================================
-        // SECTION 2: STORAGE & CACHE
-        // ==========================================
-        const _SectionHeader(title: 'Storage & Database'),
-                _SettingsTile(
+    if (matches('dedup') || matches('duplicate') || matches('queue')) {
+      items.add(
+        _SettingsTile(
           icon: FontAwesomeIcons.layerGroup,
           title: 'Deduplicate Active Queue',
           subtitle: 'Remove all duplicate tracks while preserving active playback',
-          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () {
             player.deduplicateQueue();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 backgroundColor: EmberColors.surfaceContainerHigh,
                 duration: const Duration(seconds: 2),
-                content: Text('Active queue deduplicated cleanly!', style: TextStyle(color: EmberColors.primaryBlueHi)),
+                content: Text('Active queue deduplicated cleanly!', style: TextStyle(color: activeAccent)),
               ),
             );
           },
         ),
+      );
+    }
+
+    if (matches('purge') || matches('clean') || matches('cache') || matches('storage') || matches('placeholder')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.broom,
           title: 'Purge Placeholders & Clean Cache',
           subtitle: 'Eradicate legacy mock songs and clear temp audio cache',
-          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () async {
             final messenger = ScaffoldMessenger.of(context);
             messenger.hideCurrentSnackBar();
@@ -1716,7 +1713,7 @@ class _SettingsContentState extends State<SettingsContent> {
               SnackBar(
                 backgroundColor: EmberColors.surfaceContainerHigh,
                 duration: const Duration(seconds: 1),
-                content: Text('Cleaning storage and purging old cache...', style: TextStyle(color: EmberColors.primaryBlue)),
+                content: Text('Cleaning storage and purging old cache...', style: TextStyle(color: activeAccent)),
               ),
             );
             await player.purgePlaceholders();
@@ -1725,34 +1722,42 @@ class _SettingsContentState extends State<SettingsContent> {
               SnackBar(
                 backgroundColor: EmberColors.surfaceContainerHigh,
                 duration: const Duration(seconds: 2),
-                content: Text('Storage cleaned & cache flushed successfully!', style: TextStyle(color: EmberColors.primaryBlueHi)),
+                content: Text('Storage cleaned & cache flushed successfully!', style: TextStyle(color: activeAccent)),
               ),
             );
           },
         ),
+      );
+    }
+
+    if (matches('backup') || matches('export') || matches('json') || matches('file')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.fileExport,
-          iconColor: EmberColors.primaryBlue,
+          iconColor: activeAccent,
           title: 'Export Library Backup (JSON File)',
           subtitle: 'Save playlists, favorites, history & EQ to /Sine-Music/Backups',
-          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showExportBackupDialog(context, player),
         ),
+      );
+    }
+
+    if (matches('restore') || matches('import') || matches('backup')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.fileImport,
-          iconColor: EmberColors.primaryBlue,
+          iconColor: activeAccent,
           title: 'Restore Library from Backup',
           subtitle: '1-tap restore from /Sine-Music/Backups or paste JSON',
-          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showRestoreBackupDialog(context, player),
         ),
+      );
+    }
 
-        const SizedBox(height: 16),
-
-        // ==========================================
-        // SECTION 3: APP INFO & SYSTEM
-        // ==========================================
-        const _SectionHeader(title: 'System & Architecture'),
+    if (matches('version') || matches('build') || matches('sine') || matches('app')) {
+      items.add(
         const _SettingsTile(
           icon: FontAwesomeIcons.mobileScreen,
           title: 'Sine Version',
@@ -1760,42 +1765,573 @@ class _SettingsContentState extends State<SettingsContent> {
           trailing: Text(AppConstants.version, style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
           onTap: null,
         ),
+      );
+    }
+
+    if (matches('newpipe') || matches('youtube') || matches('stream') || matches('opus') || matches('aac')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.music,
-          iconColor: EmberColors.primaryBlue,
+          iconColor: activeAccent,
           title: 'NewPipe YouTube Audio Engine',
           subtitle: 'Hardware-accelerated Opus (160 kbps) & AAC (128 kbps) stream extraction',
-          trailing: Text('Lossless/HD', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12, fontWeight: FontWeight.bold)),
+          trailing: Text('Lossless/HD', style: TextStyle(color: activeAccent, fontSize: 12, fontWeight: FontWeight.bold)),
           onTap: null,
         ),
+      );
+    }
+
+    if (matches('open source') || matches('free') || matches('ad') || matches('privacy')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.shieldHeart,
           title: 'Open Source & Ad-Free',
           subtitle: 'No telemetry, zero third-party ads, strictly local storage',
-          trailing: Text('100% Free', style: TextStyle(color: EmberColors.primaryBlue, fontSize: 12)),
+          trailing: Text('100% Free', style: TextStyle(color: activeAccent, fontSize: 12)),
           onTap: null,
         ),
+      );
+    }
+
+    if (matches('credit') || matches('license') || matches('gpl') || matches('attribution')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.scaleBalanced,
-          iconColor: EmberColors.primaryBlue,
+          iconColor: activeAccent,
           title: 'Open Source Credits & Attribution',
           subtitle: 'GNU GPL-3.0 attribution for Audile, zemer-cipher, BetterLyrics & Metrolist',
-          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showOpenSourceCreditsDialog(context),
         ),
+      );
+    }
+
+    if (matches('diag') || matches('log') || matches('exoplayer') || matches('telemetry') || matches('debug')) {
+      items.add(
         _SettingsTile(
           icon: FontAwesomeIcons.terminal,
-          iconColor: EmberColors.primaryBlue,
+          iconColor: activeAccent,
           title: 'Diagnostics & Log Extractor',
           subtitle: 'Live ExoPlayer telemetry, candidate stream inspector & bug reporter',
-          trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const DiagnosticsLogScreen()),
             );
           },
         ),
-        const SizedBox(height: 24),
+      );
+    }
+
+    return items;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final player = context.watch<PlayerProvider>();
+    final activeAccent = Theme.of(context).colorScheme.primary;
+
+    final filteredItems = _searchQuery.isNotEmpty
+        ? _buildFilteredItems(context, player, activeAccent, _searchQuery)
+        : <Widget>[];
+
+    return ListView(
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      controller: widget.scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      children: [
+        _buildSearchBar(activeAccent),
+        if (_searchQuery.isNotEmpty) ...[
+          if (filteredItems.isNotEmpty)
+            _SettingsGroupCard(children: filteredItems)
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.search_off_rounded, size: 48, color: EmberColors.textMuted.withValues(alpha: 0.5)),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No settings found for "$_searchQuery"',
+                    style: const TextStyle(color: EmberColors.textMuted, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+        ] else ...[
+          // ==========================================
+          // SOLE CREATOR & AUTHOR SPOTLIGHT CARD
+          // ==========================================
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  activeAccent.withValues(alpha: 0.18),
+                  EmberColors.surfaceContainerHigh.withValues(alpha: 0.8),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: activeAccent.withValues(alpha: 0.45),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: activeAccent.withValues(alpha: 0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: activeAccent,
+                        boxShadow: [
+                          BoxShadow(
+                            color: activeAccent.withValues(alpha: 0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: FaIcon(
+                          FontAwesomeIcons.fire,
+                          size: 26,
+                          color: EmberColors.obsidianBase,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Flexible(
+                                child: Text(
+                                  'Muhammad Taezeem Tariq',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: EmberColors.textPrimary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              FaIcon(
+                                FontAwesomeIcons.solidCircleCheck,
+                                color: activeAccent,
+                                size: 14,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: activeAccent.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'Author & Creator',
+                              style: TextStyle(
+                                color: activeAccent,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Sine was architected by Muhammad Taezeem Tariq (@taezeem14). Built with a deep obsession for pristine audio quality, zero ads, real-time lyrics, and high-fidelity YouTube audio extraction.',
+                  style: TextStyle(
+                    color: EmberColors.textSecondary.withValues(alpha: 0.9),
+                    fontSize: 12.5,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const FaIcon(FontAwesomeIcons.github, size: 14, color: EmberColors.textMuted),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'github.com/taezeem14',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: activeAccent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    widget.onNavigateToDonate?.call();
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: activeAccent,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: activeAccent.withValues(alpha: 0.35),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Support Taezeem via UPI (7006616470@fam)',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: (activeAccent.r * 0.299 + activeAccent.g * 0.587 + activeAccent.b * 0.114) > 0.6 ? Colors.black : Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // ==========================================
+          // SECTION 0: CREATOR SUPPORT & DONATIONS
+          // ==========================================
+          const _SectionHeader(title: 'Creator Support & Donations'),
+          _SettingsGroupCard(
+            children: [
+              _SettingsTile(
+                icon: FontAwesomeIcons.indianRupeeSign,
+                iconColor: activeAccent,
+                title: 'Donate via UPI (7006616470@fam)',
+                subtitle: 'Support development directly using GPay, PhonePe, Paytm or FamPay',
+                trailing: FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: activeAccent),
+                onTap: widget.onNavigateToDonate,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // ==========================================
+          // SECTION: SECURITY & APP LOCK
+          // ==========================================
+          const _SectionHeader(title: 'Security & App Lock'),
+          _SettingsGroupCard(
+            children: [
+              _SettingsTile(
+                icon: FontAwesomeIcons.lock,
+                iconColor: activeAccent,
+                title: 'App Lock Passcode',
+                subtitle: _isLockEnabled ? 'Passcode active • Require 4-digit PIN on app launch' : 'Secure your Sine music player with a 4-digit PIN',
+                trailing: Switch(
+                  value: _isLockEnabled,
+                  activeThumbColor: activeAccent,
+                  onChanged: (val) => _toggleLock(val),
+                ),
+                onTap: () => _toggleLock(!_isLockEnabled),
+              ),
+              if (_isLockEnabled)
+                _SettingsTile(
+                  icon: FontAwesomeIcons.key,
+                  title: 'Change Passcode',
+                  subtitle: 'Update your 4-digit security PIN',
+                  trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                  onTap: _changePasscode,
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // ==========================================
+          // SECTION: THEME & ACCENT CUSTOMIZATION
+          // ==========================================
+          const _SectionHeader(title: 'Theme & Accent Customization'),
+          _buildThemeSection(context, player),
+
+          const SizedBox(height: 14),
+
+          // ==========================================
+          // SECTION: HOME SCREEN WIDGETS
+          // ==========================================
+          const _SectionHeader(title: 'Android Home Screen Widgets'),
+          _SettingsGroupCard(
+            children: [
+              _SettingsTile(
+                icon: FontAwesomeIcons.tableCellsLarge,
+                iconColor: EmberColors.secondaryCyan,
+                title: 'Sine Now Playing Widget (4x2)',
+                subtitle: 'Control playback, view track title and artist directly from your home screen. Long-press home screen to add!',
+                trailing: Text('Available', style: TextStyle(color: activeAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                onTap: null,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // ==========================================
+          // SECTION 1: AUDIO & SOUND SHAPING
+          // ==========================================
+          const _SectionHeader(title: 'Audio & Sound Engine'),
+          _SettingsGroupCard(
+            children: [
+              _SettingsTile(
+                icon: FontAwesomeIcons.sliders,
+                title: 'Equalizer & Audio Shaping',
+                subtitle: 'Preset: ${player.eqPreset} • Bass Boost: ${(player.bassBoost * 100).round()}%',
+                trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                onTap: () => EqualizerScreen.open(context),
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.shieldHalved,
+                iconColor: Colors.greenAccent,
+                title: 'Audio Clipping Protection',
+                subtitle: 'Dynamic digital headroom scaling prevents distortion & crackle during bass/vocal boosts',
+                trailing: Switch(
+                  value: player.clippingProtectionEnabled,
+                  activeThumbColor: Colors.greenAccent,
+                  onChanged: (val) => player.setClippingProtection(val),
+                ),
+                onTap: () => player.setClippingProtection(!player.clippingProtectionEnabled),
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.brain,
+                iconColor: activeAccent,
+                title: 'Neural Stem Engine Preference',
+                subtitle: 'AI Model: ${player.stemEnginePreference.toUpperCase()} • SOTA Vocal & Backing Separation',
+                trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                onTap: () => _showStemEngineSheet(context, player),
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.clockRotateLeft,
+                iconColor: activeAccent,
+                title: 'Playback Session Recovery',
+                subtitle: 'Mode: ${player.playbackRecoveryMode.toUpperCase()} • Reliable app restart recovery',
+                trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                onTap: () => _showRecoveryModeSheet(context, player),
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.chartLine,
+                iconColor: Colors.pinkAccent,
+                title: 'Floating Performance HUD',
+                subtitle: 'Display real-time 120 FPS & dropped frame monitor overlay across all screens',
+                trailing: Switch(
+                  value: player.performanceHudEnabled,
+                  activeThumbColor: Colors.pinkAccent,
+                  onChanged: (val) => player.setPerformanceHudEnabled(val),
+                ),
+                onTap: () => player.setPerformanceHudEnabled(!player.performanceHudEnabled),
+              ),
+              _CrossfadeSettingsTile(player: player),
+              _SettingsTile(
+                icon: FontAwesomeIcons.arrowsLeftRight,
+                title: 'Gapless Playback',
+                subtitle: 'Eliminate pause between sequential tracks',
+                trailing: Switch(
+                  value: player.gaplessPlayback,
+                  activeThumbColor: activeAccent,
+                  onChanged: (val) => player.setGaplessPlayback(val),
+                ),
+                onTap: () => player.setGaplessPlayback(!player.gaplessPlayback),
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.bolt,
+                title: 'Autoplay Smart Radio',
+                subtitle: 'Automatically queue recommended tracks when songs end',
+                trailing: Switch(
+                  value: player.isAutoplayEnabled,
+                  activeThumbColor: activeAccent,
+                  onChanged: (_) => player.toggleAutoplay(),
+                ),
+                onTap: () => player.toggleAutoplay(),
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.stop,
+                iconColor: EmberColors.error,
+                title: 'Cut Active Playback',
+                subtitle: 'Immediately stop audio and dismiss the playing song',
+                trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                onTap: () {
+                  final messenger = ScaffoldMessenger.of(context);
+                  player.stopPlayback();
+                  Navigator.of(context).pop();
+                  messenger.hideCurrentSnackBar();
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      backgroundColor: EmberColors.surfaceContainerHigh,
+                      duration: Duration(seconds: 2),
+                      content: Text('Playback stopped & dismissed', style: TextStyle(color: EmberColors.textPrimary)),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // ==========================================
+          // SECTION 2: STORAGE & CACHE
+          // ==========================================
+          const _SectionHeader(title: 'Storage & Database'),
+          _SettingsGroupCard(
+            children: [
+              _SettingsTile(
+                icon: FontAwesomeIcons.layerGroup,
+                title: 'Deduplicate Active Queue',
+                subtitle: 'Remove all duplicate tracks while preserving active playback',
+                trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                onTap: () {
+                  player.deduplicateQueue();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: EmberColors.surfaceContainerHigh,
+                      duration: const Duration(seconds: 2),
+                      content: Text('Active queue deduplicated cleanly!', style: TextStyle(color: activeAccent)),
+                    ),
+                  );
+                },
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.broom,
+                title: 'Purge Placeholders & Clean Cache',
+                subtitle: 'Eradicate legacy mock songs and clear temp audio cache',
+                trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  messenger.hideCurrentSnackBar();
+                  messenger.showSnackBar(
+                    SnackBar(
+                      backgroundColor: EmberColors.surfaceContainerHigh,
+                      duration: const Duration(seconds: 1),
+                      content: Text('Cleaning storage and purging old cache...', style: TextStyle(color: activeAccent)),
+                    ),
+                  );
+                  await player.purgePlaceholders();
+                  messenger.hideCurrentSnackBar();
+                  messenger.showSnackBar(
+                    SnackBar(
+                      backgroundColor: EmberColors.surfaceContainerHigh,
+                      duration: const Duration(seconds: 2),
+                      content: Text('Storage cleaned & cache flushed successfully!', style: TextStyle(color: activeAccent)),
+                    ),
+                  );
+                },
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.fileExport,
+                iconColor: activeAccent,
+                title: 'Export Library Backup (JSON File)',
+                subtitle: 'Save playlists, favorites, history & EQ to /Sine-Music/Backups',
+                trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                onTap: () => _showExportBackupDialog(context, player),
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.fileImport,
+                iconColor: activeAccent,
+                title: 'Restore Library from Backup',
+                subtitle: '1-tap restore from /Sine-Music/Backups or paste JSON',
+                trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                onTap: () => _showRestoreBackupDialog(context, player),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // ==========================================
+          // SECTION 3: APP INFO & SYSTEM
+          // ==========================================
+          const _SectionHeader(title: 'System & Architecture'),
+          _SettingsGroupCard(
+            children: [
+              const _SettingsTile(
+                icon: FontAwesomeIcons.mobileScreen,
+                title: 'Sine Version',
+                subtitle: '${AppConstants.releaseTag} (Release Build)',
+                trailing: Text(AppConstants.version, style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
+                onTap: null,
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.music,
+                iconColor: activeAccent,
+                title: 'NewPipe YouTube Audio Engine',
+                subtitle: 'Hardware-accelerated Opus (160 kbps) & AAC (128 kbps) stream extraction',
+                trailing: Text('Lossless/HD', style: TextStyle(color: activeAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                onTap: null,
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.shieldHeart,
+                title: 'Open Source & Ad-Free',
+                subtitle: 'No telemetry, zero third-party ads, strictly local storage',
+                trailing: Text('100% Free', style: TextStyle(color: activeAccent, fontSize: 12)),
+                onTap: null,
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.scaleBalanced,
+                iconColor: activeAccent,
+                title: 'Open Source Credits & Attribution',
+                subtitle: 'GNU GPL-3.0 attribution for Audile, zemer-cipher, BetterLyrics & Metrolist',
+                trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                onTap: () => _showOpenSourceCreditsDialog(context),
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.terminal,
+                iconColor: activeAccent,
+                title: 'Diagnostics & Log Extractor',
+                subtitle: 'Live ExoPlayer telemetry, candidate stream inspector & bug reporter',
+                trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const DiagnosticsLogScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+        ],
       ],
     );
   }
@@ -1823,6 +2359,50 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+class _SettingsGroupCard extends StatelessWidget {
+  final List<Widget> children;
+  final EdgeInsetsGeometry margin;
+
+  const _SettingsGroupCard({
+    required this.children,
+    this.margin = const EdgeInsets.only(bottom: 8),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final player = context.watch<PlayerProvider>();
+    final isOled = player.isOledBlack;
+
+    return Container(
+      margin: margin,
+      decoration: BoxDecoration(
+        color: isOled ? const Color(0xFF0D0D0D) : EmberColors.surfaceContainerLow.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: EmberColors.outlineVariant.withValues(alpha: isOled ? 0.25 : 0.35),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < children.length; i++) ...[
+            children[i],
+            if (i < children.length - 1)
+              Divider(
+                height: 1,
+                thickness: 1,
+                indent: 58,
+                endIndent: 16,
+                color: EmberColors.outlineVariant.withValues(alpha: isOled ? 0.15 : 0.25),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _SettingsTile extends StatelessWidget {
   final FaIconData icon;
   final Color? iconColor;
@@ -1832,6 +2412,7 @@ class _SettingsTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   const _SettingsTile({
+    super.key,
     required this.icon,
     this.iconColor,
     required this.title,
@@ -1842,51 +2423,341 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      decoration: BoxDecoration(
-        color: EmberColors.surfaceContainerLow.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.3)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-        leading: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: EmberColors.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(10),
+    final accent = Theme.of(context).colorScheme.primary;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap == null
+            ? null
+            : () {
+                HapticFeedback.lightImpact();
+                onTap!();
+              },
+        splashColor: accent.withValues(alpha: 0.12),
+        highlightColor: accent.withValues(alpha: 0.08),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: (iconColor ?? accent).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: FaIcon(
+                    icon,
+                    size: 16,
+                    color: iconColor ?? accent,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: EmberColors.textPrimary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: EmberColors.textMuted,
+                        fontSize: 11,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(width: 10),
+                trailing!,
+              ],
+            ],
           ),
-          child: Center(
-            child: FaIcon(
-              icon,
-              size: 16,
-              color: iconColor ?? EmberColors.primaryBlue,
+        ),
+      ),
+    );
+  }
+}
+
+class _CrossfadeSettingsTile extends StatelessWidget {
+  final PlayerProvider player;
+
+  const _CrossfadeSettingsTile({required this.player});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final seconds = player.crossfadeSeconds;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: FaIcon(
+                    FontAwesomeIcons.shuffle,
+                    size: 16,
+                    color: accent,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Crossfade Audio',
+                      style: TextStyle(
+                        color: EmberColors.textPrimary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      seconds > 0
+                          ? 'Overlap track transitions by ${seconds}s'
+                          : 'Off • Seamless direct transitions',
+                      style: const TextStyle(
+                        color: EmberColors.textMuted,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: seconds > 0
+                      ? accent.withValues(alpha: 0.18)
+                      : EmberColors.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: seconds > 0
+                        ? accent.withValues(alpha: 0.5)
+                        : EmberColors.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Text(
+                  seconds > 0 ? '${seconds}s' : 'Off',
+                  style: TextStyle(
+                    color: seconds > 0 ? accent : EmberColors.textMuted,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 4,
+              activeTrackColor: accent,
+              inactiveTrackColor: EmberColors.outlineVariant.withValues(alpha: 0.4),
+              thumbColor: accent,
+              overlayColor: accent.withValues(alpha: 0.16),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+              valueIndicatorColor: accent,
+              valueIndicatorTextStyle: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
+            child: Slider(
+              value: player.crossfadeSeconds.toDouble(),
+              min: 0,
+              max: 12,
+              divisions: 12,
+              label: player.crossfadeSeconds > 0 ? '${player.crossfadeSeconds}s' : 'Off',
+              onChanged: (val) {
+                HapticFeedback.selectionClick();
+                player.setCrossfadeSeconds(val.toInt());
+              },
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LiveThemePreviewCard extends StatelessWidget {
+  final Color accentColor;
+  final String presetName;
+  final bool isOled;
+
+  const _LiveThemePreviewCard({
+    required this.accentColor,
+    required this.presetName,
+    required this.isOled,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isOled ? const Color(0xFF000000) : const Color(0xFF181818),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.35),
+          width: 1.2,
         ),
-        title: Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: EmberColors.textPrimary,
-            fontSize: 13.5,
-            fontWeight: FontWeight.w600,
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withValues(alpha: 0.12),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
-        ),
-        subtitle: Text(
-          subtitle,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: EmberColors.textMuted,
-            fontSize: 11,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: accentColor,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'LIVE PREVIEW',
+                      style: TextStyle(
+                        color: accentColor,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Text(
+                presetName,
+                style: const TextStyle(
+                  color: EmberColors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-        ),
-        trailing: trailing,
-        onTap: onTap,
+          const SizedBox(height: 12),
+          // Mini Player Preview Mock
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    colors: [accentColor, accentColor.withValues(alpha: 0.5)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: const Center(
+                  child: Icon(Icons.music_note_rounded, color: Colors.white, size: 22),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Starlight Melody',
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: EmberColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Sine Music • Hi-Res Audio',
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: EmberColors.textSecondary,
+                        fontSize: 10.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accentColor,
+                ),
+                child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Mini Track Progress Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: 0.45,
+              backgroundColor: EmberColors.outlineVariant.withValues(alpha: 0.3),
+              valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+              minHeight: 3,
+            ),
+          ),
+        ],
       ),
     );
   }
