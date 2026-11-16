@@ -34,22 +34,6 @@
 
 ---
 
-## 📸 App Showcase (Real Screenshots)
-
-<div align="center">
-
-| Home & Trending | Now Playing & Lyrics | Studio Equalizer |
-| :---: | :---: | :---: |
-| <img src="docs/screenshots/home_trending.png" width="230" alt="Sine Home Screen" /> | <img src="docs/screenshots/now_playing.png" width="230" alt="Sine Now Playing Screen" /> | <img src="docs/screenshots/equalizer_studio.png" width="230" alt="Sine Studio Equalizer" /> |
-
-| Curated Genre Explorer | Theme & Accent Studio | Library & Offline Vault |
-| :---: | :---: | :---: |
-| <img src="docs/screenshots/search_genres.png" width="230" alt="Curated Genre Explorer" /> | <img src="docs/screenshots/theme_studio.png" width="230" alt="Theme Studio" /> | <img src="docs/screenshots/library_downloads.png" width="230" alt="Library & Downloads" /> |
-
-</div>
-
----
-
 ## 📖 Table of Contents
 - [What Is Sine?](#-what-is-sine)
 - [What's New in v1.3.1](#-whats-new-in-v131)
