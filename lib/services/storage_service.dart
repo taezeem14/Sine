@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
+import '../models/downloaded_video.dart';
 import 'download_service.dart';
 
 class StorageService {
@@ -19,6 +20,7 @@ class StorageService {
   static const String _playlistsLegacyKey = 'ember_playlists_v1';
   static const String _downloadsKey = 'sine_downloads_v1';
   static const String _downloadsLegacyKey = 'ember_downloads_v1';
+  static const String _videosKey = 'sine_downloaded_videos_v1';
   static const String _eqPresetKey = 'sine_eq_preset';
   static const String _eqPresetLegacyKey = 'ember_eq_preset';
   static const String _eqEnabledKey = 'sine_eq_enabled';
@@ -54,6 +56,7 @@ class StorageService {
   final List<Song> _memHistory = [];
   final List<Playlist> _memPlaylists = [];
   final List<Song> _memDownloads = [];
+  final List<DownloadedVideo> _memDownloadedVideos = [];
   final List<String> _memSearches = [];
   double _memSpeed = 1.0;
 
@@ -312,6 +315,49 @@ class StorageService {
       final encoded = cleaned.map((s) => _safeJsonEncode(s.toMap())).whereType<String>().toList();
       await _prefs.setStringList(_downloadsKey, encoded);
     }
+  }
+
+  List<DownloadedVideo> loadDownloadedVideos() {
+    if (_prefs == null) {
+      return List<DownloadedVideo>.from(_memDownloadedVideos);
+    }
+    final raw = _prefs.getStringList(_videosKey) ?? [];
+    final list = <DownloadedVideo>[];
+    for (final s in raw) {
+      try {
+        final map = jsonDecode(s) as Map<String, dynamic>;
+        list.add(DownloadedVideo.fromMap(map));
+      } catch (e) {
+        debugPrint('[StorageService] Error parsing downloaded video: $e');
+      }
+    }
+    _memDownloadedVideos.clear();
+    _memDownloadedVideos.addAll(list);
+    return list;
+  }
+
+  Future<void> saveDownloadedVideos(List<DownloadedVideo> videos) async {
+    _memDownloadedVideos.clear();
+    _memDownloadedVideos.addAll(videos);
+    if (_prefs != null) {
+      final encoded = videos.map((v) => _safeJsonEncode(v.toMap())).whereType<String>().toList();
+      await _prefs.setStringList(_videosKey, encoded);
+    }
+  }
+
+  Future<void> deleteDownloadedVideo(String id) async {
+    final list = loadDownloadedVideos();
+    final item = list.firstWhere((v) => v.id == id, orElse: () => list.first);
+    if (item.filePath.isNotEmpty) {
+      try {
+        final f = File(item.filePath);
+        if (await f.exists()) {
+          await f.delete();
+        }
+      } catch (_) {}
+    }
+    final updated = list.where((v) => v.id != id).toList();
+    await saveDownloadedVideos(updated);
   }
 
   String loadRepeatMode() {

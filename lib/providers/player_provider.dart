@@ -2,9 +2,12 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
+import '../models/downloaded_video.dart';
 import '../theme/ember_theme.dart';
 import '../services/audio_handler.dart';
 import '../services/catalog_service.dart';
@@ -90,6 +93,7 @@ class PlayerProvider extends ChangeNotifier {
   List<Song> _history = [];
   List<Playlist> _playlists = [];
   List<Song> _downloads = [];
+  List<DownloadedVideo> _downloadedVideos = [];
   final List<Song> _recommendations = [];
   List<Song> _categoryTracks = [];
   bool _isAutoplayEnabled = false;
@@ -230,6 +234,7 @@ class PlayerProvider extends ChangeNotifier {
   List<Song> get history => _history;
   List<Playlist> get playlists => _playlists;
   List<Song> get downloads => _downloads;
+  List<DownloadedVideo> get downloadedVideos => List.unmodifiable(_downloadedVideos);
   List<Song> get recommendations => _recommendations;
   List<Song> get categoryTracks => _categoryTracks;
   bool get isAutoplayEnabled => _isAutoplayEnabled;
@@ -335,6 +340,8 @@ class PlayerProvider extends ChangeNotifier {
     _history = _storageService.loadHistory();
     _playlists = _storageService.loadPlaylists();
     _downloads = _storageService.loadDownloads();
+    _downloadedVideos = _storageService.loadDownloadedVideos();
+    syncDownloadedVideos();
     _speed = _storageService.loadPlaybackSpeed();
     _repeatMode = _storageService.loadRepeatMode();
     _isShuffle = _storageService.loadShuffle();
@@ -1559,6 +1566,16 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> reorderPlaylistSongs(String playlistId, int oldIndex, int newIndex) async {
+    if (playlistId == 'downloaded_songs') {
+      if (oldIndex < 0 || oldIndex >= _downloads.length) return;
+      if (oldIndex < newIndex) newIndex -= 1;
+      if (newIndex < 0 || newIndex >= _downloads.length) return;
+      final moved = _downloads.removeAt(oldIndex);
+      _downloads.insert(newIndex, moved);
+      await _storageService.saveDownloads(_downloads);
+      notifyListeners();
+      return;
+    }
     final idx = _playlists.indexWhere((p) => p.id == playlistId);
     if (idx != -1) {
       final p = _playlists[idx];
@@ -1686,7 +1703,90 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<String?> downloadVideo(Song song) async {
-    return await DownloadService.downloadVideo(song);
+    final path = await DownloadService.downloadVideo(song);
+    if (path != null) {
+      final file = File(path);
+      final size = await file.exists() ? await file.length() : 0;
+      final video = DownloadedVideo(
+        id: 'vid_${song.id}',
+        title: song.title,
+        artist: song.artist,
+        filePath: path,
+        artworkUrl: song.artworkUrl,
+        sizeBytes: size,
+        duration: song.duration,
+        downloadedAt: DateTime.now(),
+      );
+      final list = List<DownloadedVideo>.from(_downloadedVideos)..removeWhere((v) => v.filePath == path);
+      list.insert(0, video);
+      _downloadedVideos = list;
+      await _storageService.saveDownloadedVideos(_downloadedVideos);
+      notifyListeners();
+    }
+    return path;
+  }
+
+  Future<void> syncDownloadedVideos() async {
+    try {
+      final saved = _storageService.loadDownloadedVideos();
+      final dir = await DownloadService.getMediaDirectory(isVideo: true);
+      final list = List<DownloadedVideo>.from(saved);
+      if (await dir.exists()) {
+        final entities = await dir.list().toList();
+        for (final e in entities) {
+          if (e is File && (e.path.endsWith('.mp4') || e.path.endsWith('.webm'))) {
+            final path = e.path;
+            if (!list.any((v) => v.filePath == path)) {
+              final filename = e.uri.pathSegments.last.replaceAll('.mp4', '').replaceAll('.webm', '');
+              final parts = filename.split(' - ');
+              final title = parts.isNotEmpty ? parts[0] : filename;
+              final artist = parts.length > 1 ? parts[1].split('_')[0] : 'Sine Video';
+              final length = await e.length();
+              list.add(
+                DownloadedVideo(
+                  id: 'vid_${e.hashCode.abs()}',
+                  title: title,
+                  artist: artist,
+                  filePath: path,
+                  sizeBytes: length,
+                  downloadedAt: DateTime.now(),
+                ),
+              );
+            }
+          }
+        }
+      }
+      _downloadedVideos = list;
+      await _storageService.saveDownloadedVideos(_downloadedVideos);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[PlayerProvider] Video sync error: $e');
+    }
+  }
+
+  Future<bool> openDownloadedVideo(String filePath) async {
+    if (filePath.isEmpty) return false;
+    try {
+      const channel = MethodChannel('com.taezeem.spotify_newpipe/widget');
+      final res = await channel.invokeMethod<bool>('openVideo', {'filePath': filePath});
+      if (res == true) return true;
+    } catch (e) {
+      debugPrint('[PlayerProvider] Native openVideo failed, attempting URL launcher fallback: $e');
+    }
+
+    try {
+      final uri = Uri.file(filePath);
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('[PlayerProvider] Fallback launchUrl failed: $e');
+      return false;
+    }
+  }
+
+  Future<void> deleteDownloadedVideo(String id) async {
+    await _storageService.deleteDownloadedVideo(id);
+    _downloadedVideos = _storageService.loadDownloadedVideos();
+    notifyListeners();
   }
 
   Future<void> deleteDownload(String songId) async {

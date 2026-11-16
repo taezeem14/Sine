@@ -184,8 +184,8 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
     final isSearching = _controller.text.trim().isNotEmpty;
+    final player = isSearching ? context.watch<PlayerProvider>() : context.read<PlayerProvider>();
 
     return Scaffold(
       backgroundColor: EmberColors.obsidianBase,

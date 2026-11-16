@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -292,25 +293,72 @@ class PlaylistDetailSheet extends StatelessWidget {
                         ),
                       ),
                     )
-                  : ListView.builder(
-                      controller: scrollController,
+                  : ReorderableListView.builder(
+                      scrollController: scrollController,
+                      buildDefaultDragHandles: false,
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       itemCount: currentPl.songs.length,
+                      onReorder: (oldIndex, newIndex) {
+                        HapticFeedback.mediumImpact();
+                        player.reorderPlaylistSongs(currentPl.id, oldIndex, newIndex);
+                      },
                       itemBuilder: (context, index) {
                         final song = currentPl.songs[index];
                         final isCurrent = player.currentSong?.id == song.id;
 
                         return Dismissible(
-                          key: ValueKey('pl_song_${song.id}_$index'),
+                          key: ValueKey('pl_song_${song.id}_${song.hashCode}_$index'),
                           direction: DismissDirection.endToStart,
                           background: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 3),
+                            decoration: BoxDecoration(
+                              color: EmberColors.error.withValues(alpha: 0.85),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.only(right: 20),
-                            color: EmberColors.error.withValues(alpha: 0.8),
-                            child: const FaIcon(FontAwesomeIcons.trashCan, color: Colors.white, size: 16),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Text(
+                                  'REMOVE',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                FaIcon(FontAwesomeIcons.trashCan, color: Colors.white, size: 16),
+                              ],
+                            ),
                           ),
                           onDismissed: (_) {
-                            player.removeSongFromPlaylistAt(currentPl.id, index);
+                            final deletedSong = song;
+                            final playlistId = currentPl.id;
+                            player.removeSongFromPlaylistAt(playlistId, index);
+                            HapticFeedback.lightImpact();
+                            ScaffoldMessenger.of(context).clearSnackBars();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: EmberColors.surfaceContainerHigh,
+                                content: Text(
+                                  'Removed "${deletedSong.title}"',
+                                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                                ),
+                                action: SnackBarAction(
+                                  label: 'UNDO',
+                                  textColor: EmberColors.primaryAmber,
+                                  onPressed: () {
+                                    player.addSongToPlaylist(playlistId, deletedSong);
+                                  },
+                                ),
+                                duration: const Duration(seconds: 3),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            );
                           },
                           child: Container(
                             margin: const EdgeInsets.symmetric(vertical: 3),
@@ -360,6 +408,17 @@ class PlaylistDetailSheet extends StatelessWidget {
                                     padding: const EdgeInsets.all(4),
                                     icon: const FaIcon(FontAwesomeIcons.ellipsis, size: 14, color: EmberColors.textMuted),
                                     onPressed: () => TrackOptionsSheet.show(context, song),
+                                  ),
+                                  ReorderableDragStartListener(
+                                    index: index,
+                                    child: const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                      child: Icon(
+                                        Icons.drag_handle_rounded,
+                                        size: 20,
+                                        color: EmberColors.textMuted,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),

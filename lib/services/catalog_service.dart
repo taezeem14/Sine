@@ -25,17 +25,17 @@ class CatalogService {
   static const List<MusicCategory> categories = [
     MusicCategory(
       key: 'trending',
-      icon: FontAwesomeIcons.chartLine,
-      title: 'Today\'s Top Hits',
-      subtitle: 'Global chart toppers & viral hits',
-      searchQuery: 'Today Top Hits Official Music Audio',
+      icon: FontAwesomeIcons.bolt,
+      title: 'Trending Electric Hits',
+      subtitle: 'Electric, Dance & Chart-topping English Hits',
+      searchQuery: 'electronic dance edm english hits official audio',
     ),
     MusicCategory(
       key: 'top_hits',
       icon: FontAwesomeIcons.headphones,
       title: 'Global Top 50',
       subtitle: 'The hottest tracks worldwide',
-      searchQuery: 'Top 50 Global Music Hits',
+      searchQuery: 'Top 50 Global Music Hits Official Audio',
     ),
     MusicCategory(
       key: 'pop',
@@ -110,7 +110,9 @@ class CatalogService {
 
   static bool _isValidMusicTrack(Song song) {
     final secs = song.duration.inSeconds;
-    if (secs > 0 && (secs < 45 || secs > 720)) {
+    // Discard tracks that are too short (<45s) or too long (>480s / 8 minutes)
+    // to rigorously filter out hour-long in-video playlists and multi-song compilations
+    if (secs > 0 && (secs < 45 || secs > 480)) {
       return false;
     }
     final lowerTitle = song.title.toLowerCase();
@@ -118,12 +120,23 @@ class CatalogService {
       '10 hour',
       '10-hour',
       '1 hour loop',
+      '1 hour mix',
       '10 hours',
       'compilation',
       'meme song',
       'tiktok meme',
       'breaking news',
       'live news',
+      'top hits 202',
+      'hits 202',
+      'in-video playlist',
+      'full album',
+      'full playlist',
+      'playlist mix',
+      'mashup 202',
+      'greatest hits',
+      'nonstop mix',
+      'best songs of',
     ];
     for (final term in spamTerms) {
       if (lowerTitle.contains(term)) return false;
@@ -252,9 +265,30 @@ class CatalogService {
     return _categoryCache[categoryKey] ?? [];
   }
 
-  /// Fetch trending YouTube tracks
-  static Future<List<Song>> fetchTrending({bool forceRefresh = false}) =>
-      fetchCategory('trending', forceRefresh: forceRefresh);
+  /// Fetch trending tracks: prioritize authentic electronic, dance & English pop hits
+  /// using iTunes API for clean standalone metadata, with YouTube fallback. Never returns in-video playlists.
+  static Future<List<Song>> fetchTrending({bool forceRefresh = false}) async {
+    final cached = getCachedCategory('trending');
+    if (!forceRefresh && cached != null && cached.isNotEmpty) return cached;
+
+    // 1. Primary: Curated genuine electric, dance & English hits via iTunes Music API
+    try {
+      final curated = await fetchCuratedGenre(
+        'Electric & Dance',
+        'electronic dance edm english hits',
+        forceRefresh: forceRefresh,
+      );
+      if (curated.isNotEmpty) {
+        _cacheCategory('trending', curated);
+        return curated;
+      }
+    } catch (e) {
+      debugPrint('[CatalogService] Curated trending fetch error: $e');
+    }
+
+    // 2. Fallback: YouTube search filtered against in-video playlists
+    return fetchCategory('trending', forceRefresh: forceRefresh);
+  }
 
   /// Backward-compatible aliases for player provider
   static Future<List<Song>> fetchTrendingTracks({bool forceRefresh = false}) =>

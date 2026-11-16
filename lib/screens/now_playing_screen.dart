@@ -490,7 +490,11 @@ class _TransportControlsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
+    final isShuffle = context.select<PlayerProvider, bool>((p) => p.isShuffle);
+    final repeatMode = context.select<PlayerProvider, String>((p) => p.repeatMode);
+    final isPlaying = context.select<PlayerProvider, bool>((p) => p.isPlaying);
+    final isLoadingStream = context.select<PlayerProvider, bool>((p) => p.isLoadingStream);
+    final player = context.read<PlayerProvider>();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -500,10 +504,10 @@ class _TransportControlsSection extends StatelessWidget {
           IconButton(
             icon: FaIcon(
               FontAwesomeIcons.shuffle,
-              color: player.isShuffle ? EmberColors.primaryBlue : EmberColors.textMuted,
+              color: isShuffle ? EmberColors.primaryBlue : EmberColors.textMuted,
               size: 18,
             ),
-            tooltip: player.isShuffle ? 'Shuffle: On' : 'Shuffle: Off',
+            tooltip: isShuffle ? 'Shuffle: On' : 'Shuffle: Off',
             onPressed: () {
               HapticFeedback.lightImpact();
               player.toggleShuffle();
@@ -519,7 +523,7 @@ class _TransportControlsSection extends StatelessWidget {
           ),
           // Hero 68px circular play/pause button with glowing blue shadow
           AnimatedScale(
-            scale: player.isLoadingStream ? 0.93 : 1.0,
+            scale: isLoadingStream ? 0.93 : 1.0,
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutBack,
             child: Container(
@@ -542,7 +546,7 @@ class _TransportControlsSection extends StatelessWidget {
                 ],
               ),
               child: IconButton(
-                icon: player.isLoadingStream
+                icon: isLoadingStream
                     ? const SizedBox(
                         width: 24,
                         height: 24,
@@ -552,7 +556,7 @@ class _TransportControlsSection extends StatelessWidget {
                         ),
                       )
                     : FaIcon(
-                        player.isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
+                        isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
                         color: Colors.white,
                         size: 24,
                       ),
@@ -573,15 +577,15 @@ class _TransportControlsSection extends StatelessWidget {
           ),
           IconButton(
             icon: Icon(
-              player.repeatMode == 'one'
+              repeatMode == 'one'
                   ? Icons.repeat_one_rounded
                   : Icons.repeat_rounded,
-              color: player.repeatMode != 'off' ? EmberColors.primaryBlue : EmberColors.textMuted,
+              color: repeatMode != 'off' ? EmberColors.primaryBlue : EmberColors.textMuted,
               size: 24,
             ),
-            tooltip: player.repeatMode == 'one'
+            tooltip: repeatMode == 'one'
                 ? 'Repeat: One'
-                : (player.repeatMode == 'all' ? 'Repeat: All' : 'Repeat: Off'),
+                : (repeatMode == 'all' ? 'Repeat: All' : 'Repeat: Off'),
             onPressed: () {
               HapticFeedback.lightImpact();
               player.cycleRepeatMode();
@@ -825,7 +829,10 @@ class _UtilityPillsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
+    final eqPreset = context.select<PlayerProvider, String>((p) => p.eqPreset);
+    final eqEnabled = context.select<PlayerProvider, bool>((p) => p.eqEnabled);
+    final sleepAtTrackEnd = context.select<PlayerProvider, bool>((p) => p.sleepAtTrackEnd);
+    final player = context.read<PlayerProvider>();
 
     return Padding(
       padding: const EdgeInsets.only(left: 16, right: 16, bottom: 2, top: 2),
@@ -843,16 +850,16 @@ class _UtilityPillsRow extends StatelessWidget {
             const SizedBox(width: 8),
             _PillAction(
               icon: FontAwesomeIcons.sliders,
-              label: player.eqPreset.split(' ').first,
-              active: player.eqEnabled,
+              label: eqPreset.split(' ').first,
+              active: eqEnabled,
               onTap: () => EqualizerScreen.open(context),
             ),
             const SizedBox(width: 8),
             ValueListenableBuilder<int>(
               valueListenable: player.sleepSecondsNotifier,
               builder: (context, remainingSecs, _) {
-                final isTimerActive = player.sleepAtTrackEnd || remainingSecs > 0;
-                final label = player.sleepAtTrackEnd
+                final isTimerActive = sleepAtTrackEnd || remainingSecs > 0;
+                final label = sleepAtTrackEnd
                     ? 'Track End'
                     : (remainingSecs > 0
                         ? '${(remainingSecs / 60).ceil()}m'

@@ -56,7 +56,13 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
+    final hasSession = context.select<PlayerProvider, bool>((p) => p.recoverableSession != null);
+    final isYtLoading = context.select<PlayerProvider, bool>((p) => p.isLoadingYouTube);
+    final ytTracks = context.select<PlayerProvider, List<Song>>((p) => p.youtubeTracks);
+    final currentSongId = context.select<PlayerProvider, String?>((p) => p.currentSong?.id);
+    final isPlaying = context.select<PlayerProvider, bool>((p) => p.isPlaying);
+    final favoritesCount = context.select<PlayerProvider, int>((p) => p.favorites.length);
+    final player = context.read<PlayerProvider>();
 
     return Scaffold(
       backgroundColor: EmberColors.obsidianBase,

@@ -77,6 +77,12 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
                 R.id.widget_btn_play,
                 if (isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play
             )
+            views.setProgressBar(
+                R.id.widget_progress_bar,
+                100,
+                if (isPlaying) 45 else 0,
+                false
+            )
 
             val pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT or (
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {

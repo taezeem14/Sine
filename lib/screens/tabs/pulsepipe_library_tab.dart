@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/song.dart';
 import '../../models/playlist.dart';
+import '../../models/downloaded_video.dart';
 import '../../providers/player_provider.dart';
 import '../../theme/ember_theme.dart';
 import '../playlist_detail_sheet.dart';
@@ -22,6 +24,7 @@ class PulsePipeLibraryTab extends StatefulWidget {
 
 class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
   String _selectedFilter = 'All'; // 'All', 'Playlists', 'Liked Songs', 'Downloads', 'History'
+  String _downloadSubTab = 'Songs'; // 'Songs' or 'Videos'
 
   final List<String> _filters = const [
     'All',
@@ -224,7 +227,13 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
+    final favCount = context.select<PlayerProvider, int>((p) => p.favorites.length);
+    final dlCount = context.select<PlayerProvider, int>((p) => p.downloads.length);
+    final vidCount = context.select<PlayerProvider, int>((p) => p.downloadedVideos.length);
+    final plCount = context.select<PlayerProvider, int>((p) => p.playlists.length);
+    final histCount = context.select<PlayerProvider, int>((p) => p.history.length);
+    final currentSongId = context.select<PlayerProvider, String?>((p) => p.currentSong?.id);
+    final player = context.read<PlayerProvider>();
 
     return Scaffold(
       backgroundColor: EmberColors.obsidianBase,
@@ -327,7 +336,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                 ),
               ),
 
-            // 4. "Downloaded" Row (shown when filter is All)
+            // 4. "Downloaded Songs" Row (shown when filter is All)
             if (_selectedFilter == 'All')
               SliverToBoxAdapter(
                 child: _LibraryRowItem(
@@ -336,152 +345,465 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                   title: 'Downloaded Songs',
                   subtitle: 'Offline Storage • ${player.downloads.length} songs',
                   isPinned: false,
-                  onTap: () => _openDownloads(context, player),
+                  onTap: () {
+                    setState(() {
+                      _selectedFilter = 'Downloads';
+                      _downloadSubTab = 'Songs';
+                    });
+                  },
                 ),
               ),
 
-            // 4B. Direct Downloaded Songs List (shown when filter is Downloads)
+            // 4B. "Downloaded Videos" Row (shown when filter is All)
+            if (_selectedFilter == 'All')
+              SliverToBoxAdapter(
+                child: _LibraryRowItem(
+                  iconGradient: const [Color(0xFF7C4DFF), Color(0xFF00D2FF)],
+                  icon: FontAwesomeIcons.video,
+                  title: 'Downloaded Videos',
+                  subtitle: 'MP4 Gallery • ${player.downloadedVideos.length} videos',
+                  isPinned: false,
+                  onTap: () {
+                    setState(() {
+                      _selectedFilter = 'Downloads';
+                      _downloadSubTab = 'Videos';
+                    });
+                  },
+                ),
+              ),
+
+            // 4C. Downloads Section (Audio & Video Sub-Tabs)
             if (_selectedFilter == 'Downloads') ...[
-              if (player.downloads.isNotEmpty) ...[
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: EmberColors.charcoalCard,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: EmberColors.glassBorder.withValues(alpha: 0.25),
+                        width: 1,
+                      ),
+                    ),
                     child: Row(
                       children: [
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: EmberColors.primaryBlue,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _downloadSubTab = 'Songs');
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _downloadSubTab == 'Songs'
+                                    ? EmberColors.primaryBlue
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.music_note_rounded,
+                                    size: 15,
+                                    color: _downloadSubTab == 'Songs'
+                                        ? Colors.white
+                                        : EmberColors.textSecondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Audio (${player.downloads.length})',
+                                    style: TextStyle(
+                                      color: _downloadSubTab == 'Songs'
+                                          ? Colors.white
+                                          : EmberColors.textSecondary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                          onPressed: () {
-                            final pl = Playlist(
-                              id: 'downloaded_songs',
-                              title: 'Downloaded Songs',
-                              songs: player.downloads,
-                              createdAt: DateTime.now(),
-                            );
-                            player.playPlaylist(pl, startIndex: 0);
-                          },
-                          icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                          label: const Text('Play All', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         ),
-                        const SizedBox(width: 10),
-                        OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: EmberColors.textPrimary,
-                            side: BorderSide(color: EmberColors.outlineVariant.withValues(alpha: 0.6)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _downloadSubTab = 'Videos');
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _downloadSubTab == 'Videos'
+                                    ? EmberColors.primaryBlue
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.play_circle_fill_rounded,
+                                    size: 15,
+                                    color: _downloadSubTab == 'Videos'
+                                        ? Colors.white
+                                        : EmberColors.textSecondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Videos (${player.downloadedVideos.length})',
+                                    style: TextStyle(
+                                      color: _downloadSubTab == 'Videos'
+                                          ? Colors.white
+                                          : EmberColors.textSecondary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                          onPressed: () {
-                            final pl = Playlist(
-                              id: 'downloaded_songs',
-                              title: 'Downloaded Songs',
-                              songs: player.downloads,
-                              createdAt: DateTime.now(),
-                            );
-                            player.playPlaylist(pl, startIndex: 0, shuffle: true);
-                          },
-                          icon: const FaIcon(FontAwesomeIcons.shuffle, size: 13),
-                          label: const Text('Shuffle', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         ),
                       ],
                     ),
                   ),
                 ),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final song = player.downloads[index];
-                      final isCurrent = player.currentSong?.id == song.id;
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: song.artworkUrl.isNotEmpty
-                              ? CachedNetworkImage(
-                                  imageUrl: song.artworkUrl,
-                                  width: 48,
-                                  height: 48,
-                                  memCacheWidth: 150,
-                                  memCacheHeight: 150,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (_, _, _) => Container(
-                                    width: 48,
-                                    height: 48,
-                                    color: EmberColors.surfaceContainerHigh,
-                                    child: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
-                                  ),
-                                )
-                              : Container(
-                                  width: 48,
-                                  height: 48,
-                                  color: EmberColors.surfaceContainerHigh,
-                                  child: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
-                                ),
-                        ),
-                        title: Text(
-                          song.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: isCurrent ? EmberColors.primaryBlue : EmberColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        subtitle: Text(
-                          '${song.artist} • Offline',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: EmberColors.textMuted, fontSize: 12),
-                        ),
-                        trailing: IconButton(
-                          icon: FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
-                          onPressed: () => TrackOptionsSheet.show(context, song),
-                        ),
-                        onTap: () {
-                          final pl = Playlist(
-                            id: 'downloaded_songs',
-                            title: 'Downloaded Songs',
-                            songs: player.downloads,
-                            createdAt: DateTime.now(),
-                          );
-                          player.playPlaylist(pl, startIndex: index);
-                        },
-                      );
-                    },
-                    childCount: player.downloads.length,
-                  ),
-                ),
-              ] else
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
+              ),
+
+              if (_downloadSubTab == 'Songs') ...[
+                if (player.downloads.isNotEmpty) ...[
+                  SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
                         children: [
-                          FaIcon(FontAwesomeIcons.circleArrowDown, size: 42, color: EmberColors.textMuted),
-                          SizedBox(height: 12),
-                          Text(
-                            'No downloaded songs yet',
-                            style: TextStyle(color: EmberColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: EmberColors.primaryBlue,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            ),
+                            onPressed: () {
+                              final pl = Playlist(
+                                id: 'downloaded_songs',
+                                title: 'Downloaded Songs',
+                                songs: player.downloads,
+                                createdAt: DateTime.now(),
+                              );
+                              player.playPlaylist(pl, startIndex: 0);
+                            },
+                            icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                            label: const Text('Play All', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                           ),
-                          SizedBox(height: 6),
-                          Text(
-                            'Tap the three dots on any song and select "Download Audio" to listen offline without internet.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: EmberColors.textMuted, fontSize: 13),
+                          const SizedBox(width: 10),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: EmberColors.textPrimary,
+                              side: BorderSide(color: EmberColors.outlineVariant.withValues(alpha: 0.6)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            ),
+                            onPressed: () {
+                              final pl = Playlist(
+                                id: 'downloaded_songs',
+                                title: 'Downloaded Songs',
+                                songs: player.downloads,
+                                createdAt: DateTime.now(),
+                              );
+                              player.playPlaylist(pl, startIndex: 0, shuffle: true);
+                            },
+                            icon: const FaIcon(FontAwesomeIcons.shuffle, size: 13),
+                            label: const Text('Shuffle', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                           ),
                         ],
                       ),
                     ),
                   ),
-                ),
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final song = player.downloads[index];
+                        final isCurrent = player.currentSong?.id == song.id;
+                        return Dismissible(
+                          key: ValueKey('dl_song_${song.id}'),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            color: const Color(0xFFD32F2F),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.delete_forever_rounded, color: Colors.white, size: 22),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Delete',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          ),
+                          onDismissed: (_) async {
+                            HapticFeedback.mediumImpact();
+                            final deletedSong = song;
+                            await player.deleteDownload(song.id);
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Removed "${deletedSong.title}" from downloads'),
+                                backgroundColor: EmberColors.surfaceContainerHigh,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                action: SnackBarAction(
+                                  label: 'UNDO',
+                                  textColor: EmberColors.primaryBlue,
+                                  onPressed: () {
+                                    player.saveDownloadedSong(deletedSong);
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                            leading: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: song.artworkUrl.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: song.artworkUrl,
+                                      width: 48,
+                                      height: 48,
+                                      memCacheWidth: 150,
+                                      memCacheHeight: 150,
+                                      fit: BoxFit.cover,
+                                      errorWidget: (_, _, _) => Container(
+                                        width: 48,
+                                        height: 48,
+                                        color: EmberColors.surfaceContainerHigh,
+                                        child: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                                      ),
+                                    )
+                                  : Container(
+                                      width: 48,
+                                      height: 48,
+                                      color: EmberColors.surfaceContainerHigh,
+                                      child: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                                    ),
+                            ),
+                            title: Text(
+                              song.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isCurrent ? EmberColors.primaryBlue : EmberColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${song.artist} • Offline Audio',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                            ),
+                            trailing: IconButton(
+                              icon: FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
+                              onPressed: () => TrackOptionsSheet.show(context, song),
+                            ),
+                            onTap: () {
+                              final pl = Playlist(
+                                id: 'downloaded_songs',
+                                title: 'Downloaded Songs',
+                                songs: player.downloads,
+                                createdAt: DateTime.now(),
+                              );
+                              player.playPlaylist(pl, startIndex: index);
+                            },
+                          ),
+                        );
+                      },
+                      childCount: player.downloads.length,
+                    ),
+                  ),
+                ] else
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            FaIcon(FontAwesomeIcons.circleArrowDown, size: 42, color: EmberColors.textMuted),
+                            SizedBox(height: 12),
+                            Text(
+                              'No downloaded songs yet',
+                              style: TextStyle(color: EmberColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'Tap the three dots on any song and select "Download Audio" to listen offline without internet.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: EmberColors.textMuted, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ] else ...[
+                // Videos Sub-Tab
+                if (player.downloadedVideos.isNotEmpty) ...[
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final video = player.downloadedVideos[index];
+                        return Dismissible(
+                          key: ValueKey('dl_vid_${video.id}'),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            color: const Color(0xFFD32F2F),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.delete_forever_rounded, color: Colors.white, size: 22),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Delete',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          ),
+                          onDismissed: (_) async {
+                            HapticFeedback.mediumImpact();
+                            final deletedVideo = video;
+                            await player.deleteDownloadedVideo(video.id);
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Deleted video "${deletedVideo.title}"'),
+                                backgroundColor: EmberColors.surfaceContainerHigh,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            );
+                          },
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            leading: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: video.artworkUrl.isNotEmpty
+                                      ? CachedNetworkImage(
+                                          imageUrl: video.artworkUrl,
+                                          width: 54,
+                                          height: 54,
+                                          memCacheWidth: 150,
+                                          memCacheHeight: 150,
+                                          fit: BoxFit.cover,
+                                          errorWidget: (_, _, _) => Container(
+                                            width: 54,
+                                            height: 54,
+                                            color: EmberColors.surfaceContainerHigh,
+                                            child: const Icon(Icons.videocam_rounded, color: EmberColors.primaryBlue),
+                                          ),
+                                        )
+                                      : Container(
+                                          width: 54,
+                                          height: 54,
+                                          color: EmberColors.surfaceContainerHigh,
+                                          child: const Icon(Icons.videocam_rounded, color: EmberColors.primaryBlue),
+                                        ),
+                                ),
+                                Container(
+                                  width: 22,
+                                  height: 22,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.65),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 15),
+                                ),
+                              ],
+                            ),
+                            title: Text(
+                              video.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: EmberColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${video.artist} • ${video.sizeFormatted} • MP4',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.open_in_new_rounded, size: 18, color: EmberColors.textMuted),
+                              tooltip: 'Open in Video Player',
+                              onPressed: () => player.openDownloadedVideo(video.filePath),
+                            ),
+                            onTap: () async {
+                              final ok = await player.openDownloadedVideo(video.filePath);
+                              if (!ok && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Could not open video file in external player'),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        );
+                      },
+                      childCount: player.downloadedVideos.length,
+                    ),
+                  ),
+                ] else
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            FaIcon(FontAwesomeIcons.video, size: 42, color: EmberColors.textMuted),
+                            SizedBox(height: 12),
+                            Text(
+                              'No downloaded videos yet',
+                              style: TextStyle(color: EmberColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'Tap the three dots on any song and select "Download Video" to save MP4 videos for offline playback in your gallery.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: EmberColors.textMuted, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ],
 
             // 5. Custom Playlists (shown when filter is All or Playlists)
@@ -538,42 +860,76 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final pl = player.playlists[index];
-                      return _PlaylistRowItem(
-                        playlist: pl,
-                        onTap: () => PlaylistDetailSheet.show(context, pl),
-                        onOptions: () {
-                          // Options to share, delete or manage
-                          showModalBottomSheet(
-                            context: context,
-                            backgroundColor: EmberColors.charcoalCard,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                            ),
-                            builder: (ctx) => SafeArea(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  ListTile(
-                                    leading: FaIcon(FontAwesomeIcons.qrcode, color: EmberColors.primaryBlue),
-                                    title: Text('Share Playlist QR Code', style: TextStyle(color: EmberColors.textPrimary)),
-                                    onTap: () {
-                                      Navigator.pop(ctx);
-                                      SineQrCodeSheet.showForPlaylist(context, pl);
-                                    },
-                                  ),
-                                  ListTile(
-                                    leading: const FaIcon(FontAwesomeIcons.trashCan, color: Colors.redAccent),
-                                    title: const Text('Delete Playlist', style: TextStyle(color: Colors.redAccent)),
-                                    onTap: () {
-                                      Navigator.pop(ctx);
-                                      player.deletePlaylist(pl.id);
-                                    },
-                                  ),
-                                ],
+                      return Dismissible(
+                        key: ValueKey('playlist_${pl.id}'),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          color: const Color(0xFFD32F2F),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.delete_forever_rounded, color: Colors.white, size: 22),
+                              SizedBox(width: 6),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                               ),
+                            ],
+                          ),
+                        ),
+                        onDismissed: (_) {
+                          HapticFeedback.mediumImpact();
+                          final deletedPl = pl;
+                          player.deletePlaylist(pl.id);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Deleted playlist "${deletedPl.title}"'),
+                              backgroundColor: EmberColors.surfaceContainerHigh,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           );
                         },
+                        child: _PlaylistRowItem(
+                          playlist: pl,
+                          onTap: () => PlaylistDetailSheet.show(context, pl),
+                          onOptions: () {
+                            // Options to share, delete or manage
+                            showModalBottomSheet(
+                              context: context,
+                              backgroundColor: EmberColors.charcoalCard,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                              ),
+                              builder: (ctx) => SafeArea(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ListTile(
+                                      leading: FaIcon(FontAwesomeIcons.qrcode, color: EmberColors.primaryBlue),
+                                      title: Text('Share Playlist QR Code', style: TextStyle(color: EmberColors.textPrimary)),
+                                      onTap: () {
+                                        Navigator.pop(ctx);
+                                        SineQrCodeSheet.showForPlaylist(context, pl);
+                                      },
+                                    ),
+                                    ListTile(
+                                      leading: const FaIcon(FontAwesomeIcons.trashCan, color: Colors.redAccent),
+                                      title: const Text('Delete Playlist', style: TextStyle(color: Colors.redAccent)),
+                                      onTap: () {
+                                        Navigator.pop(ctx);
+                                        player.deletePlaylist(pl.id);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       );
                     },
                     childCount: player.playlists.length,

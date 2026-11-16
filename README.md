@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.3.3%20(Build%2033)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.3.4%20(Build%2034)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.3.3)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.3.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.3.4)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.4.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy studio-grade ad-free music instantly.*
 
@@ -36,7 +36,7 @@
 
 ## 📖 Table of Contents
 - [What Is Sine?](#-what-is-sine)
-- [What's New in v1.3.3](#-whats-new-in-v133)
+- [What's New in v1.3.4](#-whats-new-in-v134)
 - [Key Features](#-key-features)
 - [Architecture & Playback Pipeline](#-architecture--playback-pipeline)
 - [FOSS & Privacy Guarantee](#-foss--privacy-guarantee)
@@ -64,27 +64,29 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 
 ---
 
-## 🌟 What's New in v1.3.3
+## 🌟 What's New in v1.3.4
 
-1. **Xiaomi MIUI & Redmi Note 5 Pro Home Screen Widget Fix**:
-   - Replaced forbidden bare `<View>` spacer tags with RemoteViews-safe `<FrameLayout>` containers, eliminating fatal `InflateException: Class not allowed to be inflated android.view.View` in `com.miui.home`.
-   - Replaced unresolvable `?android:attr/selectableItemBackgroundBorderless` styles with transparent drawables.
-   - Guarded PendingIntent flags with `FLAG_IMMUTABLE` fallback for Android 8.1+ / MIUI.
-   - Direct app activation on empty widget tap to bypass aggressive MIUI background activity suppression.
+1. **Android Media Notification-Panel Style Widget**:
+   - Redesigned home screen widget styled directly after modern Android media notification shades: rounded artwork card container, prominent track title, subtitle, horizontal progress bar scrubber line, and circular accent play/pause controls.
+   - Purged Android 12 (API 31) metadata attributes (`targetCellWidth`, `targetCellHeight`) that caused parser rejections in older launchers (e.g. Xiaomi Redmi Note 5 Pro MIUI 10/11/12 launcher `com.miui.home`).
+   - Retained strict RemoteViews whitelist compliance (no bare `<View>` tags, no dynamic attributes).
 
-2. **App-Wide 60/120 FPS Butter Smoothness & Rebuild Elimination**:
-   - Pruned global tree rebuilds in `main.dart` with targeted `Selector<PlayerProvider, ThemeData>`.
-   - Isolated continuous animated painters (`VinylDisc`, `AmbientGlow`, `SpectrumBars`) in `RepaintBoundary` widgets.
-   - Synchronized seamless `Hero` transitions between `MiniPlayer` and `NowPlayingScreen` album art.
-   - Upgraded all screen routes and sheet transitions to cubic easing curves (`Curves.easeOutQuint` & `Curves.easeInOutCubic`).
+2. **Downloaded Videos Section & External Gallery / MP4 Player Support**:
+   - Added dedicated "Downloaded Videos" gallery in the Library tab alongside downloaded audio with an intuitive sub-tab switcher (`Audio` / `Videos`).
+   - Registered `androidx.core.content.FileProvider` and native Android intent handler (`openVideo`) with `Intent.FLAG_GRANT_READ_URI_PERMISSION`, allowing videos to open seamlessly in your device's default Gallery, Google Photos, VLC, or MX Player.
+   - Includes full video metadata (title, artist, formatted size in MB) and dismissible swipe-to-delete with undo.
 
-3. **Modernized Settings, Theme Studio & Queue UX**:
-   - **Settings UI**: Material 3 grouped cards, instant settings search, and smooth slider touch ergonomics.
-   - **Theme Studio**: Live interactive player preview card, pure OLED true-black mode toggle (`0x000000`), and smooth color transitions across all 8 presets.
-   - **Queue UI**: Drag-and-drop reordering with haptic feedback, swipe-to-dismiss with undo, and subtle active track glow.
+3. **Playlist Reordering & Dismissible Swipe-to-Delete**:
+   - Added drag-and-drop track reordering with haptic feedback to playlist detail screens and downloaded lists.
+   - Added dismissible swipe-to-delete with red trash indicators and undo action SnackBars across playlists and library items.
 
-4. **Permanent Release Keystore**:
-   - Released via GitHub Actions using the permanent `sine-release.jks` certificate, guaranteeing seamless in-place updates without "App not installed" errors.
+4. **Trending Electric & Dance Section with Anti-Spam Curation**:
+   - Refocused the trending category on verified electronic, dance, and chart-topping English tracks.
+   - Implemented strict track validation: capped maximum duration to 8 minutes (480s) and blacklisted long mixes, compilations, "Top HITS 2026", and in-video playlists.
+
+5. **App-Wide 120 FPS Butter Smoothness & Rebuild Elimination**:
+   - Eliminated broad root `context.watch<PlayerProvider>()` across Home, Search, and Library tabs, replacing them with granular `context.select` hooks.
+   - Idle tabs now experience zero rebuild overhead during background audio playback, eliminating micro-stutters and dropped frames.
 
 ---
 
