@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,8 +14,6 @@ import 'package:spotify_newpipe/services/storage_service.dart';
 import 'package:spotify_newpipe/services/audio_handler.dart';
 import 'package:spotify_newpipe/providers/player_provider.dart';
 import 'package:spotify_newpipe/theme/ember_theme.dart';
-import 'package:spotify_newpipe/screens/settings_screen.dart';
-import 'package:spotify_newpipe/screens/queue_discovery_screen.dart';
 import 'package:spotify_newpipe/widgets/vinyl_disc.dart';
 import 'package:spotify_newpipe/widgets/ambient_glow.dart';
 import 'package:spotify_newpipe/widgets/spectrum_bars.dart';
@@ -133,6 +130,10 @@ void main() {
       expect(code, contains('sendOrderedBroadcast'));
       expect(code, contains('ACTION_DOWN'));
       expect(code, contains('ACTION_UP'));
+      // Verify balanced braces syntax integrity
+      final openBraces = '{'.allMatches(code).length;
+      final closeBraces = '}'.allMatches(code).length;
+      expect(openBraces, equals(closeBraces), reason: 'Braces must be perfectly balanced');
     });
 
     // -----------------------------------------------------------------------

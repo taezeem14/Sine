@@ -2361,11 +2361,9 @@ class _SectionHeader extends StatelessWidget {
 
 class _SettingsGroupCard extends StatelessWidget {
   final List<Widget> children;
-  final EdgeInsetsGeometry margin;
 
   const _SettingsGroupCard({
     required this.children,
-    this.margin = const EdgeInsets.only(bottom: 8),
   });
 
   @override
@@ -2374,7 +2372,7 @@ class _SettingsGroupCard extends StatelessWidget {
     final isOled = player.isOledBlack;
 
     return Container(
-      margin: margin,
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: isOled ? const Color(0xFF0D0D0D) : EmberColors.surfaceContainerLow.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(16),
@@ -2412,7 +2410,6 @@ class _SettingsTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   const _SettingsTile({
-    super.key,
     required this.icon,
     this.iconColor,
     required this.title,

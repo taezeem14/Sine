@@ -4,13 +4,29 @@ import sys
 import os
 import time
 
+def get_token():
+    token = os.environ.get('GITHUB_TOKEN')
+    if not token:
+        try:
+            import subprocess
+            url = subprocess.check_output(['git', 'config', 'remote.origin.url'], text=True).strip()
+            if 'x-access-token:' in url:
+                token = url.split('x-access-token:')[1].split('@')[0]
+        except Exception:
+            pass
+    return token
+
 def main():
     tag = sys.argv[1] if len(sys.argv) > 1 else 'v1.3.2'
     if not tag.startswith('v'):
         tag = 'v' + tag
 
     api_url = f'https://api.github.com/repos/taezeem14/Sine/releases/tags/{tag}'
-    req = urllib.request.Request(api_url, headers={'User-Agent': 'Sine-Release-Fetcher'})
+    token = get_token()
+    headers = {'User-Agent': 'Sine-Release-Fetcher'}
+    if token:
+        headers['Authorization'] = f'token {token}'
+    req = urllib.request.Request(api_url, headers=headers)
 
     print(f"Checking GitHub Actions Cloud CI/CD release for tag: {tag}...")
     

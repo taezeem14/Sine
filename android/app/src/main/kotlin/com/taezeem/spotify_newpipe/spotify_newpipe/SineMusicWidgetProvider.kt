@@ -280,5 +280,4 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
             } catch (_: Exception) {}
         }
     }
-    }
 }
