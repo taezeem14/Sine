@@ -28,9 +28,9 @@ def main():
         headers['Authorization'] = f'token {token}'
     req = urllib.request.Request(api_url, headers=headers)
 
-    print(f"Checking GitHub Actions Cloud CI/CD release for tag: {tag}...")
+    print(f"Checking GitHub Actions Cloud CI/CD release for tag: {tag}...", flush=True)
     
-    max_retries = 50
+    max_retries = 60
     delay = 12
     for attempt in range(1, max_retries + 1):
         try:
@@ -53,11 +53,11 @@ def main():
 
                 if apk_url:
                     dest = os.path.join(os.getcwd(), f"Sine-{tag}.apk")
-                    print(f"Found Cloud Release APK: {apk_name}")
-                    print(f"Downloading from {apk_url} to {dest}...")
+                    print(f"Found Cloud Release APK: {apk_name}", flush=True)
+                    print(f"Downloading from {apk_url} to {dest}...", flush=True)
                     urllib.request.urlretrieve(apk_url, dest)
                     size_mb = os.path.getsize(dest) / (1024 * 1024)
-                    print(f"[SUCCESS] Downloaded {dest} ({size_mb:.2f} MB)")
+                    print(f"[SUCCESS] Downloaded {dest} ({size_mb:.2f} MB)", flush=True)
                     
                     # Also keep standard app-release.apk if needed
                     alt_dest = os.path.join(os.getcwd(), 'build', 'app', 'outputs', 'flutter-apk', f"Sine-{tag}.apk")
@@ -69,18 +69,18 @@ def main():
                         pass
                     return 0
                 else:
-                    print(f"[{attempt}/{max_retries}] Release {tag} is draft/created, but APK asset not uploaded yet. Retrying in {delay}s...")
+                    print(f"[{attempt}/{max_retries}] Release {tag} is draft/created, but APK asset not uploaded yet. Retrying in {delay}s...", flush=True)
         except urllib.error.HTTPError as e:
             if e.code == 404:
-                print(f"[{attempt}/{max_retries}] Release {tag} not published yet (Cloud CI/CD is currently compiling). Retrying in {delay}s...")
+                print(f"[{attempt}/{max_retries}] Release {tag} not published yet (Cloud CI/CD is currently compiling). Retrying in {delay}s...", flush=True)
             else:
-                print(f"HTTP Error {e.code}: {e.reason}")
+                print(f"HTTP Error {e.code}: {e.reason}", flush=True)
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error: {e}", flush=True)
         
         time.sleep(delay)
 
-    print("Timed out waiting for GitHub Actions cloud release APK.")
+    print("Timed out waiting for GitHub Actions cloud release APK.", flush=True)
     return 1
 
 if __name__ == '__main__':

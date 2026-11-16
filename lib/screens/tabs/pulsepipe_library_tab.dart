@@ -227,12 +227,12 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
 
   @override
   Widget build(BuildContext context) {
-    final favCount = context.select<PlayerProvider, int>((p) => p.favorites.length);
-    final dlCount = context.select<PlayerProvider, int>((p) => p.downloads.length);
-    final vidCount = context.select<PlayerProvider, int>((p) => p.downloadedVideos.length);
-    final plCount = context.select<PlayerProvider, int>((p) => p.playlists.length);
-    final histCount = context.select<PlayerProvider, int>((p) => p.history.length);
-    final currentSongId = context.select<PlayerProvider, String?>((p) => p.currentSong?.id);
+    context.select<PlayerProvider, int>((p) => p.favorites.length);
+    context.select<PlayerProvider, int>((p) => p.downloads.length);
+    context.select<PlayerProvider, int>((p) => p.downloadedVideos.length);
+    context.select<PlayerProvider, int>((p) => p.playlists.length);
+    context.select<PlayerProvider, int>((p) => p.history.length);
+    context.select<PlayerProvider, String?>((p) => p.currentSong?.id);
     final player = context.read<PlayerProvider>();
 
     return Scaffold(
@@ -566,7 +566,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                                   label: 'UNDO',
                                   textColor: EmberColors.primaryBlue,
                                   onPressed: () {
-                                    player.saveDownloadedSong(deletedSong);
+                                    player.restoreDownloadedSong(deletedSong);
                                   },
                                 ),
                               ),
@@ -718,14 +718,14 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                                             width: 54,
                                             height: 54,
                                             color: EmberColors.surfaceContainerHigh,
-                                            child: const Icon(Icons.videocam_rounded, color: EmberColors.primaryBlue),
+                                            child: Icon(Icons.videocam_rounded, color: EmberColors.primaryBlue),
                                           ),
                                         )
                                       : Container(
                                           width: 54,
                                           height: 54,
                                           color: EmberColors.surfaceContainerHigh,
-                                          child: const Icon(Icons.videocam_rounded, color: EmberColors.primaryBlue),
+                                          child: Icon(Icons.videocam_rounded, color: EmberColors.primaryBlue),
                                         ),
                                 ),
                                 Container(

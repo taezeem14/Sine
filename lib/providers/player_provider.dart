@@ -1819,6 +1819,15 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> restoreDownloadedSong(Song song) async {
+    final cleanId = song.id.replaceFirst('yt_', '');
+    if (!_downloads.any((s) => s.id == song.id || s.id.replaceFirst('yt_', '') == cleanId)) {
+      _downloads.insert(0, song);
+      await _storageService.saveDownloads(_downloads);
+      notifyListeners();
+    }
+  }
+
   /// Purges any legacy mock/placeholder tracks from all storage lists and flushes stream caches
   Future<void> purgePlaceholders() async {
     _favorites = _favorites.where((s) => !Song.isPlaceholder(s)).toList();
