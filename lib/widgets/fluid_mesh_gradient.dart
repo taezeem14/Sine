@@ -63,9 +63,9 @@ class _FluidMeshGradientBackgroundState extends State<FluidMeshGradientBackgroun
     final hash = (song.title.hashCode ^ song.artist.hashCode).abs();
     final baseHue = (hash % 360).toDouble();
 
-    final c1 = HSLColor.fromAHSV(1.0, baseHue, 0.75, 0.55).toColor();
-    final c2 = HSLColor.fromAHSV(1.0, (baseHue + 45) % 360, 0.85, 0.45).toColor();
-    final c3 = HSLColor.fromAHSV(1.0, (baseHue + 120) % 360, 0.80, 0.35).toColor();
+    final c1 = HSLColor.fromAHSL(1.0, baseHue, 0.75, 0.55).toColor();
+    final c2 = HSLColor.fromAHSL(1.0, (baseHue + 45) % 360, 0.85, 0.45).toColor();
+    final c3 = HSLColor.fromAHSL(1.0, (baseHue + 120) % 360, 0.80, 0.35).toColor();
 
     return [c1, c2, c3];
   }

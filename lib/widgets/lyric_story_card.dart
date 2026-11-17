@@ -187,7 +187,7 @@ class _LyricStoryCardSheetState extends State<LyricStoryCardSheet> {
             children: [
               Row(
                 children: [
-                  const FaIcon(FontAwesomeIcons.quoteLeft, size: 16, color: EmberColors.primaryBlue),
+                  FaIcon(FontAwesomeIcons.quoteLeft, size: 16, color: EmberColors.primaryBlue),
                   const SizedBox(width: 10),
                   const Text(
                     'Share Lyric Story',

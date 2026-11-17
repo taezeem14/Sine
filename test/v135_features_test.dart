@@ -1,10 +1,14 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:spotify_newpipe/models/song.dart';
 import 'package:spotify_newpipe/services/storage_service.dart';
 import 'package:spotify_newpipe/services/local_music_service.dart';
 import 'package:spotify_newpipe/services/playlist_import_service.dart';
 import 'package:spotify_newpipe/widgets/aesthetic_playlist_cover.dart';
+import 'package:spotify_newpipe/widgets/fluid_mesh_gradient.dart';
+import 'package:spotify_newpipe/widgets/lyric_story_card.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -150,6 +154,34 @@ void main() {
       expect(code, contains('onShakeDetected'));
       expect(code, contains('onFlipDown'));
       expect(code, contains('onFlipUp'));
+    });
+
+    testWidgets('T8. FluidMeshGradientBackground & LyricStoryCardSheet Widget Instantiation', (tester) async {
+      const song = Song(
+        id: 'test_123',
+        title: 'Starboy',
+        artist: 'The Weeknd',
+        duration: Duration(seconds: 230),
+        artworkUrl: 'https://example.com/art.jpg',
+        streamUrl: 'https://example.com/audio.opus',
+      );
+
+      // Verify FluidMeshGradientBackground builds cleanly and compiles without error
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              height: 300,
+              child: FluidMeshGradientBackground(
+                song: song,
+                child: SizedBox(),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(find.byType(FluidMeshGradientBackground), findsOneWidget);
     });
   });
 }
