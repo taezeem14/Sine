@@ -234,7 +234,7 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                   final globalIdx = currentIndex + 1 + index;
 
                   return RepaintBoundary(
-                    key: ValueKey('queue_item_${song.id}'),
+                    key: ValueKey('queue_item_${song.id}_$globalIdx'),
                     child: Dismissible(
                       key: ValueKey('dismiss_${song.id}_$globalIdx'),
                       direction: DismissDirection.endToStart,

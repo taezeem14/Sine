@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.3.5%20(Build%2035)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.3.6%20(Build%2036)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.3.5)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.5.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.3.6)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.6.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy studio-grade ad-free music instantly.*
 
@@ -36,6 +36,7 @@
 
 ## 📖 Table of Contents
 - [What Is Sine?](#-what-is-sine)
+- [What's New in v1.3.6](#-whats-new-in-v136)
 - [What's New in v1.3.5](#-whats-new-in-v135)
 - [What's New in v1.3.4](#-whats-new-in-v134)
 - [Key Features](#-key-features)
@@ -65,7 +66,33 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 
 ---
 
-## 🌟 What's New in v1.3.5
+## 🌟 What's New in v1.3.6
+
+1. **Responsive, Overflow-Free Lyrics Toolbar**:
+   - The floating toolbar with `Karaoke`, `Translate`, `Romaji`, and `Story Card` pills is now dynamically width-constrained and horizontally scrollable with bouncing physics.
+   - Fits comfortably on compact displays (e.g. Redmi Note 5 Pro 360dp width) and split-screen mode without clipping or pixel overflow errors.
+
+2. **Multi-Line Story Card Selection (Up to 4 Lines)**:
+   - Users can now select up to 4 lyric lines for export into visual story cards.
+   - Built-in interactive line selector lets you tap to toggle any lines across the song with real-time card preview updates and timestamp sorting.
+
+3. **Public Storage & MediaScanner Gallery Export**:
+   - Lyric Story Cards are saved directly to public storage: `/storage/emulated/0/Pictures/Sine/` (or standard public Pictures directory).
+   - Automatically registers with Android's system `MediaScannerConnection` so exported cards show up instantly in Google Photos, Gallery, and file managers.
+   - Includes a floating SnackBar notification with a 1-tap "OPEN" action to launch the system image viewer.
+
+4. **Pure Equalizer Architecture (Reverted Unwanted EQ Overrides)**:
+   - Reverted artificial band additions in the hardware Equalizer; removed intrusive sliders from the Sound Shaping sheet.
+   - Clean separation of pure graphic EQ presets and hardware bass boost, guaranteeing untouched acoustic curves.
+
+5. **Distortion-Free Speed & Pitch Processing**:
+   - Eliminated audio effect rebinding on playback parameter updates (`setSpeed` / `setPitch`), preventing ExoPlayer buffer stutter and digital pops.
+   - Enforced 0.0 dB target gain and automatic disabling of `LoudnessEnhancer` whenever audio tempo or pitch is modified, preventing Sonic SOLA constructive interference clipping.
+
+6. **Continuous Orbital Fluid Mesh Gradient**:
+   - Fluid background mesh animation now runs continuously without jarring restarts, phase jumps, or resets on track transitions or pause/play toggles.
+   - Smooth 1.4-second palette cross-fading when songs change.
+   - Isolated in an independent GPU compositing `RepaintBoundary` to maintain a sustained 120 FPS experience across all screens.
 
 1. **Loudness Normalization (ReplayGain / EBU R128 Leveling)**:
    - Automated target loudness balancing across tracks using Android `LoudnessEnhancer` audio effects session, preventing abrupt volume spikes when transitioning between songs.

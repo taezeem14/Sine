@@ -281,23 +281,29 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
                             },
                             onLongPress: () {
                               HapticFeedback.heavyImpact();
-                              LyricStoryCardSheet.show(context, cur, [line]);
+                              LyricStoryCardSheet.show(
+                                context,
+                                cur,
+                                [line],
+                                allLyrics: synced,
+                              );
                             },
-                            child: AnimatedContainer(
-                              key: _lineKeys.putIfAbsent(index, () => GlobalKey()),
-                              duration: const Duration(milliseconds: 250),
-                              margin: const EdgeInsets.symmetric(vertical: 6),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: isActive
-                                    ? EmberColors.primaryBlue.withValues(alpha: 0.16)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(14),
-                                border: isActive
-                                    ? Border.all(color: EmberColors.primaryBlue.withValues(alpha: 0.40), width: 1.2)
-                                    : null,
-                              ),
-                              child: Column(
+                            child: RepaintBoundary(
+                              child: AnimatedContainer(
+                                key: _lineKeys.putIfAbsent(index, () => GlobalKey()),
+                                duration: const Duration(milliseconds: 250),
+                                margin: const EdgeInsets.symmetric(vertical: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isActive
+                                      ? EmberColors.primaryBlue.withValues(alpha: 0.16)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: isActive
+                                      ? Border.all(color: EmberColors.primaryBlue.withValues(alpha: 0.40), width: 1.2)
+                                      : null,
+                                ),
+                                child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   // Romanization badge
@@ -365,60 +371,73 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
                     ),
                   ),
 
-                  // Floating Lyric Enhancement Pill Toolbar
+                  // Floating Lyric Enhancement Pill Toolbar (Horizontally constrained & scrollable to prevent overflow)
                   Positioned(
-                    top: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: EmberColors.surfaceContainerLow.withValues(alpha: 0.88),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.7)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.45),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+                    top: 8,
+                    left: 10,
+                    right: 10,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: EmberColors.surfaceContainerLow.withValues(alpha: 0.90),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.7)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.45),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _LyricsPill(
+                                icon: Icons.mic_external_on_rounded,
+                                label: 'Karaoke',
+                                isActive: _karaokeMode,
+                                onTap: () => setState(() => _karaokeMode = !_karaokeMode),
+                              ),
+                              const SizedBox(width: 4),
+                              _LyricsPill(
+                                icon: Icons.translate_rounded,
+                                label: _isTranslating ? '...' : 'Translate',
+                                isActive: _showTranslation,
+                                onTap: () => _handleToggleTranslation(rawSynced),
+                              ),
+                              const SizedBox(width: 4),
+                              _LyricsPill(
+                                icon: Icons.spellcheck_rounded,
+                                label: _isRomanizing ? '...' : 'Romaji',
+                                isActive: _showRomanization,
+                                onTap: () => _handleToggleRomanization(rawSynced),
+                              ),
+                              const SizedBox(width: 4),
+                              _LyricsPill(
+                                icon: Icons.style_rounded,
+                                label: 'Story Card',
+                                isActive: false,
+                                onTap: () {
+                                  final activeLine = activeIdx >= 0 && activeIdx < synced.length ? synced[activeIdx] : (synced.isNotEmpty ? synced.first : null);
+                                  if (activeLine != null) {
+                                    HapticFeedback.mediumImpact();
+                                    LyricStoryCardSheet.show(
+                                      context,
+                                      cur,
+                                      [activeLine],
+                                      allLyrics: synced,
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _LyricsPill(
-                            icon: Icons.mic_external_on_rounded,
-                            label: 'Karaoke',
-                            isActive: _karaokeMode,
-                            onTap: () => setState(() => _karaokeMode = !_karaokeMode),
-                          ),
-                          const SizedBox(width: 6),
-                          _LyricsPill(
-                            icon: Icons.translate_rounded,
-                            label: _isTranslating ? '...' : 'Translate',
-                            isActive: _showTranslation,
-                            onTap: () => _handleToggleTranslation(rawSynced),
-                          ),
-                          const SizedBox(width: 6),
-                          _LyricsPill(
-                            icon: Icons.spellcheck_rounded,
-                            label: _isRomanizing ? '...' : 'Romaji',
-                            isActive: _showRomanization,
-                            onTap: () => _handleToggleRomanization(rawSynced),
-                          ),
-                          const SizedBox(width: 6),
-                          _LyricsPill(
-                            icon: Icons.style_rounded,
-                            label: 'Story Card',
-                            isActive: false,
-                            onTap: () {
-                              final activeLine = activeIdx >= 0 && activeIdx < synced.length ? synced[activeIdx] : (synced.isNotEmpty ? synced.first : null);
-                              if (activeLine != null) {
-                                HapticFeedback.mediumImpact();
-                                LyricStoryCardSheet.show(context, cur, [activeLine]);
-                              }
-                            },
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -489,7 +508,7 @@ class _LyricsPill extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: isActive ? EmberColors.primaryBlue.withValues(alpha: 0.20) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
@@ -503,7 +522,7 @@ class _LyricsPill extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 13,
+              size: 12,
               color: isActive ? EmberColors.primaryBlue : EmberColors.textMuted,
             ),
             const SizedBox(width: 4),
@@ -511,7 +530,7 @@ class _LyricsPill extends StatelessWidget {
               label,
               style: TextStyle(
                 color: isActive ? EmberColors.primaryBlue : EmberColors.textMuted,
-                fontSize: 11,
+                fontSize: 10.5,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
               ),
             ),

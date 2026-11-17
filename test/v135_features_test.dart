@@ -8,7 +8,6 @@ import 'package:spotify_newpipe/services/local_music_service.dart';
 import 'package:spotify_newpipe/services/playlist_import_service.dart';
 import 'package:spotify_newpipe/widgets/aesthetic_playlist_cover.dart';
 import 'package:spotify_newpipe/widgets/fluid_mesh_gradient.dart';
-import 'package:spotify_newpipe/widgets/lyric_story_card.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

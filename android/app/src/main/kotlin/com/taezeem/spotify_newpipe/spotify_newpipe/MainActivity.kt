@@ -6,6 +6,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.MediaScannerConnection
 import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -68,6 +69,50 @@ class MainActivity : AudioServiceActivity(), SensorEventListener {
                             }
                         } else {
                             result.error("FILE_NOT_FOUND", "Video file does not exist at: $filePath", null)
+                        }
+                    } else {
+                        result.error("INVALID_PATH", "filePath argument is missing", null)
+                    }
+                }
+                "scanMediaFile" -> {
+                    val filePath = call.argument<String>("filePath")
+                    if (!filePath.isNullOrBlank()) {
+                        MediaScannerConnection.scanFile(
+                            context,
+                            arrayOf(filePath),
+                            null
+                        ) { path, uri -> }
+                        result.success(true)
+                    } else {
+                        result.error("INVALID_PATH", "filePath argument is missing", null)
+                    }
+                }
+                "openImage" -> {
+                    val filePath = call.argument<String>("filePath")
+                    if (!filePath.isNullOrBlank()) {
+                        val file = File(filePath)
+                        if (file.exists()) {
+                            try {
+                                val uri = FileProvider.getUriForFile(
+                                    context,
+                                    "${context.packageName}.fileprovider",
+                                    file
+                                )
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(uri, "image/*")
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                val chooser = Intent.createChooser(intent, "View Image with").apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(chooser)
+                                result.success(true)
+                            } catch (e: Exception) {
+                                result.error("OPEN_ERROR", e.message, null)
+                            }
+                        } else {
+                            result.error("FILE_NOT_FOUND", "Image file does not exist at: $filePath", null)
                         }
                     } else {
                         result.error("INVALID_PATH", "filePath argument is missing", null)

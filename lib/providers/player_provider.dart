@@ -2171,26 +2171,12 @@ class PlayerProvider extends ChangeNotifier {
     if (preset == 'slowedReverb') {
       await setPlaybackSpeed(0.85);
       await setPitchSemitones(-2);
-      await setEqualizerEnabled(true);
-      await setEqualizerPreset('autoeq: harman bass boost');
-      await setSpatializerLevel(0.75);
-      await setBassExciterLevel(0.40);
-      await setBassBoost(0.35);
     } else if (preset == 'nightcore') {
       await setPlaybackSpeed(1.25);
       await setPitchSemitones(3);
-      await setEqualizerEnabled(true);
-      await setEqualizerPreset('vocal air');
-      await setSpatializerLevel(0.40);
-      await setBassExciterLevel(0.15);
-      await setBassBoost(0.10);
     } else {
       await setPlaybackSpeed(1.0);
       await setPitchSemitones(0);
-      await setEqualizerPreset('Flat');
-      await setSpatializerLevel(0.0);
-      await setBassExciterLevel(0.0);
-      await setBassBoost(0.0);
     }
     notifyListeners();
   }

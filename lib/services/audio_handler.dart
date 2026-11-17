@@ -951,6 +951,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     if (isPitchOrSpeedShifted) {
       try {
         await _loudnessEnhancer.setTargetGain(0.0).catchError((_) {});
+        await _loudnessEnhancer.setEnabled(false).catchError((_) {});
       } catch (_) {}
     }
 
@@ -1056,11 +1057,11 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
     // 1. Update LoudnessEnhancer (just_audio 0.10.x takes true dB, converted *100 to millibels)
     try {
-      final double normLevel = _loudnessNormalizationEnabled ? 2.2 : 0.0;
-      final double totalTargetGain = (_bassBoost * 3.5) + (_bassExciter * 2.0) + normLevel;
-      if (totalTargetGain > 0.0 && shouldEnableEq) {
+      final bool isPitchOrSpeedShifted =
+          (_activeSpeed - 1.0).abs() > 0.005 || (_activePitch - 1.0).abs() > 0.005;
+      if (_bassBoost > 0.0 && shouldEnableEq && !isPitchOrSpeedShifted) {
         await _loudnessEnhancer.setEnabled(true).catchError((_) {});
-        await _loudnessEnhancer.setTargetGain(totalTargetGain).catchError((_) {});
+        await _loudnessEnhancer.setTargetGain(_bassBoost * 3.5).catchError((_) {});
       } else {
         await _loudnessEnhancer.setTargetGain(0.0).catchError((_) {});
         await _loudnessEnhancer.setEnabled(false).catchError((_) {});
@@ -1110,10 +1111,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         final maxDb = params.maxDecibels;
         double clampGain(double g) => g.clamp(minDb, maxDb);
 
-        // Deep, punchy, rich Hearth Bass boost + Dynamic Bass Exciter (pure hardware low-shelf harmonics)
-        final bassAdd = (_bassBoost * 9.0) + (_bassExciter * 6.5);
-        final lowMidAdd = (_bassBoost * 4.5) + (_bassExciter * 3.5);
-        final highAdd = _spatializer * 5.0;
+        // Deep, punchy, rich Hearth Bass boost (pure hardware low-shelf harmonics)
+        final bassAdd = _bassBoost * 9.0;
+        final lowMidAdd = _bassBoost * 4.5;
 
         // Read live state fields rather than a stale closure parameter
         final activePreset = _currentPreset;
@@ -1128,8 +1128,6 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               g += bassAdd;
             } else if (i == 1) {
               g += lowMidAdd;
-            } else if (i >= n - 2) {
-              g += highAdd;
             }
             final finalGain = clampGain(g);
             _appliedHardwareBandGains[i] = finalGain;
@@ -1144,8 +1142,6 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               g += bassAdd;
             } else if (i == 1) {
               g += lowMidAdd;
-            } else if (i >= n - 2) {
-              g += highAdd;
             }
             final finalGain = clampGain(g);
             _appliedHardwareBandGains[i] = finalGain;
@@ -1452,10 +1448,6 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     _activeSpeed = speed.clamp(0.25, 3.0);
     await _player.setSpeed(_activeSpeed);
     await _updateHeadroomGain();
-    // Critical: ExoPlayer shifts audio processors when playback parameters change.
-    // Re-anchor hardware Equalizer & DSP on active ExoPlayer pipeline after Sonic shift.
-    await Future<void>.delayed(const Duration(milliseconds: 35));
-    await _scheduleDspSync(forceRebind: true);
   }
 
   Future<void> setPitch(double pitch) async {
@@ -1464,9 +1456,6 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       await _player.setPitch(_activePitch).catchError((_) {});
     } catch (_) {}
     await _updateHeadroomGain();
-    // Critical: Re-anchor hardware Equalizer & DSP on active ExoPlayer pipeline after Sonic shift.
-    await Future<void>.delayed(const Duration(milliseconds: 35));
-    await _scheduleDspSync(forceRebind: true);
   }
 
   Future<void> setNormalizationGain(double gain) async {
