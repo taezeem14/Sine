@@ -193,7 +193,8 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
         bottom: false,
         child: CustomScrollView(
           key: const PageStorageKey<String>('sine_search_scroll'),
-          physics: const BouncingScrollPhysics(),
+          cacheExtent: 800,
+          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           slivers: [
             // 1. Header Title "Search"
             SliverToBoxAdapter(

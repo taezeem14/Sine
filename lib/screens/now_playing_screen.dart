@@ -10,6 +10,8 @@ import '../widgets/ambient_glow.dart';
 import '../widgets/vinyl_disc.dart';
 import '../widgets/synchronized_lyrics_view.dart';
 import '../widgets/sine_qr_code_sheet.dart';
+import '../widgets/fluid_mesh_gradient.dart';
+import 'car_mode_screen.dart';
 import 'equalizer_screen.dart';
 import 'playback_speed_sheet.dart';
 import 'track_options_sheet.dart';
@@ -72,69 +74,78 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
 
     return Scaffold(
       backgroundColor: EmberColors.obsidianBase,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
-                child: IntrinsicHeight(
-                  child: Column(
-                    children: [
-                      // 1. Top Navigation Bar
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            IconButton(
-                              icon: FaIcon(FontAwesomeIcons.chevronDown, size: 18, color: EmberColors.textPrimary),
-                              tooltip: 'Collapse',
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                            Expanded(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'PLAYING FROM',
-                                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                          color: EmberColors.textMuted,
-                                          letterSpacing: 1.5,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    playingFrom.toUpperCase(),
-                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                          color: EmberColors.primaryBlue,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+      body: FluidMeshGradientBackground(
+        song: song,
+        isPlaying: isPlaying,
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                  ),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        // 1. Top Navigation Bar
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(
+                                icon: FaIcon(FontAwesomeIcons.chevronDown, size: 18, color: EmberColors.textPrimary),
+                                tooltip: 'Collapse',
+                                onPressed: () => Navigator.of(context).pop(),
                               ),
-                            ),
-                            // Quick Sine QR Code Share
-                            IconButton(
-                              icon: FaIcon(FontAwesomeIcons.qrcode, size: 18, color: EmberColors.textSecondary),
-                              tooltip: 'Show Sine QR Code',
-                              onPressed: () => SineQrCodeSheet.show(context, song),
-                            ),
-                            // Three Dots Menu -> Opens Track Options Bottom Sheet
-                            IconButton(
-                              icon: FaIcon(FontAwesomeIcons.ellipsis, size: 18, color: EmberColors.textSecondary),
-                              tooltip: 'More Options',
-                              onPressed: () => TrackOptionsSheet.show(context, song),
-                            ),
-                          ],
+                              Expanded(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'PLAYING FROM',
+                                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                            color: EmberColors.textMuted,
+                                            letterSpacing: 1.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      playingFrom.toUpperCase(),
+                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                            color: EmberColors.primaryBlue,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Car / Driving Mode Quick Toggle (Feature 8)
+                              IconButton(
+                                icon: const FaIcon(FontAwesomeIcons.car, size: 17, color: EmberColors.textSecondary),
+                                tooltip: 'Driving Mode',
+                                onPressed: () => CarModeScreen.show(context),
+                              ),
+                              // Quick Sine QR Code Share
+                              IconButton(
+                                icon: FaIcon(FontAwesomeIcons.qrcode, size: 18, color: EmberColors.textSecondary),
+                                tooltip: 'Show Sine QR Code',
+                                onPressed: () => SineQrCodeSheet.show(context, song),
+                              ),
+                              // Three Dots Menu -> Opens Track Options Bottom Sheet
+                              IconButton(
+                                icon: FaIcon(FontAwesomeIcons.ellipsis, size: 18, color: EmberColors.textSecondary),
+                                tooltip: 'More Options',
+                                onPressed: () => TrackOptionsSheet.show(context, song),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
 
                       // 2. Active Studio Stem Status Banner
                       if (isolationMode != IsolationMode.none)
@@ -373,6 +384,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
             );
           },
         ),
+      ),
       ),
     );
   }

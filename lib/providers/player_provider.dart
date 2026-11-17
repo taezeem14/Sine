@@ -21,6 +21,9 @@ import '../services/smart_radio_service.dart';
 import '../services/widget_service.dart';
 import '../services/performance_service.dart';
 import '../services/metadata_correction_service.dart';
+import '../services/gesture_service.dart';
+import '../services/local_music_service.dart';
+import '../services/playlist_import_service.dart';
 import '../widgets/spotify_graph_equalizer.dart';
 
 
@@ -181,6 +184,33 @@ class PlayerProvider extends ChangeNotifier {
 
   int get pitchSemitones => _pitchSemitones;
   bool get volumeNormalizationEnabled => _volumeNormalizationEnabled;
+
+  bool _loudnessNormalization = true;
+  bool get isLoudnessNormalizationEnabled => _loudnessNormalization;
+
+  bool _skipSilence = false;
+  bool get isSkipSilenceEnabled => _skipSilence;
+
+  String _acousticPreset = 'normal'; // 'normal', 'slowedReverb', 'nightcore'
+  String get acousticPreset => _acousticPreset;
+
+  double _bassExciterLevel = 0.0;
+  double get bassExciterLevel => _bassExciterLevel;
+
+  double _spatializerLevel = 0.0;
+  double get spatializerLevel => _spatializerLevel;
+
+  bool _shakeToSkip = false;
+  bool get isShakeToSkipEnabled => _shakeToSkip;
+
+  bool _flipToPause = false;
+  bool get isFlipToPauseEnabled => _flipToPause;
+
+  List<Song> _deviceSongs = [];
+  List<Song> get deviceSongs => _deviceSongs;
+  bool _isScanningDevice = false;
+  bool get isScanningDevice => _isScanningDevice;
+
   bool _gaplessPlayback = true;
   Timer? _searchDebounce;
   bool _isSearching = false;
@@ -357,6 +387,35 @@ class PlayerProvider extends ChangeNotifier {
 
     _clippingProtection = _storageService.loadClippingProtection();
     _audioHandler.setClippingProtection(_clippingProtection);
+
+    _loudnessNormalization = _storageService.loadLoudnessNormalization();
+    _audioHandler.setLoudnessNormalizationEnabled(_loudnessNormalization);
+
+    _skipSilence = _storageService.loadSkipSilence();
+    _audioHandler.setSkipSilenceEnabled(_skipSilence);
+
+    _acousticPreset = _storageService.loadAcousticPreset();
+    _bassExciterLevel = _storageService.loadBassExciter();
+    _audioHandler.setBassExciter(_bassExciterLevel);
+
+    _spatializerLevel = _storageService.loadSpatializer();
+    _audioHandler.setSpatializer(_spatializerLevel);
+
+    _shakeToSkip = _storageService.loadShakeToSkip();
+    _flipToPause = _storageService.loadFlipToPause();
+    SineGestureService.init(
+      onShake: () {
+        if (_shakeToSkip) skipNext();
+      },
+      onFlipDown: () {
+        if (_flipToPause && _isPlaying) pause();
+      },
+      onFlipUp: () {
+        if (_flipToPause && !_isPlaying) play();
+      },
+    );
+    SineGestureService.setShakeToSkipEnabled(_shakeToSkip);
+    SineGestureService.setFlipToPauseEnabled(_flipToPause);
 
     _playbackRecoveryMode = _storageService.loadPlaybackRecoveryMode();
 
@@ -1005,6 +1064,42 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> togglePlayPause() => togglePlay();
+
+  Future<void> pause() async {
+    if (_isPlaying) {
+      _saveCurrentSession();
+      await _audioHandler.pause();
+    }
+  }
+
+  Future<void> play() async {
+    if (!_isPlaying) {
+      if (currentSong != null) {
+        if (_audioHandler.currentSong == null) {
+          await playSong(currentSong!);
+        } else {
+          await _audioHandler.play();
+        }
+      } else if (_queue.isNotEmpty) {
+        await playSong(_queue[0]);
+      }
+    }
+  }
+
+  Future<void> skipToNext() => skipNext();
+  Future<void> skipToPrevious() => skipPrevious();
+  Future<void> setPlaybackSpeed(double s) => setSpeed(s);
+
+  Future<void> savePlaylist(Playlist playlist) async {
+    await _storageService.savePlaylist(playlist);
+    final idx = _playlists.indexWhere((p) => p.id == playlist.id);
+    if (idx >= 0) {
+      _playlists[idx] = playlist;
+    } else {
+      _playlists.add(playlist);
+    }
+    notifyListeners();
+  }
 
   /// Completely halt playback, dismiss active song, and return to no song playing state
   Future<void> stopPlayback() async {
@@ -2054,6 +2149,124 @@ class PlayerProvider extends ChangeNotifier {
     await _audioHandler.setBassBoost(0.0);
     await _audioHandler.applyEqualizerPreset('Flat');
     notifyListeners();
+  }
+
+  Future<void> setLoudnessNormalizationEnabled(bool enabled) async {
+    _loudnessNormalization = enabled;
+    await _storageService.saveLoudnessNormalization(enabled);
+    await _audioHandler.setLoudnessNormalizationEnabled(enabled);
+    notifyListeners();
+  }
+
+  Future<void> setSkipSilenceEnabled(bool enabled) async {
+    _skipSilence = enabled;
+    await _storageService.saveSkipSilence(enabled);
+    await _audioHandler.setSkipSilenceEnabled(enabled);
+    notifyListeners();
+  }
+
+  Future<void> setAcousticPreset(String preset) async {
+    _acousticPreset = preset;
+    await _storageService.saveAcousticPreset(preset);
+    if (preset == 'slowedReverb') {
+      await setPlaybackSpeed(0.85);
+      await setPitchSemitones(-2);
+      await setEqualizerEnabled(true);
+      await setEqualizerPreset('autoeq: harman bass boost');
+      await setSpatializerLevel(0.75);
+      await setBassExciterLevel(0.40);
+      await setBassBoost(0.35);
+    } else if (preset == 'nightcore') {
+      await setPlaybackSpeed(1.25);
+      await setPitchSemitones(3);
+      await setEqualizerEnabled(true);
+      await setEqualizerPreset('vocal air');
+      await setSpatializerLevel(0.40);
+      await setBassExciterLevel(0.15);
+      await setBassBoost(0.10);
+    } else {
+      await setPlaybackSpeed(1.0);
+      await setPitchSemitones(0);
+      await setEqualizerPreset('Flat');
+      await setSpatializerLevel(0.0);
+      await setBassExciterLevel(0.0);
+      await setBassBoost(0.0);
+    }
+    notifyListeners();
+  }
+
+  Future<void> setBassExciterLevel(double val) async {
+    _bassExciterLevel = val.clamp(0.0, 1.0);
+    if (_bassExciterLevel > 0.0 && !_eqEnabled) {
+      _eqEnabled = true;
+      await _storageService.saveEqualizerEnabled(true);
+      await _audioHandler.setEqualizerEnabled(true);
+    }
+    await _storageService.saveBassExciter(_bassExciterLevel);
+    await _audioHandler.setBassExciter(_bassExciterLevel);
+    notifyListeners();
+  }
+
+  Future<void> setSpatializerLevel(double val) async {
+    _spatializerLevel = val.clamp(0.0, 1.0);
+    if (_spatializerLevel > 0.0 && !_eqEnabled) {
+      _eqEnabled = true;
+      await _storageService.saveEqualizerEnabled(true);
+      await _audioHandler.setEqualizerEnabled(true);
+    }
+    await _storageService.saveSpatializer(_spatializerLevel);
+    await _audioHandler.setSpatializer(_spatializerLevel);
+    notifyListeners();
+  }
+
+  Future<void> setShakeToSkipEnabled(bool enabled) async {
+    _shakeToSkip = enabled;
+    await _storageService.saveShakeToSkip(enabled);
+    await SineGestureService.setShakeToSkipEnabled(enabled);
+    notifyListeners();
+  }
+
+  Future<void> setFlipToPauseEnabled(bool enabled) async {
+    _flipToPause = enabled;
+    await _storageService.saveFlipToPause(enabled);
+    await SineGestureService.setFlipToPauseEnabled(enabled);
+    notifyListeners();
+  }
+
+  Future<void> scanDeviceMusic() async {
+    _isScanningDevice = true;
+    notifyListeners();
+    try {
+      final permitted = await LocalMusicService.requestStoragePermission();
+      if (permitted) {
+        final songs = await LocalMusicService.scanDeviceAudioFiles();
+        _deviceSongs = songs;
+      }
+    } catch (e) {
+      debugPrint('Error scanning device music: $e');
+    } finally {
+      _isScanningDevice = false;
+      notifyListeners();
+    }
+  }
+
+  Future<PlaylistImportResult> importExternalPlaylist(
+    String url, {
+    void Function(int current, int total)? onProgress,
+  }) async {
+    final result = await PlaylistImportService.importExternalPlaylist(url, onProgress: onProgress);
+    if (result.resolvedSongs.isNotEmpty) {
+      final newPlaylist = Playlist(
+        id: 'imported_${DateTime.now().millisecondsSinceEpoch}',
+        title: result.title.isNotEmpty ? result.title : 'Imported Playlist',
+        description: 'Imported from ${result.source.name} via Sine',
+        songs: result.resolvedSongs,
+        createdAt: DateTime.now(),
+        coverUrl: result.coverUrl ?? 'aesthetic:neon_pulse',
+      );
+      await savePlaylist(newPlaylist);
+    }
+    return result;
   }
 
   // Favorites & History

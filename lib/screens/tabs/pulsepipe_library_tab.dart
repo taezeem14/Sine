@@ -12,6 +12,7 @@ import '../playlist_detail_sheet.dart';
 import '../track_options_sheet.dart';
 import '../settings_screen.dart';
 import '../../widgets/sine_qr_code_sheet.dart';
+import '../../widgets/aesthetic_playlist_cover.dart';
 
 typedef SineLibraryTab = PulsePipeLibraryTab;
 
@@ -23,7 +24,7 @@ class PulsePipeLibraryTab extends StatefulWidget {
 }
 
 class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
-  String _selectedFilter = 'All'; // 'All', 'Playlists', 'Liked Songs', 'Downloads', 'History'
+  String _selectedFilter = 'All'; // 'All', 'Playlists', 'Liked Songs', 'Downloads', 'Device', 'History'
   String _downloadSubTab = 'Songs'; // 'Songs' or 'Videos'
 
   final List<String> _filters = const [
@@ -31,6 +32,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
     'Playlists',
     'Liked Songs',
     'Downloads',
+    'Device',
     'History',
   ];
 
@@ -104,7 +106,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Paste any YouTube track or playlist link:',
+              'Paste any YouTube, Spotify, or Apple Music link:',
               style: TextStyle(color: EmberColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 12),
@@ -113,7 +115,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
               autofocus: true,
               style: TextStyle(color: EmberColors.textPrimary, fontSize: 13),
               decoration: InputDecoration(
-                hintText: 'https://www.youtube.com/watch?v=... or playlist URL',
+                hintText: 'Spotify / Apple Music / YouTube URL',
                 hintStyle: TextStyle(color: EmberColors.textMuted, fontSize: 12),
                 filled: true,
                 fillColor: EmberColors.surfaceDark,
@@ -140,17 +142,31 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
               final url = controller.text.trim();
               if (url.isNotEmpty) {
                 Navigator.pop(ctx);
+                final isExternal = url.contains('spotify.com') || url.contains('music.apple.com');
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Importing stream metadata...'),
-                    duration: Duration(seconds: 1),
+                  SnackBar(
+                    content: Text(isExternal ? 'Importing playlist & matching tracks...' : 'Importing stream metadata...'),
+                    duration: const Duration(seconds: 2),
                   ),
                 );
-                final res = await player.importMediaUrl(url);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(res ?? 'Import complete')),
-                  );
+                if (isExternal) {
+                  final res = await player.importExternalPlaylist(url);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(res.error != null
+                            ? 'Import error: ${res.error}'
+                            : 'Imported "${res.title}" (${res.resolvedSongs.length} tracks resolved)'),
+                      ),
+                    );
+                  }
+                } else {
+                  final res = await player.importMediaUrl(url);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(res ?? 'Import complete')),
+                    );
+                  }
                 }
               }
             },
@@ -240,6 +256,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
+          cacheExtent: 800,
           physics: const BouncingScrollPhysics(),
           slivers: [
             // 1. Header: "Your Library" + Add Button + Settings
@@ -368,6 +385,26 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                       _selectedFilter = 'Downloads';
                       _downloadSubTab = 'Videos';
                     });
+                  },
+                ),
+              ),
+
+            // 4D. "Device Audio Files" Row (shown when filter is All)
+            if (_selectedFilter == 'All')
+              SliverToBoxAdapter(
+                child: _LibraryRowItem(
+                  iconGradient: const [Color(0xFFFF6D00), Color(0xFFFFD600)],
+                  icon: FontAwesomeIcons.folderOpen,
+                  title: 'Device Audio Files',
+                  subtitle: 'Local Storage • ${player.deviceSongs.length} local files',
+                  isPinned: false,
+                  onTap: () {
+                    setState(() {
+                      _selectedFilter = 'Device';
+                    });
+                    if (player.deviceSongs.isEmpty) {
+                      player.scanDeviceMusic();
+                    }
                   },
                 ),
               ),
@@ -938,6 +975,136 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
               ],
             ],
 
+            // 5B. Device Music Section (Feature 9: Local Device Music Scanner)
+            if (_selectedFilter == 'Device') ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Device Files (${player.deviceSongs.length})',
+                        style: const TextStyle(
+                          color: EmberColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: EmberColors.primaryBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        icon: player.isScanningDevice
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.refresh_rounded, size: 16),
+                        label: Text(player.isScanningDevice ? 'Scanning...' : 'Rescan'),
+                        onPressed: player.isScanningDevice ? null : () => player.scanDeviceMusic(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (player.deviceSongs.isEmpty && !player.isScanningDevice)
+                SliverToBoxAdapter(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                    alignment: Alignment.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const FaIcon(FontAwesomeIcons.music, size: 42, color: EmberColors.textMuted),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No local device audio files indexed yet',
+                          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Tap below to scan device folders for MP3, FLAC, and audio tracks',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: EmberColors.primaryBlue,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () => player.scanDeviceMusic(),
+                          child: const Text('Scan Device Storage'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final song = player.deviceSongs[index];
+                        final isCurrent = player.currentSong?.id == song.id;
+                        return RepaintBoundary(
+                          key: ValueKey(song.id),
+                          child: ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            leading: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: EmberColors.charcoalCard,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  isCurrent && player.isPlaying
+                                      ? Icons.equalizer_rounded
+                                      : Icons.audio_file_rounded,
+                                  color: isCurrent ? EmberColors.primaryBlue : EmberColors.textMuted,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              song.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isCurrent ? EmberColors.primaryBlue : Colors.white,
+                                fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              song.artist,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.more_vert, size: 18, color: EmberColors.textMuted),
+                              onPressed: () => TrackOptionsSheet.show(context, song),
+                            ),
+                            onTap: () {
+                              player.playSong(song, playingFrom: 'Device Storage');
+                            },
+                          ),
+                        );
+                      },
+                      childCount: player.deviceSongs.length,
+                    ),
+                  ),
+                ),
+            ],
+
             // 6. History Section (shown when filter is All or History)
             if (_selectedFilter == 'All' || _selectedFilter == 'History') ...[
               if (player.history.isNotEmpty) ...[
@@ -1209,41 +1376,10 @@ class _PlaylistRowItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: playlist.coverUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: playlist.coverUrl!,
-                      width: 54,
-                      height: 54,
-                      memCacheWidth: 150,
-                      memCacheHeight: 150,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) => Container(
-                        width: 54,
-                        height: 54,
-                        color: EmberColors.charcoalCard,
-                        child: const Center(
-                          child: FaIcon(FontAwesomeIcons.music, size: 18, color: EmberColors.textMuted),
-                        ),
-                      ),
-                      errorWidget: (_, _, _) => Container(
-                        width: 54,
-                        height: 54,
-                        color: EmberColors.charcoalCard,
-                        child: const Center(
-                          child: FaIcon(FontAwesomeIcons.music, size: 18, color: EmberColors.textMuted),
-                        ),
-                      ),
-                    )
-                  : Container(
-                      width: 54,
-                      height: 54,
-                      color: EmberColors.charcoalCard,
-                      child: Center(
-                        child: FaIcon(FontAwesomeIcons.music, size: 20, color: EmberColors.electricBlue),
-                      ),
-                    ),
+            AestheticPlaylistCover(
+              coverUrl: playlist.coverUrl,
+              size: 54,
+              borderRadius: 8,
             ),
             const SizedBox(width: 14),
             Expanded(

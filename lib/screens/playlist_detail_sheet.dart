@@ -8,6 +8,7 @@ import '../models/playlist.dart';
 import '../providers/player_provider.dart';
 import '../theme/ember_theme.dart';
 import '../widgets/sine_qr_code_sheet.dart';
+import '../widgets/aesthetic_playlist_cover.dart';
 import 'track_options_sheet.dart';
 
 class PlaylistDetailSheet extends StatelessWidget {
@@ -86,29 +87,30 @@ class PlaylistDetailSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: currentPl.coverUrl != null && currentPl.coverUrl!.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: currentPl.coverUrl!,
-                            width: 64,
-                            height: 64,
-                            memCacheWidth: 150,
-                            memCacheHeight: 150,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, _, _) => Container(
-                              width: 64,
-                              height: 64,
-                              color: EmberColors.surfaceContainerHigh,
-                              child: Center(child: FaIcon(FontAwesomeIcons.music, size: 24, color: EmberColors.primaryAmber)),
+                  GestureDetector(
+                    onTap: () => _showAestheticCoverPicker(context, player, currentPl),
+                    child: Stack(
+                      children: [
+                        AestheticPlaylistCover(
+                          coverUrl: currentPl.coverUrl,
+                          size: 64,
+                          borderRadius: 12,
+                        ),
+                        if (currentPl.id != 'downloaded_songs')
+                          Positioned(
+                            right: 2,
+                            bottom: 2,
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: const BoxDecoration(
+                                color: Colors.black87,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.palette_rounded, size: 10, color: Colors.white70),
                             ),
-                          )
-                        : Container(
-                            width: 64,
-                            height: 64,
-                            color: EmberColors.surfaceContainerHigh,
-                            child: Center(child: FaIcon(FontAwesomeIcons.listCheck, size: 24, color: EmberColors.primaryAmber)),
                           ),
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -432,6 +434,90 @@ class PlaylistDetailSheet extends StatelessWidget {
                     ),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void _showAestheticCoverPicker(BuildContext context, PlayerProvider player, Playlist pl) {
+    if (pl.id == 'downloaded_songs') return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: EmberColors.charcoalCard,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const Text(
+                  'Choose Aesthetic Cover',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Select a glowing generative gradient theme for this playlist',
+                  style: TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: AestheticPlaylistCover.themes.map((theme) {
+                    final themeId = 'aesthetic:${theme.id}';
+                    final isSelected = pl.coverUrl == themeId;
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        player.savePlaylist(pl.copyWith(coverUrl: themeId));
+                        Navigator.pop(ctx);
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? Colors.white : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: AestheticPlaylistCover(
+                              coverUrl: themeId,
+                              size: 58,
+                              borderRadius: 10,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            theme.name,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : EmberColors.textSecondary,
+                              fontSize: 10.5,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
         );
       },
     );

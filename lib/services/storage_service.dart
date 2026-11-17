@@ -50,6 +50,13 @@ class StorageService {
   static const String _themePresetKey = 'sine_theme_preset_v1';
   static const String _customThemeColorKey = 'sine_custom_theme_color_v1';
   static const String _oledBlackKey = 'sine_oled_black_mode_v1';
+  static const String _loudnessNormalizationKey = 'sine_loudness_normalization';
+  static const String _skipSilenceKey = 'sine_skip_silence';
+  static const String _acousticPresetKey = 'sine_acoustic_preset';
+  static const String _bassExciterKey = 'sine_bass_exciter';
+  static const String _spatializerKey = 'sine_spatializer';
+  static const String _shakeToSkipKey = 'sine_shake_to_skip';
+  static const String _flipToPauseKey = 'sine_flip_to_pause';
 
   final SharedPreferences? _prefs;
   final List<Song> _memFavorites = [];
@@ -586,6 +593,69 @@ class StorageService {
 
   Future<void> savePerformanceHudEnabled(bool enabled) async {
     await _prefs?.setBool(_performanceHudKey, enabled);
+  }
+
+  // Loudness Normalization (EBU R128)
+  bool loadLoudnessNormalization() {
+    return _prefs?.getBool(_loudnessNormalizationKey) ?? true;
+  }
+
+  Future<void> saveLoudnessNormalization(bool enabled) async {
+    await _prefs?.setBool(_loudnessNormalizationKey, enabled);
+  }
+
+  // Skip Silence / Dead Air Trimming
+  bool loadSkipSilence() {
+    return _prefs?.getBool(_skipSilenceKey) ?? false;
+  }
+
+  Future<void> saveSkipSilence(bool enabled) async {
+    await _prefs?.setBool(_skipSilenceKey, enabled);
+  }
+
+  // Acoustic Preset (normal, slowedReverb, nightcore)
+  String loadAcousticPreset() {
+    return _prefs?.getString(_acousticPresetKey) ?? 'normal';
+  }
+
+  Future<void> saveAcousticPreset(String preset) async {
+    await _prefs?.setString(_acousticPresetKey, preset);
+  }
+
+  // Dynamic Bass Exciter (0.0 to 1.0)
+  double loadBassExciter() {
+    return _prefs?.getDouble(_bassExciterKey) ?? 0.0;
+  }
+
+  Future<void> saveBassExciter(double val) async {
+    await _prefs?.setDouble(_bassExciterKey, val);
+  }
+
+  // 3D Spatializer (0.0 to 1.0)
+  double loadSpatializer() {
+    return _prefs?.getDouble(_spatializerKey) ?? 0.0;
+  }
+
+  Future<void> saveSpatializer(double val) async {
+    await _prefs?.setDouble(_spatializerKey, val);
+  }
+
+  // Shake to Skip
+  bool loadShakeToSkip() {
+    return _prefs?.getBool(_shakeToSkipKey) ?? false;
+  }
+
+  Future<void> saveShakeToSkip(bool enabled) async {
+    await _prefs?.setBool(_shakeToSkipKey, enabled);
+  }
+
+  // Flip to Pause
+  bool loadFlipToPause() {
+    return _prefs?.getBool(_flipToPauseKey) ?? false;
+  }
+
+  Future<void> saveFlipToPause(bool enabled) async {
+    await _prefs?.setBool(_flipToPauseKey, enabled);
   }
 
   /// Exports full database backup into portable JSON format (Audile & Metrolist architecture)

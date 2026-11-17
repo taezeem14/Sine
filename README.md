@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.3.4%20(Build%2034)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.3.5%20(Build%2035)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.3.4)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.4.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.3.5)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.5.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy studio-grade ad-free music instantly.*
 
@@ -36,6 +36,7 @@
 
 ## 📖 Table of Contents
 - [What Is Sine?](#-what-is-sine)
+- [What's New in v1.3.5](#-whats-new-in-v135)
 - [What's New in v1.3.4](#-whats-new-in-v134)
 - [Key Features](#-key-features)
 - [Architecture & Playback Pipeline](#-architecture--playback-pipeline)
@@ -61,6 +62,41 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 - **Pure Local Data**: Playlists, listening history, and cached media remain 100% on your device.
 - **Sub-1.2s Cold-Start Playback**: Progressive hardware decoding starting audio almost instantaneously.
 - **Direct Public Storage Vault**: Music downloads save directly to `/storage/emulated/0/Sine-Music` with standard ID3 tags and HD artwork.
+
+---
+
+## 🌟 What's New in v1.3.5
+
+1. **Loudness Normalization (ReplayGain / EBU R128 Leveling)**:
+   - Automated target loudness balancing across tracks using Android `LoudnessEnhancer` audio effects session, preventing abrupt volume spikes when transitioning between songs.
+2. **Skip Silence / Dead Air Trimming**:
+   - Automated trimming of dead air and leading silence at the start of tracks for immediate, punchy transitions.
+3. **1-Tap Slowed + Reverb & Nightcore Modes**:
+   - Instant acoustic transformation chips in Sound Shaping:
+     - 🌙 **Slowed + Reverb**: 0.85x speed with -2 semitone pitch shifting, deep spatial widening, and resonant sub-bass.
+     - ⚡ **Nightcore**: 1.25x speed with +3 semitone pitch shifting, crisp vocal air EQ, and fast rhythmic punch.
+4. **Dynamic Bass Exciter & 3D Spatializer Dials**:
+   - Dedicated hardware sound shaping sliders: dynamic sub-bass harmonic resonance and 3D stereo widening simulation.
+5. **Fluid Mesh Gradient / Dynamic Palette Glow**:
+   - Ambient, breathing 3-point radial gradient glow dynamically extracted from current track artwork and rendered behind the vinyl player disc in Now Playing.
+6. **Shareable Lyric Story Cards**:
+   - Select 1–4 favorite lyric lines from the synchronized karaoke view, choose from 4 aesthetic glassmorphic palettes (`OLED Glass`, `Sunset Aura`, `Cyber Neon`, `Minimal Obsidian`), and render/share high-resolution PNG story cards.
+7. **Minimalist Car / Driving Mode**:
+   - High-contrast, distraction-free driving UI with giant 92dp touch targets, prominent track typography, and horizontal swipe gestures (swipe left/right to skip). Accessible directly from the Now Playing header.
+8. **Local Device Music Scanner (Hybrid Player)**:
+   - Indexes local offline audio files (`.mp3`, `.m4a`, `.flac`, `.wav`, `.aac`, `.ogg`) stored on `/storage/emulated/0/Music` and `Download`, playing device music side-by-side with online YouTube tracks.
+9. **Spotify & Apple Music Playlist Importer**:
+   - Paste any public Spotify or Apple Music playlist link to automatically resolve titles and artists to direct YouTube streaming audio equivalents without needing Spotify API keys.
+10. **Aesthetic Playlist Covers**:
+    - Choose from 6 procedurally rendered geometric gradient themes (`Neon Pulse`, `Midnight Violet`, `Cyber Amber`, `Aurora Wave`, `Hyper Pink`, `Obsidian Minimal`) or device photos for custom playlist artwork.
+11. **Native Motion Gestures (Shake to Skip & Flip to Pause)**:
+    - Hardware accelerometer integration: physical shake to advance track, and flip phone face down to pause (face up to resume).
+12. **Android Auto Support**:
+    - Declared automotive media service metadata (`automotive_app_desc.xml`) for seamless integration with Android Auto dashboard head units.
+13. **Notification-Style Widget with Real Album Art**:
+    - Upgraded home screen widget with asynchronous background artwork loading, rounded corners, and full Redmi Note 5 Pro MIUI whitelist compatibility.
+14. **Jitter-Free 120 FPS List Scrolling**:
+    - Optimized list rendering with `cacheExtent: 800`, `RepaintBoundary` isolation, and unified `BouncingScrollPhysics` across all tabs.
 
 ---
 

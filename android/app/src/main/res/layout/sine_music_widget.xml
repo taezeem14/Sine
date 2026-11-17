@@ -56,17 +56,18 @@
         android:layout_marginTop="8dp"
         android:layout_marginBottom="6dp">
 
-        <!-- Album Art Box -->
+        <!-- Album Art Box (Media Notification Panel standard 56dp x 56dp rounded square) -->
         <FrameLayout
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:background="@drawable/widget_art_bg">
 
             <ImageView
                 android:id="@+id/widget_album_art"
-                android:layout_width="26dp"
-                android:layout_height="26dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:layout_gravity="center"
+                android:scaleType="centerCrop"
                 android:src="@drawable/ic_widget_sine"
                 android:contentDescription="Cover Art" />
         </FrameLayout>

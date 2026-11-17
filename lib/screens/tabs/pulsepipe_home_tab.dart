@@ -68,7 +68,8 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
       backgroundColor: EmberColors.obsidianBase,
       body: CustomScrollView(
         key: const PageStorageKey<String>('sine_home_scroll'),
-        physics: const BouncingScrollPhysics(),
+        cacheExtent: 800,
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         slivers: [
           // 1. Top Bar with Greeting & Quick Actions
           SliverAppBar(
@@ -353,12 +354,16 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                   : ListView.builder(
                       key: const PageStorageKey<String>('sine_home_carousel'),
                       scrollDirection: Axis.horizontal,
+                      cacheExtent: 600,
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: player.youtubeTracks.length,
                       itemBuilder: (context, index) {
                         final track = player.youtubeTracks[index];
-                        return _buildTrackCarouselCard(track, () => player.playSong(track, playingFrom: 'Today\'s Top Hits'));
+                        return RepaintBoundary(
+                          key: ValueKey('carousel_${track.id}'),
+                          child: _buildTrackCarouselCard(track, () => player.playSong(track, playingFrom: 'Today\'s Top Hits')),
+                        );
                       },
                     ),
             ),

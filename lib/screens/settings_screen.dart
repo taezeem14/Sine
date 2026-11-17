@@ -10,6 +10,7 @@ import '../widgets/upi_donation_view.dart';
 import 'equalizer_screen.dart';
 import 'diagnostics_log_screen.dart';
 import 'app_lock_screen.dart';
+import 'car_mode_screen.dart';
 import '../services/app_lock_service.dart';
 import '../constants/app_constants.dart';
 
@@ -2136,6 +2137,30 @@ class _SettingsContentState extends State<SettingsContent> {
                 onTap: () => player.setClippingProtection(!player.clippingProtectionEnabled),
               ),
               _SettingsTile(
+                icon: FontAwesomeIcons.volumeHigh,
+                iconColor: const Color(0xFF38BDF8),
+                title: 'Loudness Normalization (EBU R128)',
+                subtitle: 'Automatic audio volume leveling to streaming standards across all tracks',
+                trailing: Switch(
+                  value: player.isLoudnessNormalizationEnabled,
+                  activeThumbColor: const Color(0xFF38BDF8),
+                  onChanged: (val) => player.setLoudnessNormalizationEnabled(val),
+                ),
+                onTap: () => player.setLoudnessNormalizationEnabled(!player.isLoudnessNormalizationEnabled),
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.forwardFast,
+                iconColor: const Color(0xFFF59E0B),
+                title: 'Skip Silence & Dead Air Trimming',
+                subtitle: 'Automatically advance past silent lead-in padding at track start',
+                trailing: Switch(
+                  value: player.isSkipSilenceEnabled,
+                  activeThumbColor: const Color(0xFFF59E0B),
+                  onChanged: (val) => player.setSkipSilenceEnabled(val),
+                ),
+                onTap: () => player.setSkipSilenceEnabled(!player.isSkipSilenceEnabled),
+              ),
+              _SettingsTile(
                 icon: FontAwesomeIcons.brain,
                 iconColor: activeAccent,
                 title: 'Neural Stem Engine Preference',
@@ -2205,6 +2230,52 @@ class _SettingsContentState extends State<SettingsContent> {
                     ),
                   );
                 },
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // ==========================================
+          // SECTION: MOTION GESTURES & DRIVING
+          // ==========================================
+          const _SectionHeader(title: 'Motion Gestures & Car Mode'),
+          _SettingsGroupCard(
+            children: [
+              _SettingsTile(
+                icon: FontAwesomeIcons.car,
+                iconColor: const Color(0xFF38BDF8),
+                title: 'Car Mode (Driving Mode)',
+                subtitle: 'Minimalist fullscreen interface with large touch targets and swipe gestures',
+                trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                onTap: () {
+                  Navigator.pop(context);
+                  CarModeScreen.show(context);
+                },
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.hand,
+                iconColor: const Color(0xFFA855F7),
+                title: 'Shake to Skip Track',
+                subtitle: 'Firmly shake your device to skip to the next track',
+                trailing: Switch(
+                  value: player.isShakeToSkipEnabled,
+                  activeThumbColor: const Color(0xFFA855F7),
+                  onChanged: (val) => player.setShakeToSkipEnabled(val),
+                ),
+                onTap: () => player.setShakeToSkipEnabled(!player.isShakeToSkipEnabled),
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.mobileScreenButton,
+                iconColor: const Color(0xFF10B981),
+                title: 'Flip Down to Pause',
+                subtitle: 'Turn phone face down to pause audio, face up to resume',
+                trailing: Switch(
+                  value: player.isFlipToPauseEnabled,
+                  activeThumbColor: const Color(0xFF10B981),
+                  onChanged: (val) => player.setFlipToPauseEnabled(val),
+                ),
+                onTap: () => player.setFlipToPauseEnabled(!player.isFlipToPauseEnabled),
               ),
             ],
           ),

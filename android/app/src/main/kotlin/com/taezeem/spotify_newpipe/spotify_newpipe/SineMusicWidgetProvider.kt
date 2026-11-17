@@ -6,9 +6,24 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
+import android.graphics.RectF
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.view.KeyEvent
 import android.widget.RemoteViews
+import java.io.File
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.concurrent.Executors
 
 class SineMusicWidgetProvider : AppWidgetProvider() {
 
@@ -21,13 +36,26 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
         const val EXTRA_TITLE = "extra_title"
         const val EXTRA_ARTIST = "extra_artist"
         const val EXTRA_IS_PLAYING = "extra_is_playing"
+        const val EXTRA_ARTWORK = "extra_artwork"
 
         private const val PREFS_NAME = "sine_widget_prefs"
         private const val KEY_TITLE = "widget_title"
         private const val KEY_ARTIST = "widget_artist"
         private const val KEY_PLAYING = "widget_playing"
+        private const val KEY_ARTWORK = "widget_artwork"
 
-        fun updateAllWidgets(context: Context, title: String?, artist: String?, isPlaying: Boolean) {
+        private val executor = Executors.newSingleThreadExecutor()
+        private val mainHandler = Handler(Looper.getMainLooper())
+        private var cachedBitmap: Bitmap? = null
+        private var cachedArtworkUrl: String? = null
+
+        fun updateAllWidgets(
+            context: Context,
+            title: String?,
+            artist: String?,
+            isPlaying: Boolean,
+            artworkUrl: String? = null
+        ) {
             val appContext = context.applicationContext ?: context
             val safeTitle = if (title.isNullOrBlank()) "No Song Playing" else title
             val safeArtist = if (artist.isNullOrBlank()) "Tap to open Sine" else artist
@@ -36,12 +64,19 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
             val prevTitle = prefs.getString(KEY_TITLE, null)
             val prevArtist = prefs.getString(KEY_ARTIST, null)
             val prevPlaying = prefs.getBoolean(KEY_PLAYING, false)
+            val prevArtwork = prefs.getString(KEY_ARTWORK, null)
 
-            // Always persist state to SharedPreferences first so any widget added later is immediately hydrated
+            val safeArtwork = artworkUrl ?: prevArtwork
+
+            if (prevTitle == safeTitle && prevArtist == safeArtist && prevPlaying == isPlaying && prevArtwork == safeArtwork) {
+                return
+            }
+
             prefs.edit()
                 .putString(KEY_TITLE, safeTitle)
                 .putString(KEY_ARTIST, safeArtist)
                 .putBoolean(KEY_PLAYING, isPlaying)
+                .putString(KEY_ARTWORK, safeArtwork)
                 .apply()
 
             val appWidgetManager = AppWidgetManager.getInstance(appContext)
@@ -52,22 +87,87 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
                 return
             }
 
-            // Deduplicate: avoid thrashing Android AppWidgetManager IPC if values are identical
-            if (prevTitle == safeTitle && prevArtist == safeArtist && prevPlaying == isPlaying) {
-                return
-            }
-
+            // Immediately render current state with existing cached bitmap or fallback
+            val currentBitmap = if (safeArtwork != null && safeArtwork == cachedArtworkUrl) cachedBitmap else null
             for (widgetId in allWidgetIds) {
-                val views = buildRemoteViews(appContext, safeTitle, safeArtist, isPlaying)
+                val views = buildRemoteViews(appContext, safeTitle, safeArtist, isPlaying, currentBitmap)
                 appWidgetManager.updateAppWidget(widgetId, views)
             }
+
+            // If artwork changed or not cached, load asynchronously
+            if (!safeArtwork.isNullOrBlank() && (safeArtwork != cachedArtworkUrl || cachedBitmap == null)) {
+                executor.execute {
+                    val loadedBitmap = loadArtworkBitmap(appContext, safeArtwork)
+                    if (loadedBitmap != null) {
+                        cachedArtworkUrl = safeArtwork
+                        cachedBitmap = loadedBitmap
+                        mainHandler.post {
+                            for (widgetId in allWidgetIds) {
+                                val views = buildRemoteViews(appContext, safeTitle, safeArtist, isPlaying, loadedBitmap)
+                                appWidgetManager.updateAppWidget(widgetId, views)
+                            }
+                        }
+                    }
+                }
+            } else if (safeArtwork.isNullOrBlank()) {
+                cachedArtworkUrl = null
+                cachedBitmap = null
+            }
+        }
+
+        private fun loadArtworkBitmap(context: Context, pathOrUrl: String): Bitmap? {
+            try {
+                var stream: InputStream? = null
+                if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+                    val connection = URL(pathOrUrl).openConnection() as HttpURLConnection
+                    connection.connectTimeout = 4000
+                    connection.readTimeout = 4000
+                    connection.doInput = true
+                    connection.connect()
+                    stream = connection.inputStream
+                } else {
+                    val file = File(pathOrUrl)
+                    if (file.exists()) {
+                        stream = file.inputStream()
+                    }
+                }
+
+                if (stream != null) {
+                    val raw = BitmapFactory.decodeStream(stream)
+                    stream.close()
+                    if (raw != null) {
+                        val scaled = Bitmap.createScaledBitmap(raw, 160, 160, true)
+                        return getRoundedCornerBitmap(scaled, 28f)
+                    }
+                }
+            } catch (_: Exception) {}
+            return null
+        }
+
+        private fun getRoundedCornerBitmap(bitmap: Bitmap, pixels: Float): Bitmap {
+            val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(output)
+            val color = -0xbdbdbe
+            val paint = Paint()
+            val rect = Rect(0, 0, bitmap.width, bitmap.height)
+            val rectF = RectF(rect)
+
+            paint.isAntiAlias = true
+            canvas.drawARGB(0, 0, 0, 0)
+            paint.color = color
+            canvas.drawRoundRect(rectF, pixels, pixels, paint)
+
+            paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+            canvas.drawBitmap(bitmap, rect, rect, paint)
+            return output
         }
 
         private fun buildRemoteViews(
             context: Context,
             title: String?,
             artist: String?,
-            isPlaying: Boolean
+            isPlaying: Boolean,
+            artworkBitmap: Bitmap?
         ): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.sine_music_widget)
 
@@ -83,6 +183,12 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
                 if (isPlaying) 45 else 0,
                 false
             )
+
+            if (artworkBitmap != null) {
+                views.setImageViewBitmap(R.id.widget_album_art, artworkBitmap)
+            } else {
+                views.setImageViewResource(R.id.widget_album_art, R.drawable.ic_widget_sine)
+            }
 
             val pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT or (
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -105,8 +211,7 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_root, openAppPendingIntent)
             views.setOnClickPendingIntent(R.id.widget_info_container, openAppPendingIntent)
 
-            // Play/Pause Action: if no song is playing, bind openAppPendingIntent directly so touching play launches app
-            // without being blocked by MIUI background activity start restrictions.
+            // Play/Pause Action
             if (title == "No Song Playing" || title.isNullOrBlank()) {
                 views.setOnClickPendingIntent(R.id.widget_btn_play, openAppPendingIntent)
             } else {
@@ -160,10 +265,15 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
         val title = prefs.getString(KEY_TITLE, "No Song Playing")
         val artist = prefs.getString(KEY_ARTIST, "Tap to open Sine")
         val isPlaying = prefs.getBoolean(KEY_PLAYING, false)
+        val artwork = prefs.getString(KEY_ARTWORK, null)
 
         for (appWidgetId in appWidgetIds) {
-            val views = buildRemoteViews(appContext, title, artist, isPlaying)
+            val views = buildRemoteViews(appContext, title, artist, isPlaying, cachedBitmap)
             appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+
+        if (!artwork.isNullOrBlank() && cachedBitmap == null) {
+            updateAllWidgets(appContext, title, artist, isPlaying, artwork)
         }
     }
 
@@ -175,20 +285,20 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
                 val title = intent.getStringExtra(EXTRA_TITLE)
                 val artist = intent.getStringExtra(EXTRA_ARTIST)
                 val isPlaying = intent.getBooleanExtra(EXTRA_IS_PLAYING, false)
-                updateAllWidgets(context, title, artist, isPlaying)
+                val artwork = intent.getStringExtra(EXTRA_ARTWORK)
+                updateAllWidgets(context, title, artist, isPlaying, artwork)
             }
             ACTION_WIDGET_PLAY_PAUSE -> {
                 sendMediaKeyEvent(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
-                // Optimistically toggle icon state immediately in SharedPreferences & RemoteViews
                 val appContext = context.applicationContext ?: context
                 val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 val currentPlaying = prefs.getBoolean(KEY_PLAYING, false)
                 val newPlaying = !currentPlaying
                 val title = prefs.getString(KEY_TITLE, "No Song Playing")
                 val artist = prefs.getString(KEY_ARTIST, "Tap to open Sine")
-                updateAllWidgets(appContext, title, artist, newPlaying)
+                val artwork = prefs.getString(KEY_ARTWORK, null)
+                updateAllWidgets(appContext, title, artist, newPlaying, artwork)
 
-                // If no song was ever loaded, launch app so user can choose music
                 if (title == "No Song Playing" || title.isNullOrEmpty()) {
                     try {
                         val openAppIntent = Intent(appContext, MainActivity::class.java).apply {
@@ -210,7 +320,6 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
     private fun sendMediaKeyEvent(context: Context, keyCode: Int) {
         val appContext = context.applicationContext ?: context
         try {
-            // Direct AudioService transport dispatch if available (bypasses Android 12+ background broadcast restrictions)
             try {
                 val audioServiceClass = Class.forName("com.ryanheise.audioservice.AudioService")
                 val instanceField = audioServiceClass.getDeclaredField("instance")
@@ -233,7 +342,6 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
                                         val playbackState = getPlaybackStateMethod.invoke(controller)
                                         val getStateMethod = playbackState?.javaClass?.getMethod("getState")
                                         val state = getStateMethod?.invoke(playbackState) as? Int ?: 0
-                                        // 3 == PlaybackStateCompat.STATE_PLAYING
                                         if (state == 3) {
                                             transportControls.javaClass.getMethod("pause").invoke(transportControls)
                                         } else {
@@ -262,7 +370,6 @@ class SineMusicWidgetProvider : AppWidgetProvider() {
 
     private fun fallbackToMediaButtonReceiver(appContext: Context, keyCode: Int) {
         try {
-            // Fallback: Explicit component routing for Android 8+ (Oreo through Android 15)
             val component = ComponentName(appContext, "com.ryanheise.audioservice.MediaButtonReceiver")
 
             val downIntent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {

@@ -130,7 +130,98 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
+
+              // 1-Tap Acoustic Presets (Feature 3)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'INSTANT ACOUSTIC PRESETS',
+                    style: TextStyle(
+                      color: EmberColors.textMuted,
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    player.acousticPreset == 'slowedReverb'
+                        ? '0.85x • -2 st'
+                        : player.acousticPreset == 'nightcore'
+                            ? '1.25x • +3 st'
+                            : '1.0x • Neutral',
+                    style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Center(child: Text('Normal', style: TextStyle(fontSize: 12))),
+                      selected: player.acousticPreset == 'normal',
+                      selectedColor: EmberColors.primaryBlue.withValues(alpha: 0.25),
+                      backgroundColor: EmberColors.surfaceContainerLow,
+                      labelStyle: TextStyle(
+                        color: player.acousticPreset == 'normal' ? EmberColors.primaryBlue : EmberColors.textSecondary,
+                        fontWeight: player.acousticPreset == 'normal' ? FontWeight.bold : FontWeight.w500,
+                      ),
+                      side: BorderSide(
+                        color: player.acousticPreset == 'normal' ? EmberColors.primaryBlue : EmberColors.outlineVariant.withValues(alpha: 0.4),
+                      ),
+                      onSelected: (_) {
+                        HapticFeedback.lightImpact();
+                        player.setAcousticPreset('normal');
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Center(child: Text('🌙 Slowed', style: TextStyle(fontSize: 12))),
+                      selected: player.acousticPreset == 'slowedReverb',
+                      selectedColor: EmberColors.primaryBlue.withValues(alpha: 0.25),
+                      backgroundColor: EmberColors.surfaceContainerLow,
+                      labelStyle: TextStyle(
+                        color: player.acousticPreset == 'slowedReverb' ? EmberColors.primaryBlue : EmberColors.textSecondary,
+                        fontWeight: player.acousticPreset == 'slowedReverb' ? FontWeight.bold : FontWeight.w500,
+                      ),
+                      side: BorderSide(
+                        color: player.acousticPreset == 'slowedReverb' ? EmberColors.primaryBlue : EmberColors.outlineVariant.withValues(alpha: 0.4),
+                      ),
+                      onSelected: (_) {
+                        HapticFeedback.lightImpact();
+                        player.setAcousticPreset('slowedReverb');
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Center(child: Text('⚡ Nightcore', style: TextStyle(fontSize: 12))),
+                      selected: player.acousticPreset == 'nightcore',
+                      selectedColor: EmberColors.primaryBlue.withValues(alpha: 0.25),
+                      backgroundColor: EmberColors.surfaceContainerLow,
+                      labelStyle: TextStyle(
+                        color: player.acousticPreset == 'nightcore' ? EmberColors.primaryBlue : EmberColors.textSecondary,
+                        fontWeight: player.acousticPreset == 'nightcore' ? FontWeight.bold : FontWeight.w500,
+                      ),
+                      side: BorderSide(
+                        color: player.acousticPreset == 'nightcore' ? EmberColors.primaryBlue : EmberColors.outlineVariant.withValues(alpha: 0.4),
+                      ),
+                      onSelected: (_) {
+                        HapticFeedback.lightImpact();
+                        player.setAcousticPreset('nightcore');
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(color: EmberColors.outlineVariant, height: 1),
+              const SizedBox(height: 16),
 
               // AI SOTA & Studio Stem Isolation
               Row(
@@ -278,6 +369,58 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                   onChangeEnd: (val) {
                     setState(() => _localBassBoost = val);
                     player.setBassBoost(val);
+                  },
+                ),
+              ),
+
+              // Dynamic Bass Exciter (Feature 4)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Dynamic Bass Exciter (Sub-Harmonics)', style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text('${(player.bassExciterLevel * 100).toInt()}%', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 13, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 3.5,
+                  activeTrackColor: const Color(0xFF00F0FF),
+                  thumbColor: const Color(0xFF38BDF8),
+                  inactiveTrackColor: EmberColors.surfaceContainerHigh,
+                ),
+                child: Slider(
+                  value: player.bassExciterLevel.clamp(0.0, 1.0),
+                  min: 0.0,
+                  max: 1.0,
+                  onChanged: (val) {
+                    player.setBassExciterLevel(val);
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // 3D Spatializer Dial (Feature 4)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('3D Spatializer (Stereo Width)', style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text('${(player.spatializerLevel * 100).toInt()}%', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 13, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 3.5,
+                  activeTrackColor: const Color(0xFF9D4EDD),
+                  thumbColor: const Color(0xFFC084FC),
+                  inactiveTrackColor: EmberColors.surfaceContainerHigh,
+                ),
+                child: Slider(
+                  value: player.spatializerLevel.clamp(0.0, 1.0),
+                  min: 0.0,
+                  max: 1.0,
+                  onChanged: (val) {
+                    player.setSpatializerLevel(val);
                   },
                 ),
               ),

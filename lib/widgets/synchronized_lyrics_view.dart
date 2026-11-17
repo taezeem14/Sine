@@ -2,11 +2,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/player_provider.dart';
 import '../services/lyrics_service.dart';
 import '../theme/ember_theme.dart';
+import 'lyric_story_card.dart';
 
 class SynchronizedLyricsView extends StatefulWidget {
   const SynchronizedLyricsView({super.key});
@@ -277,6 +279,10 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
                               _userScrolling = false;
                               _scrollToIndex(index, synced.length);
                             },
+                            onLongPress: () {
+                              HapticFeedback.heavyImpact();
+                              LyricStoryCardSheet.show(context, cur, [line]);
+                            },
                             child: AnimatedContainer(
                               key: _lineKeys.putIfAbsent(index, () => GlobalKey()),
                               duration: const Duration(milliseconds: 250),
@@ -398,6 +404,19 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
                             label: _isRomanizing ? '...' : 'Romaji',
                             isActive: _showRomanization,
                             onTap: () => _handleToggleRomanization(rawSynced),
+                          ),
+                          const SizedBox(width: 6),
+                          _LyricsPill(
+                            icon: Icons.style_rounded,
+                            label: 'Story Card',
+                            isActive: false,
+                            onTap: () {
+                              final activeLine = activeIdx >= 0 && activeIdx < synced.length ? synced[activeIdx] : (synced.isNotEmpty ? synced.first : null);
+                              if (activeLine != null) {
+                                HapticFeedback.mediumImpact();
+                                LyricStoryCardSheet.show(context, cur, [activeLine]);
+                              }
+                            },
                           ),
                         ],
                       ),

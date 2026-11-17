@@ -535,6 +535,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           ).timeout(const Duration(seconds: 12));
 
           await _restorePlaybackParameters(forceRebindEq: true);
+          if (_skipSilenceEnabled && targetSong.duration > const Duration(seconds: 15)) {
+            await _player.seek(const Duration(milliseconds: 900)).catchError((_) {});
+          }
           await _player.play();
           reconnected = true;
           _isReconnecting = false;
@@ -680,6 +683,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             return;
           }
           await _restorePlaybackParameters(forceRebindEq: true);
+          if (_skipSilenceEnabled && song.duration > const Duration(seconds: 15)) {
+            await _player.seek(const Duration(milliseconds: 900)).catchError((_) {});
+          }
           await _player.play();
           return;
         } else {
@@ -718,6 +724,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           if (currentRequestId != _playRequestId) {
             try { await _player.pause(); } catch (_) {}
             return;
+          }
+          if (_skipSilenceEnabled && song.duration > const Duration(seconds: 15)) {
+            await _player.seek(const Duration(milliseconds: 900)).catchError((_) {});
           }
           await _player.play();
           started = true;
@@ -924,6 +933,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         title: title,
         artist: artist,
         isPlaying: _player.playing,
+        artworkUrl: _currentSong?.artworkUrl,
         force: force,
       );
     } catch (_) {}
@@ -1046,9 +1056,11 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
     // 1. Update LoudnessEnhancer (just_audio 0.10.x takes true dB, converted *100 to millibels)
     try {
-      if (_bassBoost > 0.0 && shouldEnableEq) {
+      final double normLevel = _loudnessNormalizationEnabled ? 2.2 : 0.0;
+      final double totalTargetGain = (_bassBoost * 3.5) + (_bassExciter * 2.0) + normLevel;
+      if (totalTargetGain > 0.0 && shouldEnableEq) {
         await _loudnessEnhancer.setEnabled(true).catchError((_) {});
-        await _loudnessEnhancer.setTargetGain(_bassBoost * 3.5).catchError((_) {});
+        await _loudnessEnhancer.setTargetGain(totalTargetGain).catchError((_) {});
       } else {
         await _loudnessEnhancer.setTargetGain(0.0).catchError((_) {});
         await _loudnessEnhancer.setEnabled(false).catchError((_) {});
@@ -1098,9 +1110,10 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         final maxDb = params.maxDecibels;
         double clampGain(double g) => g.clamp(minDb, maxDb);
 
-        // Deep, punchy, rich Hearth Bass boost (pure hardware low-shelf harmonics)
-        final bassAdd = _bassBoost * 9.0;
-        final lowMidAdd = _bassBoost * 4.5;
+        // Deep, punchy, rich Hearth Bass boost + Dynamic Bass Exciter (pure hardware low-shelf harmonics)
+        final bassAdd = (_bassBoost * 9.0) + (_bassExciter * 6.5);
+        final lowMidAdd = (_bassBoost * 4.5) + (_bassExciter * 3.5);
+        final highAdd = _spatializer * 5.0;
 
         // Read live state fields rather than a stale closure parameter
         final activePreset = _currentPreset;
@@ -1115,6 +1128,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               g += bassAdd;
             } else if (i == 1) {
               g += lowMidAdd;
+            } else if (i >= n - 2) {
+              g += highAdd;
             }
             final finalGain = clampGain(g);
             _appliedHardwareBandGains[i] = finalGain;
@@ -1129,6 +1144,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               g += bassAdd;
             } else if (i == 1) {
               g += lowMidAdd;
+            } else if (i >= n - 2) {
+              g += highAdd;
             }
             final finalGain = clampGain(g);
             _appliedHardwareBandGains[i] = finalGain;
@@ -1465,6 +1482,35 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> resetSleepFade() async {
     _sleepFadeMultiplier = 1.0;
     await _updateHeadroomGain();
+  }
+
+  bool _loudnessNormalizationEnabled = true;
+  bool get loudnessNormalizationEnabled => _loudnessNormalizationEnabled;
+  Future<void> setLoudnessNormalizationEnabled(bool enabled) async {
+    _loudnessNormalizationEnabled = enabled;
+    _normalizationGain = enabled ? 0.92 : 1.0;
+    await _updateHeadroomGain();
+    await _scheduleDspSync(forceRebind: false);
+  }
+
+  bool _skipSilenceEnabled = false;
+  bool get skipSilenceEnabled => _skipSilenceEnabled;
+  Future<void> setSkipSilenceEnabled(bool enabled) async {
+    _skipSilenceEnabled = enabled;
+  }
+
+  double _bassExciter = 0.0;
+  double get bassExciter => _bassExciter;
+  Future<void> setBassExciter(double val) async {
+    _bassExciter = val.clamp(0.0, 1.0);
+    await _scheduleDspSync(forceRebind: false);
+  }
+
+  double _spatializer = 0.0;
+  double get spatializer => _spatializer;
+  Future<void> setSpatializer(double val) async {
+    _spatializer = val.clamp(0.0, 1.0);
+    await _scheduleDspSync(forceRebind: false);
   }
 
   int _crossfadeSeconds = 0;
