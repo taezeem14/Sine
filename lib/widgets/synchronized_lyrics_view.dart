@@ -366,7 +366,8 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
                               ),
                             ),
                           ),
-                        );
+                        ),
+                      );
                       },
                     ),
                   ),
