@@ -13,16 +13,16 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.3.6%20(Build%2036)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.3.7%20(Build%2037)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
-[![DSP Engine](https://img.shields.io/badge/DSP-AutoEq%20%2B%20JamesDSP-FF0055?style=for-the-badge&logo=audio-technica&logoColor=white)](#-open-source-credits--attribution-gpl-30)
+[![DSP Engine](https://img.shields.io/badge/DSP-Hardware%206--Band%20EQ-FF0055?style=for-the-badge&logo=audio-technica&logoColor=white)](#-open-source-credits--attribution-gpl-30)
 [![Donate UPI](https://img.shields.io/badge/Donate-UPI%3A%207006616470%40fam-ff69b4?style=for-the-badge&logo=googlepay&logoColor=white)](#-support-the-project-upi)
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.3.6)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.6.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.3.7)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.7.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy studio-grade ad-free music instantly.*
 
@@ -54,11 +54,11 @@
 
 ## 💅 What Is Sine?
 
-**Sine** is an independent, high-fidelity music streaming client for Android that merges **Spotify's obsidian design language** with **NewPipe's privacy-focused YouTube extraction engine** and **studio-grade open-source DSP acoustic models** (AutoEq, JamesDSP, Equalizer APO).
+**Sine** is an independent, high-fidelity music streaming client for Android that merges **Spotify's obsidian design language** with **NewPipe's privacy-focused YouTube extraction engine** and a **studio-grade 6-band hardware graph equalizer**.
 
 Commercial streaming platforms charge \$11+/month, clutter interfaces with video podcasts, and harvest your listening habits. Sine provides:
 - **Zero Subscriptions & Zero Ads**: Clean, direct audio streaming from YouTube & YouTube Music.
-- **Studio Acoustics**: AutoEq acoustic targets, JamesDSP audio algorithms, and hardware parametric EQ.
+- **Studio Acoustics**: Hardware 6-band graph equalizer with interactive Bezier splines and 25 genre presets.
 - **No Logins or Accounts Required**: Zero account bans, zero tracking cookies, and zero Google/Spotify credentials.
 - **Pure Local Data**: Playlists, listening history, and cached media remain 100% on your device.
 - **Sub-1.2s Cold-Start Playback**: Progressive hardware decoding starting audio almost instantaneously.
@@ -157,8 +157,8 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 
 | Category | Capability | Technical Details |
 | :--- | :--- | :--- |
-| **Acoustics** | **Studio Open-Source Equalizer** | Calibrated AutoEq Harman targets, JamesDSP clarity models, and Equalizer APO contours with touch-draggable Bezier spline visualizer across `60 Hz`, `150 Hz`, `400 Hz`, `1 kHz`, `2.4 kHz`, `15 kHz`. |
-| **Acoustics** | **Lossless Pitch & Speed Guard** | Dynamic -3.7 dB pre-amp limiter absorbing Sonic SOLA constructive interference spikes, preventing clipping and keeping hardware DSP effects permanently anchored. |
+| **Acoustics** | **Hardware 6-Band Graph Equalizer** | Interactive touch-draggable Bezier spline visualizer across `60 Hz`, `150 Hz`, `400 Hz`, `1 kHz`, `2.4 kHz`, `15 kHz` with 25 studio presets and floating dB tooltips. |
+| **Acoustics** | **Native AudioTrack Speed & Pitch** | Native platform hardware playback parameters with direct audio effect retention, zero metallic distortion, and transparent headroom. |
 | **Discovery** | **Curated Genre Deep Explorer** | High-precision genre browsing powered by iTunes Search API with instant 'Play All', 'Shuffle', and direct YouTube stream resolution. |
 | **Theming** | **Dynamic Accent Themes & Color Studio** | 8 vibrant presets (Electric Blue, Emerald Green, Sunset Orange, Crimson Red, Electric Yellow, Neon Purple, Monochromatic, Custom) with real-time app repaint and custom RGB slider/hex color studio in Settings. |
 | **Widgets** | **Instant-Hydration Home Screen Widget** | 4x2 responsive Android widget with immediate state restoration upon placement and direct in-process audio transport controls (Play/Pause, Next, Previous). |
@@ -193,8 +193,8 @@ flowchart TD
     H --> K["Priority 3: WebM Opus (itag 251)"]
 
     I & J & K --> L["Native ExoPlayer Hardware Pipeline"]
-    L --> M["AutoEq / JamesDSP Graph Equalizer"]
-    M --> N["Lossless Headroom Limiter (-3.7 dB)"]
+    L --> M["Hardware 6-Band Graph Equalizer"]
+    M --> N["Transparent Dynamic Headroom Limiter"]
     N --> O["AudioTrack Output to DAC / Headphones"]
 ```
 
@@ -297,9 +297,6 @@ Sine is proud to be built upon and inspired by the global Free and Open Source S
 
 | Project | Authors / Organization | License | Repository | Role & Architectural Contribution |
 | :--- | :--- | :--- | :--- | :--- |
-| **AutoEq** | [Jaakko Pasanen](https://github.com/jaakkopasanen) | **MIT** | [jaakkopasanen/AutoEq](https://github.com/jaakkopasanen/AutoEq) | Acoustic equalization target curves (Harman In-Ear, Audiophile Neutral reference, Harman Bass Boost, Vocal Forward) providing calibrated studio baseline presets. |
-| **JamesDSP** | [James34602](https://github.com/james34602) | **GPL-3.0** | [james34602/JamesDSPAudioManager](https://github.com/james34602/JamesDSPAudioManager) | Advanced audio processing algorithms, pure clarity spatial enhancement, resonant bass curves, and tube amplifier warmth simulation. |
-| **Equalizer APO** | [jthedering](https://sourceforge.net/projects/equalizerapo/) | **GPL** | [Equalizer APO](https://sourceforge.net/projects/equalizerapo/) | Parametric filtering architectures and ISO 226 equal-loudness contour curves for natural human auditory compensation. |
 | **Audile** | [AudileTeam](https://github.com/AudileTeam) | **GPL-3.0** | [AudileTeam/Audile](https://github.com/AudileTeam/Audile) | Open-source Android music player and recognition client. Inspires Sine's persistent foreground audio playback service and media notification lifecycle. |
 | **zemer-cipher** | [ZemerTeam](https://github.com/ZemerTeam) | **GPL-3.0** | [ZemerTeam/zemer-cipher](https://github.com/ZemerTeam/zemer-cipher) | Specialized YouTube signature cipher solver and stream signature de-obfuscation algorithms, providing resilient stream extraction fallback. |
 | **BetterLyrics** | [boidushya](https://github.com/boidushya) / [better-lyrics](https://github.com/better-lyrics) | **GPL-3.0** | [boidushya/better-lyrics](https://github.com/boidushya/better-lyrics) | High-fidelity synchronized lyrics engine. Inspires Sine's real-time karaoke LRC lyrics renderer, metadata normalization, and millisecond offset calibration. |

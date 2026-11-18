@@ -191,7 +191,7 @@ class PlayerProvider extends ChangeNotifier {
   bool _skipSilence = false;
   bool get isSkipSilenceEnabled => _skipSilence;
 
-  String _acousticPreset = 'normal'; // 'normal', 'slowedReverb', 'nightcore'
+  String _acousticPreset = 'normal';
   String get acousticPreset => _acousticPreset;
 
   double _bassExciterLevel = 0.0;
@@ -2166,18 +2166,10 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> setAcousticPreset(String preset) async {
-    _acousticPreset = preset;
-    await _storageService.saveAcousticPreset(preset);
-    if (preset == 'slowedReverb') {
-      await setPlaybackSpeed(0.85);
-      await setPitchSemitones(-2);
-    } else if (preset == 'nightcore') {
-      await setPlaybackSpeed(1.25);
-      await setPitchSemitones(3);
-    } else {
-      await setPlaybackSpeed(1.0);
-      await setPitchSemitones(0);
-    }
+    _acousticPreset = 'normal';
+    await _storageService.saveAcousticPreset('normal');
+    await setPlaybackSpeed(1.0);
+    await setPitchSemitones(0);
     notifyListeners();
   }
 

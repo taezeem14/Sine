@@ -558,20 +558,29 @@ class _TransportControlsSection extends StatelessWidget {
                 ],
               ),
               child: IconButton(
-                icon: isLoadingStream
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  transitionBuilder: (child, anim) => ScaleTransition(
+                    scale: anim,
+                    child: FadeTransition(opacity: anim, child: child),
+                  ),
+                  child: isLoadingStream
+                      ? const SizedBox(
+                          key: ValueKey('loading'),
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : FaIcon(
+                          isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
+                          key: ValueKey(isPlaying ? 'pause' : 'play'),
+                          color: Colors.white,
+                          size: 24,
                         ),
-                      )
-                    : FaIcon(
-                        isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+                ),
                 onPressed: () {
                   HapticFeedback.selectionClick();
                   player.togglePlay();

@@ -210,20 +210,29 @@ class MiniPlayer extends StatelessWidget {
                     ),
                     child: IconButton(
                       padding: EdgeInsets.zero,
-                      icon: player.isLoadingStream
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      icon: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        transitionBuilder: (child, anim) => ScaleTransition(
+                          scale: anim,
+                          child: FadeTransition(opacity: anim, child: child),
+                        ),
+                        child: player.isLoadingStream
+                            ? const SizedBox(
+                                key: ValueKey('mini_loading'),
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : FaIcon(
+                                player.isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
+                                key: ValueKey(player.isPlaying ? 'mini_pause' : 'mini_play'),
+                                color: Colors.white,
+                                size: 16,
                               ),
-                            )
-                          : FaIcon(
-                              player.isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
-                              color: Colors.white,
-                              size: 16,
-                            ),
+                      ),
                       onPressed: () {
                         HapticFeedback.selectionClick();
                         player.togglePlay();

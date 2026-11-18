@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../constants/app_constants.dart';
 import '../theme/ember_theme.dart';
 import '../providers/player_provider.dart';
 import '../widgets/spotify_graph_equalizer.dart';
@@ -50,73 +49,28 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
-                'Open-Source EQ & DSP',
+                'Sine Hardware Equalizer',
                 style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
-        content: SizedBox(
+        content: const SizedBox(
           width: double.maxFinite,
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Sine features studio-calibrated acoustic target models and filter curves inspired by and attributed to these premier open-source audio DSP projects:',
-                  style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                Text(
+                  'Sine features an interactive 6-band graphic equalizer with touch-draggable Bezier spline interpolation and hardware DSP acceleration:\n\n'
+                  '• 6 Precise Bands: 60 Hz, 150 Hz, 400 Hz, 1 kHz, 2.4 kHz, and 15 kHz.\n'
+                  '• Floating dB Tooltips: Real-time visual feedback while dragging frequency knobs.\n'
+                  '• Double-Tap Reset: Tap any band twice to instantly zero it out.\n'
+                  '• 25 Studio Presets: Categorized into Bass & Beats, Vocal & Clarity, and Acoustic & Mood.\n'
+                  '• Zero Audio Artifacts: Pure hardware AudioTrack filtering directly in the Android audio pipeline.',
+                  style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.5),
                 ),
-                const SizedBox(height: 12),
-                ...AppConstants.openSourceAttributions.where((item) =>
-                    item['name'] == 'AutoEq' ||
-                    item['name'] == 'JamesDSP' ||
-                    item['name'] == 'Equalizer APO').map((item) {
-                  return Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E24),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              item['name'] ?? '',
-                              style: TextStyle(color: EmberColors.primaryBlueHi, fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: EmberColors.primaryBlue.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                item['license'] ?? 'GPL',
-                                style: TextStyle(color: EmberColors.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          'By ${item['organization']} • ${item['repo']}',
-                          style: const TextStyle(color: Colors.white38, fontSize: 10.5, fontStyle: FontStyle.italic),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item['role'] ?? '',
-                          style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
               ],
             ),
           ),

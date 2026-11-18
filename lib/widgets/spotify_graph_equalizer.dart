@@ -37,93 +37,161 @@ class SpotifyGraphEqualizer extends StatefulWidget {
   ];
 
   static const List<SpotifyEqPreset> standardPresets = [
-    // 1. AutoEq Studio Target Curves (Open-Source Jaakko Pasanen)
+    // 1. Bass & Beats Presets
     SpotifyEqPreset(
-      'AutoEq: Harman Target',
-      [5.2, 2.8, -0.5, 0.2, 2.5, 4.2],
-      category: 'AutoEq Studio',
-      description: 'Gold-standard research acoustic curve for natural, spacious staging',
+      'Bass Boost',
+      [6.0, 4.0, 1.5, 0.0, 0.0, 0.0],
+      category: 'Bass & Beats',
+      description: 'Maximum sub-bass slam for deep hip-hop and electronic basslines',
     ),
     SpotifyEqPreset(
-      'AutoEq: Audiophile Neutral',
-      [1.8, 0.5, 0.0, 0.2, 0.8, 1.2],
-      category: 'AutoEq Studio',
-      description: 'Diffuse-field calibrated flat monitor response',
+      'Hip-Hop',
+      [5.5, 4.0, 1.0, 1.0, 3.0, 3.0],
+      category: 'Bass & Beats',
+      description: 'Booming 808s and punchy beats with crisp snare and vocal presence',
     ),
     SpotifyEqPreset(
-      'AutoEq: Harman Bass Boost',
-      [6.5, 4.2, 0.8, -0.2, 1.5, 3.8],
-      category: 'AutoEq Studio',
-      description: 'Punchy low-shelf response with clean vocal headroom',
+      'Dance',
+      [4.5, 3.0, -1.0, 0.0, 3.0, 4.0],
+      category: 'Bass & Beats',
+      description: 'Energetic club kick drum with bright synthesizer presence',
     ),
     SpotifyEqPreset(
-      'AutoEq: Vocal Forward',
-      [-1.5, 1.0, 3.5, 4.5, 2.2, -0.5],
-      category: 'AutoEq Studio',
-      description: 'Brings vocals and lead instruments up-front without sibilance',
-    ),
-
-    // 2. JamesDSP Acoustic DSP Models (TheJamesDSP / James34602)
-    SpotifyEqPreset(
-      'JamesDSP: Pure Clarity',
-      [2.5, -1.0, 1.0, 3.0, 4.5, 5.5],
-      category: 'JamesDSP Acoustic',
-      description: 'Acoustic air, sparkle, and tight low-end resonance',
+      'Electronic',
+      [4.5, 2.5, 0.0, -1.0, 2.0, 4.5],
+      category: 'Bass & Beats',
+      description: 'Deep analog bass synthesis and sparkling electronic treble',
     ),
     SpotifyEqPreset(
-      'JamesDSP: Bass Resonance',
-      [6.8, 4.5, 1.0, 0.0, 1.5, 2.0],
-      category: 'JamesDSP Acoustic',
-      description: 'Deep sub-harmonic warmth with attenuated room boominess',
+      'Club',
+      [5.0, 3.5, -0.5, 1.5, 3.5, 4.5],
+      category: 'Bass & Beats',
+      description: 'Loud party floor impact with wide dynamic resonance',
     ),
     SpotifyEqPreset(
-      'JamesDSP: Tube Amp Warmth',
-      [3.5, 2.0, 0.5, -0.5, -1.5, -3.0],
-      category: 'JamesDSP Acoustic',
-      description: 'Analog vacuum tube 2nd-order harmonic simulation',
+      'Deep',
+      [5.5, 3.5, 1.5, -1.0, -2.5, -4.0],
+      category: 'Bass & Beats',
+      description: 'Rich low-end warmth with softened high-frequency edge',
     ),
     SpotifyEqPreset(
-      'JamesDSP: Studio Master',
-      [3.0, 1.5, -0.5, 1.2, 2.8, 3.5],
-      category: 'JamesDSP Acoustic',
-      description: 'Dynamic reference mastering profile for high-end headphones',
+      'Loudness',
+      [6.0, 3.0, -1.0, 0.0, 2.0, 5.0],
+      category: 'Bass & Beats',
+      description: 'Dynamic low & high boost for rich, full sound at low listening volumes',
+    ),
+    SpotifyEqPreset(
+      'Bass Reducer',
+      [-5.0, -3.0, -1.0, 0.0, 0.0, 0.0],
+      category: 'Bass & Beats',
+      description: 'Tames overwhelming sub-bass to stop headphone and room vibration',
     ),
 
-    // 3. Equalizer APO & ISO 226 Contours (jthedering)
+    // 2. Vocal & Clarity Presets
     SpotifyEqPreset(
-      'Equalizer APO: Loudness Contour',
-      [6.0, 2.5, -1.5, -0.5, 2.0, 5.5],
-      category: 'APO / Loudness',
-      description: 'ISO 226 equal-loudness contour compensation for low-volume playback',
+      'Vocal Booster',
+      [-2.0, 0.0, 3.0, 4.0, 2.0, -1.0],
+      category: 'Vocal & Clarity',
+      description: 'Brings singer vocals and lyrics right to the front of the mix',
     ),
     SpotifyEqPreset(
-      'Equalizer APO: Acoustic Space',
-      [1.5, 0.5, 1.5, 2.5, 4.0, 6.0],
-      category: 'APO / Loudness',
-      description: 'Soundstage spatial widening with presence & brilliance lift',
+      'Vocal Air',
+      [0.0, 0.5, 1.0, 2.0, 2.5, 2.0],
+      category: 'Vocal & Clarity',
+      description: 'Open, breathable high-register vocal shimmer without sibilance',
+    ),
+    SpotifyEqPreset(
+      'Treble Booster',
+      [-1.0, 0.0, 0.0, 2.0, 4.0, 6.0],
+      category: 'Vocal & Clarity',
+      description: 'Crystal-clear highs, cymbals, acoustic strings, and top-end brilliance',
+    ),
+    SpotifyEqPreset(
+      'Acoustic',
+      [1.0, 0.5, 0.5, 0.5, 1.2, 1.0],
+      category: 'Vocal & Clarity',
+      description: 'Pure organic acoustic balance for unplugged guitar and vocals',
+    ),
+    SpotifyEqPreset(
+      'Spoken Word',
+      [-4.0, -1.0, 3.0, 4.0, 2.0, -2.0],
+      category: 'Vocal & Clarity',
+      description: 'Optimized voice intelligibility for podcasts, interviews, and audiobooks',
+    ),
+    SpotifyEqPreset(
+      'Treble Reducer',
+      [0.0, 0.0, 0.0, -1.0, -3.0, -5.0],
+      category: 'Vocal & Clarity',
+      description: 'Softens fatiguing, harsh, or overly bright high frequencies',
     ),
 
-    // 4. Genre Classics & Master Presets
-    SpotifyEqPreset('Dance', [4.5, 3.0, -1.0, 0.0, 3.0, 4.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Deep', [5.5, 3.5, 1.5, -1.0, -2.5, -4.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Electronic', [4.5, 2.5, 0.0, -1.0, 2.0, 4.5], category: 'Genre Classics'),
-    SpotifyEqPreset('Flat', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Hip-Hop', [5.5, 4.0, 1.0, 1.0, 3.0, 3.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Jazz', [3.0, 2.0, -1.0, 1.0, 2.0, 3.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Latin', [4.0, 2.0, 0.0, 0.0, 3.0, 4.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Loudness', [6.0, 3.0, -1.0, 0.0, 2.0, 5.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Lounge', [2.0, 3.0, 1.0, -1.0, 0.0, -1.5], category: 'Genre Classics'),
-    SpotifyEqPreset('Piano', [1.0, 2.0, 3.0, 2.0, 3.0, 2.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Pop', [3.0, 2.0, 2.0, 3.0, 2.0, 2.0], category: 'Genre Classics'),
-    SpotifyEqPreset('R&B', [5.5, 4.0, 1.0, 2.0, 3.0, 2.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Rock', [5.0, 3.0, -1.0, 1.0, 3.0, 4.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Small Speakers', [-3.0, 2.0, 4.0, 3.0, 3.0, 2.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Spoken Word', [-4.0, -1.0, 3.0, 4.0, 2.0, -2.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Treble Booster', [-1.0, 0.0, 0.0, 2.0, 4.0, 6.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Treble Reducer', [0.0, 0.0, 0.0, -1.0, -3.0, -5.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Vocal Booster', [-2.0, 0.0, 3.0, 4.0, 2.0, -1.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Bass Boost', [6.0, 4.0, 1.5, 0.0, 0.0, 0.0], category: 'Genre Classics'),
-    SpotifyEqPreset('Lo-Fi', [-1.0, 2.0, 3.0, 1.0, -2.0, -4.0], category: 'Genre Classics'),
+    // 3. Acoustic & Mood Presets
+    SpotifyEqPreset(
+      'Flat',
+      [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      category: 'Acoustic & Mood',
+      description: 'Uncolored studio monitor reference curve (Zero coloration)',
+    ),
+    SpotifyEqPreset(
+      'Rock',
+      [5.0, 3.0, -1.0, 1.0, 3.0, 4.0],
+      category: 'Acoustic & Mood',
+      description: 'Driving electric guitars, punchy kick drum, and vocal cut',
+    ),
+    SpotifyEqPreset(
+      'Pop',
+      [3.0, 2.0, 2.0, 3.0, 2.0, 2.0],
+      category: 'Acoustic & Mood',
+      description: 'Polished commercial radio sound with punchy bass and smooth vocals',
+    ),
+    SpotifyEqPreset(
+      'R&B',
+      [5.5, 4.0, 1.0, 2.0, 3.0, 2.0],
+      category: 'Acoustic & Mood',
+      description: 'Warm soul bass grooves, intimate vocals, and lush instrumentation',
+    ),
+    SpotifyEqPreset(
+      'Jazz',
+      [3.0, 2.0, -1.0, 1.0, 2.0, 3.0],
+      category: 'Acoustic & Mood',
+      description: 'Natural warmth for upright bass, piano, brass, and brushed cymbals',
+    ),
+    SpotifyEqPreset(
+      'Piano',
+      [1.0, 2.0, 3.0, 2.0, 3.0, 2.0],
+      category: 'Acoustic & Mood',
+      description: 'Full grand piano acoustic body and delicate key harmonics',
+    ),
+    SpotifyEqPreset(
+      'Lo-Fi',
+      [-1.0, 2.0, 3.0, 1.0, -2.0, -4.0],
+      category: 'Acoustic & Mood',
+      description: 'Cozy tape-warmed midrange for chill beats and study sessions',
+    ),
+    SpotifyEqPreset(
+      'Warm Tape',
+      [2.0, 1.0, 0.0, 0.0, -1.0, -2.0],
+      category: 'Acoustic & Mood',
+      description: 'Subtle analog saturation with a smooth vintage top-end taper',
+    ),
+    SpotifyEqPreset(
+      'Lounge',
+      [2.0, 3.0, 1.0, -1.0, 0.0, -1.5],
+      category: 'Acoustic & Mood',
+      description: 'Smooth, relaxed ambient balance for effortless listening',
+    ),
+    SpotifyEqPreset(
+      'Latin',
+      [4.0, 2.0, 0.0, 0.0, 3.0, 4.0],
+      category: 'Acoustic & Mood',
+      description: 'Crisp percussion transients and expressive acoustic guitars',
+    ),
+    SpotifyEqPreset(
+      'Small Speakers',
+      [-3.0, 2.0, 4.0, 3.0, 3.0, 2.0],
+      category: 'Acoustic & Mood',
+      description: 'Optimized voice and rhythm clarity for phone or portable speakers',
+    ),
   ];
 
   /// Fast case-insensitive helper to look up preset gains
@@ -157,10 +225,9 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
 
   static const List<String> _categories = [
     'All',
-    'AutoEq Studio',
-    'JamesDSP Acoustic',
-    'APO / Loudness',
-    'Genre Classics',
+    'Bass & Beats',
+    'Vocal & Clarity',
+    'Acoustic & Mood',
   ];
 
   @override
@@ -551,25 +618,23 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
                                   letterSpacing: 0.1,
                                 ),
                               ),
-                              if (preset.category.contains('AutoEq') || preset.category.contains('JamesDSP') || preset.category.contains('APO')) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                  decoration: BoxDecoration(
-                                    color: sineBlue.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: sineBlue.withValues(alpha: 0.3)),
-                                  ),
-                                  child: Text(
-                                    preset.category.split(' ').first,
-                                    style: TextStyle(
-                                      color: sineBlue,
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: sineBlue.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: sineBlue.withValues(alpha: 0.3)),
+                                ),
+                                child: Text(
+                                  preset.category,
+                                  style: TextStyle(
+                                    color: sineBlue,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ],
+                              ),
                             ],
                           ),
                           if (preset.description.isNotEmpty) ...[

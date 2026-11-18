@@ -161,9 +161,10 @@ void main() {
       final pitchBody = code.substring(setPitchIdx, setPitchIdx + 300);
       expect(pitchBody, isNot(contains('forceRebind: true')));
 
-      // Verify LoudnessEnhancer is suppressed when pitch or speed is shifted
+      // Verify LoudnessEnhancer and EQ remain preserved without dropping effect when shifted
       expect(code, contains('final bool isPitchOrSpeedShifted ='));
-      expect(code, contains('await _loudnessEnhancer.setEnabled(false)'));
+      expect(code, contains('final targetGain = isPitchOrSpeedShifted ? (_bassBoost * 2.5) : (_bassBoost * 3.5);'));
+      expect(code, contains('await _loudnessEnhancer.setEnabled(true)'));
     });
 
     test('T6. SynchronizedLyricsView floating toolbar horizontal scroll constraint', () {

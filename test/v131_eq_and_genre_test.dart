@@ -8,54 +8,43 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  group('v1.3.1 Studio Open-Source EQ & Presets Suite', () {
-    test('SpotifyGraphEqualizer contains all open-source AutoEq, JamesDSP, and APO presets', () {
+  group('v1.3.7 Pure OG Sine Equalizer & Presets Suite', () {
+    test('SpotifyGraphEqualizer contains clean OG Sine presets without AutoEq/JamesDSP/APO', () {
       const presets = SpotifyGraphEqualizer.standardPresets;
-      expect(presets.length, greaterThanOrEqualTo(30));
+      expect(presets.length, greaterThanOrEqualTo(25));
 
-      // AutoEq Studio Curves
-      final harman = SpotifyGraphEqualizer.getPresetGains('AutoEq: Harman Target');
-      expect(harman.length, 6);
-      expect(harman[0], 5.2);
-      expect(harman[5], 4.2);
+      // Verify AutoEq, JamesDSP, and APO presets are completely removed
+      for (final p in presets) {
+        expect(p.name, isNot(contains('AutoEq')));
+        expect(p.name, isNot(contains('JamesDSP')));
+        expect(p.name, isNot(contains('Equalizer APO')));
+      }
 
-      final neutral = SpotifyGraphEqualizer.getPresetGains('AutoEq: Audiophile Neutral');
-      expect(neutral.length, 6);
-      expect(neutral[0], 1.8);
+      // Classic OG Sine Presets
+      final flat = SpotifyGraphEqualizer.getPresetGains('Flat');
+      expect(flat.length, 6);
+      expect(flat.every((g) => g == 0.0), isTrue);
 
-      final harmanBass = SpotifyGraphEqualizer.getPresetGains('AutoEq: Harman Bass Boost');
-      expect(harmanBass.length, 6);
-      expect(harmanBass[0], 6.5);
+      final bassBoost = SpotifyGraphEqualizer.getPresetGains('Bass Boost');
+      expect(bassBoost.length, 6);
+      expect(bassBoost[0], 6.0);
+      expect(bassBoost[1], 4.0);
 
-      final vocalForward = SpotifyGraphEqualizer.getPresetGains('AutoEq: Vocal Forward');
-      expect(vocalForward.length, 6);
-      expect(vocalForward[3], 4.5);
+      final hiphop = SpotifyGraphEqualizer.getPresetGains('Hip-Hop');
+      expect(hiphop.length, 6);
+      expect(hiphop[0], 5.5);
 
-      // JamesDSP Acoustic Models
-      final clarity = SpotifyGraphEqualizer.getPresetGains('JamesDSP: Pure Clarity');
-      expect(clarity.length, 6);
-      expect(clarity[5], 5.5);
+      final vocalBooster = SpotifyGraphEqualizer.getPresetGains('Vocal Booster');
+      expect(vocalBooster.length, 6);
+      expect(vocalBooster[3], 4.0);
 
-      final resonance = SpotifyGraphEqualizer.getPresetGains('JamesDSP: Bass Resonance');
-      expect(resonance.length, 6);
-      expect(resonance[0], 6.8);
+      final acoustic = SpotifyGraphEqualizer.getPresetGains('Acoustic');
+      expect(acoustic.length, 6);
+      expect(acoustic[0], 1.0);
 
-      final tubeWarmth = SpotifyGraphEqualizer.getPresetGains('JamesDSP: Tube Amp Warmth');
-      expect(tubeWarmth.length, 6);
-      expect(tubeWarmth[0], 3.5);
-
-      final studioMaster = SpotifyGraphEqualizer.getPresetGains('JamesDSP: Studio Master');
-      expect(studioMaster.length, 6);
-      expect(studioMaster[0], 3.0);
-
-      // Equalizer APO & ISO 226
-      final loudness = SpotifyGraphEqualizer.getPresetGains('Equalizer APO: Loudness Contour');
-      expect(loudness.length, 6);
-      expect(loudness[0], 6.0);
-
-      final space = SpotifyGraphEqualizer.getPresetGains('Equalizer APO: Acoustic Space');
-      expect(space.length, 6);
-      expect(space[5], 6.0);
+      final electronic = SpotifyGraphEqualizer.getPresetGains('Electronic');
+      expect(electronic.length, 6);
+      expect(electronic[0], 4.5);
 
       // Ensure all band values are strictly within [-12.0, 12.0] dB
       for (final p in presets) {
@@ -67,14 +56,14 @@ void main() {
       }
     });
 
-    test('AppConstants contains AutoEq, JamesDSP, and Equalizer APO attributions', () {
+    test('AppConstants contains clean open-source attributions without AutoEq, JamesDSP, or Equalizer APO', () {
       expect(AppConstants.version, isNotEmpty);
       expect(AppConstants.buildNumber, greaterThanOrEqualTo(31));
 
       final names = AppConstants.openSourceAttributions.map((a) => a['name']).toList();
-      expect(names, contains('AutoEq'));
-      expect(names, contains('JamesDSP'));
-      expect(names, contains('Equalizer APO'));
+      expect(names, isNot(contains('AutoEq')));
+      expect(names, isNot(contains('JamesDSP')));
+      expect(names, isNot(contains('Equalizer APO')));
       expect(names, contains('Audile'));
       expect(names, contains('zemer-cipher'));
       expect(names, contains('BetterLyrics'));
@@ -90,23 +79,23 @@ void main() {
     });
   });
 
-  group('v1.3.1 Pitch & Speed Anti-Distortion Headroom Guard', () {
-    test('Anti-distortion headroom provides -3.7 dB attenuation during pitch or speed shifts', () {
+  group('v1.3.7 Pitch & Speed Anti-Distortion Transparent Headroom Guard', () {
+    test('Anti-distortion transparent headroom maintains dynamic punch during shifts', () {
       double computeSonicHeadroom(double speed, double pitch) {
         final bool isShifted = (speed - 1.0).abs() > 0.005 || (pitch - 1.0).abs() > 0.005;
-        return isShifted ? 0.65 : 1.0;
+        return isShifted ? 0.94 : 1.0;
       }
 
       // Lossless 1.0x baseline
       expect(computeSonicHeadroom(1.0, 1.0), 1.0);
 
-      // Speed shift
-      expect(computeSonicHeadroom(1.25, 1.0), 0.65);
-      expect(computeSonicHeadroom(0.75, 1.0), 0.65);
+      // Speed shift provides gentle -0.5 dB headroom (0.94) instead of harsh 35% cut
+      expect(computeSonicHeadroom(1.25, 1.0), 0.94);
+      expect(computeSonicHeadroom(0.75, 1.0), 0.94);
 
       // Pitch shift
-      expect(computeSonicHeadroom(1.0, 1.1), 0.65);
-      expect(computeSonicHeadroom(1.0, 0.9), 0.65);
+      expect(computeSonicHeadroom(1.0, 1.1), 0.94);
+      expect(computeSonicHeadroom(1.0, 0.9), 0.94);
     });
   });
 }
