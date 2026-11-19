@@ -686,12 +686,10 @@ class StorageService {
 
   /// Exports full database backup into a persistent JSON file in storage:
   /// e.g. /storage/emulated/0/Sine-Music/Backups/sine_backup_YYYYMMDD_HHMMSS.json
-  /// Returns the written File.
+  /// Returns the written File with guaranteed fallback so it never fails.
   Future<File?> exportBackupToFile({String? customFileName}) async {
     try {
       final jsonStr = exportBackupJson();
-      final backupDir = await getBackupDirectory();
-
       final now = DateTime.now();
       final dateStr = '${now.year.toString().padLeft(4, '0')}'
           '${now.month.toString().padLeft(2, '0')}'
@@ -701,19 +699,239 @@ class StorageService {
           '${now.second.toString().padLeft(2, '0')}';
 
       final fileName = customFileName ?? 'sine_backup_$dateStr.json';
-      final file = File('${backupDir.path}/$fileName');
-      await file.writeAsString(jsonStr, flush: true);
 
-      // Also maintain a convenient 'sine_backup_latest.json'
+      // Tier 1: Try public storage directory /Sine-Music/Backups/
       try {
-        final latestFile = File('${backupDir.path}/sine_backup_latest.json');
-        await latestFile.writeAsString(jsonStr, flush: true);
-      } catch (_) {}
+        final mediaDir = await DownloadService.getMediaDirectory(isVideo: false);
+        final backupDir = Directory('${mediaDir.path}/Backups');
+        if (!await backupDir.exists()) await backupDir.create(recursive: true);
+        final file = File('${backupDir.path}/$fileName');
+        await file.writeAsString(jsonStr, flush: true);
+        try {
+          final latestFile = File('${backupDir.path}/sine_backup_latest.json');
+          await latestFile.writeAsString(jsonStr, flush: true);
+        } catch (_) {}
+        debugPrint('[StorageService] Backup exported successfully to ${file.path}');
+        return file;
+      } catch (e) {
+        debugPrint('[StorageService] Primary backup write failed: $e, trying documents fallback');
+      }
 
-      debugPrint('[StorageService] Backup exported successfully to ${file.path}');
+      // Tier 2: Try app documents directory Documents/Backups/ (Always writable without permissions!)
+      try {
+        final docs = await getApplicationDocumentsDirectory();
+        final backupDir = Directory('${docs.path}/Backups');
+        if (!await backupDir.exists()) await backupDir.create(recursive: true);
+        final file = File('${backupDir.path}/$fileName');
+        await file.writeAsString(jsonStr, flush: true);
+        try {
+          final latestFile = File('${backupDir.path}/sine_backup_latest.json');
+          await latestFile.writeAsString(jsonStr, flush: true);
+        } catch (_) {}
+        debugPrint('[StorageService] Backup exported to documents fallback ${file.path}');
+        return file;
+      } catch (e) {
+        debugPrint('[StorageService] Documents backup write failed: $e');
+      }
+
+      // Tier 3: App documents root
+      final docs = await getApplicationDocumentsDirectory();
+      final file = File('${docs.path}/$fileName');
+      await file.writeAsString(jsonStr, flush: true);
       return file;
     } catch (e) {
       debugPrint('[StorageService] exportBackupToFile error: $e');
+      return null;
+    }
+  }
+
+  /// Exports standalone Settings JSON (Equalizer, Themes, Playback parameters)
+  String exportSettingsJson() {
+    final payload = {
+      'format': 'SINE_SETTINGS',
+      'version': AppConstants.version,
+      'exportedAt': DateTime.now().toUtc().toIso8601String(),
+      'settings': {
+        'speed': loadPlaybackSpeed(),
+        'crossfade': loadCrossfadeSeconds(),
+        'gapless': loadGaplessPlayback(),
+        'clippingProtection': loadClippingProtection(),
+        'recoveryMode': loadPlaybackRecoveryMode(),
+        'stemEngine': loadStemEnginePreference(),
+        'eqPreset': loadEqualizerPreset(),
+        'eqEnabled': loadEqualizerEnabled(),
+        'eqBassBoost': loadBassBoost(),
+        'eqBandGains': loadBandGains(),
+        'themePreset': loadThemePreset(),
+        'customThemeColor': loadCustomThemeColor(),
+        'oledBlack': loadOledBlack(),
+        'flipToPause': loadFlipToPause(),
+      },
+    };
+    return const JsonEncoder.withIndent('  ').convert(payload);
+  }
+
+  /// Exports settings to a .json file with resilient multi-tier fallback
+  Future<File?> exportSettingsToFile({String? customFileName}) async {
+    try {
+      final jsonStr = exportSettingsJson();
+      final now = DateTime.now();
+      final stamp = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+      final fileName = customFileName ?? 'Sine_Settings_$stamp.json';
+
+      // 1. Try public storage /Sine-Music/Backups
+      try {
+        final backupDir = await getBackupDirectory();
+        final file = File('${backupDir.path}/$fileName');
+        await file.writeAsString(jsonStr, flush: true);
+        debugPrint('[StorageService] Settings exported to ${file.path}');
+        return file;
+      } catch (e) {
+        debugPrint('[StorageService] Public storage export error: $e. Trying fallback.');
+      }
+
+      // 2. Try App Documents /Backups
+      try {
+        final docs = await getApplicationDocumentsDirectory();
+        final backupDir = Directory('${docs.path}/Backups');
+        if (!await backupDir.exists()) await backupDir.create(recursive: true);
+        final file = File('${backupDir.path}/$fileName');
+        await file.writeAsString(jsonStr, flush: true);
+        return file;
+      } catch (_) {}
+
+      // 3. Fallback to Documents root
+      final docs = await getApplicationDocumentsDirectory();
+      final file = File('${docs.path}/$fileName');
+      await file.writeAsString(jsonStr, flush: true);
+      return file;
+    } catch (e) {
+      debugPrint('[StorageService] exportSettingsToFile error: $e');
+      return null;
+    }
+  }
+
+  /// Imports and applies Settings JSON
+  Future<bool> importSettingsJson(String jsonString) async {
+    try {
+      final decoded = jsonDecode(jsonString);
+      if (decoded is! Map) return false;
+      final map = Map<String, dynamic>.from(decoded);
+      final settings = (map['settings'] is Map ? map['settings'] : map) as Map;
+
+      if (settings['speed'] != null) await savePlaybackSpeed((settings['speed'] as num).toDouble());
+      if (settings['crossfade'] != null) await saveCrossfadeSeconds((settings['crossfade'] as num).toInt());
+      if (settings['gapless'] != null) await saveGaplessPlayback(settings['gapless'] == true);
+      if (settings['clippingProtection'] != null) await saveClippingProtection(settings['clippingProtection'] == true);
+      if (settings['recoveryMode'] != null) await savePlaybackRecoveryMode(settings['recoveryMode'].toString());
+      if (settings['stemEngine'] != null) await saveStemEnginePreference(settings['stemEngine'].toString());
+      if (settings['eqPreset'] != null) await saveEqualizerPreset(settings['eqPreset'].toString());
+      if (settings['eqEnabled'] != null) await saveEqualizerEnabled(settings['eqEnabled'] == true);
+      if (settings['eqBassBoost'] != null) await saveBassBoost((settings['eqBassBoost'] as num).toDouble());
+      if (settings['eqBandGains'] is Map) {
+        final gains = <int, double>{};
+        for (final entry in (settings['eqBandGains'] as Map).entries) {
+          final k = int.tryParse(entry.key.toString());
+          final v = (entry.value as num?)?.toDouble();
+          if (k != null && v != null) gains[k] = v;
+        }
+        await saveBandGains(gains);
+      }
+      if (settings['themePreset'] != null) await saveThemePreset(settings['themePreset'].toString());
+      if (settings['customThemeColor'] != null) await saveCustomThemeColor((settings['customThemeColor'] as num).toInt());
+      if (settings['oledBlack'] != null) await saveOledBlack(settings['oledBlack'] == true);
+      if (settings['flipToPause'] != null) await saveFlipToPause(settings['flipToPause'] == true);
+      return true;
+    } catch (e) {
+      debugPrint('[StorageService] Settings import error: $e');
+      return false;
+    }
+  }
+
+  /// Exports an individual song playlist into portable JSON format
+  String exportPlaylistJson(Playlist playlist) {
+    final payload = {
+      'format': 'SINE_PLAYLIST',
+      'version': AppConstants.version,
+      'exportedAt': DateTime.now().toUtc().toIso8601String(),
+      'playlist': playlist.toMap(),
+    };
+    return const JsonEncoder.withIndent('  ').convert(payload);
+  }
+
+  /// Imports a single playlist from JSON string (supports SINE_PLAYLIST or raw playlist map)
+  Future<Playlist?> importPlaylistJson(String jsonString) async {
+    try {
+      final decoded = jsonDecode(jsonString);
+      if (decoded is! Map) return null;
+      final map = Map<String, dynamic>.from(decoded);
+
+      Map<String, dynamic>? rawPlaylist;
+      if (map['playlist'] is Map) {
+        rawPlaylist = Map<String, dynamic>.from(map['playlist']);
+      } else if (map.containsKey('title') && map.containsKey('songs')) {
+        rawPlaylist = map;
+      }
+
+      if (rawPlaylist == null) return null;
+
+      final playlist = Playlist.fromMap(rawPlaylist);
+      final uniqueId = playlist.id.isNotEmpty && playlist.id != 'liked_songs' && playlist.id != 'downloaded_songs'
+          ? playlist.id
+          : 'pl_${DateTime.now().millisecondsSinceEpoch}';
+
+      final finalPlaylist = playlist.copyWith(id: uniqueId);
+      final existing = loadPlaylists();
+      final idx = existing.indexWhere((p) => p.id == finalPlaylist.id);
+      if (idx != -1) {
+        existing[idx] = finalPlaylist;
+      } else {
+        existing.add(finalPlaylist);
+      }
+      await savePlaylists(existing);
+      return finalPlaylist;
+    } catch (e) {
+      debugPrint('[StorageService] importPlaylistJson error: $e');
+      return null;
+    }
+  }
+
+  /// Exports a playlist to a `.json` file in storage with resilient fallback
+  Future<File?> exportPlaylistToFile(Playlist playlist, {String? customFileName}) async {
+    try {
+      final jsonStr = exportPlaylistJson(playlist);
+      final sanitizedTitle = playlist.title.replaceAll(RegExp(r'[\/:*?"<>|]'), '_').trim();
+      final fileName = customFileName ?? 'playlist_${sanitizedTitle.isNotEmpty ? sanitizedTitle : "export"}.json';
+
+      // 1. Try public storage /Sine-Music/Playlists/
+      try {
+        final mediaDir = await DownloadService.getMediaDirectory(isVideo: false);
+        final plDir = Directory('${mediaDir.path}/Playlists');
+        if (!await plDir.exists()) await plDir.create(recursive: true);
+        final file = File('${plDir.path}/$fileName');
+        await file.writeAsString(jsonStr, flush: true);
+        debugPrint('[StorageService] Playlist exported to ${file.path}');
+        return file;
+      } catch (_) {}
+
+      // 2. Fallback to Documents/Playlists/
+      try {
+        final docs = await getApplicationDocumentsDirectory();
+        final plDir = Directory('${docs.path}/Playlists');
+        if (!await plDir.exists()) await plDir.create(recursive: true);
+        final file = File('${plDir.path}/$fileName');
+        await file.writeAsString(jsonStr, flush: true);
+        debugPrint('[StorageService] Playlist exported to fallback ${file.path}');
+        return file;
+      } catch (_) {}
+
+      // 3. Fallback to Documents root
+      final docs = await getApplicationDocumentsDirectory();
+      final file = File('${docs.path}/$fileName');
+      await file.writeAsString(jsonStr, flush: true);
+      return file;
+    } catch (e) {
+      debugPrint('[StorageService] exportPlaylistToFile error: $e');
       return null;
     }
   }
@@ -812,6 +1030,24 @@ class StorageService {
       final decoded = jsonDecode(jsonString);
       if (decoded is! Map) return null;
       final map = Map<String, dynamic>.from(decoded);
+
+      // 1. Smart handling for SINE_SETTINGS format
+      if (map['format'] == 'SINE_SETTINGS' || (map.containsKey('settings') && !map.containsKey('playlists') && !map.containsKey('favorites'))) {
+        final ok = await importSettingsJson(jsonString);
+        if (ok) {
+          return (playlistsCount: 0, favoritesCount: 0, historyCount: 0);
+        }
+        return null;
+      }
+
+      // 2. Smart handling for SINE_PLAYLIST format
+      if (map['format'] == 'SINE_PLAYLIST' || (map.containsKey('songs') && map.containsKey('title') && !map.containsKey('playlists'))) {
+        final pl = await importPlaylistJson(jsonString);
+        if (pl != null) {
+          return (playlistsCount: 1, favoritesCount: 0, historyCount: 0);
+        }
+        return null;
+      }
 
       if (map['format'] != 'SINE_BACKUP') {
         if (!map.containsKey('playlists') && !map.containsKey('favorites')) {

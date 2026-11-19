@@ -372,6 +372,10 @@ class PlayerProvider extends ChangeNotifier {
     _downloads = _storageService.loadDownloads();
     _downloadedVideos = _storageService.loadDownloadedVideos();
     syncDownloadedVideos();
+    _loadSavedSettings();
+  }
+
+  void _loadSavedSettings() {
     _speed = _storageService.loadPlaybackSpeed();
     _repeatMode = _storageService.loadRepeatMode();
     _isShuffle = _storageService.loadShuffle();
@@ -2455,6 +2459,40 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<File?> exportLibraryBackupToFile({String? customFileName}) {
     return _storageService.exportBackupToFile(customFileName: customFileName);
+  }
+
+  String exportSettingsJson() {
+    return _storageService.exportSettingsJson();
+  }
+
+  Future<File?> exportSettingsToFile({String? customFileName}) {
+    return _storageService.exportSettingsToFile(customFileName: customFileName);
+  }
+
+  Future<bool> importSettingsFromJson(String jsonStr) async {
+    final success = await _storageService.importSettingsJson(jsonStr);
+    if (success) {
+      _loadSavedSettings();
+      notifyListeners();
+    }
+    return success;
+  }
+
+  String exportPlaylistJson(Playlist playlist) {
+    return _storageService.exportPlaylistJson(playlist);
+  }
+
+  Future<File?> exportPlaylistToFile(Playlist playlist, {String? customFileName}) {
+    return _storageService.exportPlaylistToFile(playlist, customFileName: customFileName);
+  }
+
+  Future<Playlist?> importPlaylistFromJson(String jsonStr) async {
+    final pl = await _storageService.importPlaylistJson(jsonStr);
+    if (pl != null) {
+      _playlists = _storageService.loadPlaylists();
+      notifyListeners();
+    }
+    return pl;
   }
 
   Future<List<File>> getAvailableBackupFiles() {

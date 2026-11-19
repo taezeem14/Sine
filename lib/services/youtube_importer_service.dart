@@ -347,10 +347,10 @@ class YouTubeImporterService {
     // 3. androidVr: Meta Quest 3 endpoint, often bypasses regular mobile rate-limits
     // 4. androidMusic: YouTube Music endpoint, dedicated audio streams
     final clientProfiles = [
-      [YoutubeApiClient.androidSdkless],
-      [YoutubeApiClient.ios],
       [YoutubeApiClient.androidVr],
-      [YoutubeApiClient.androidMusic],
+      [YoutubeApiClient.ios],
+      [YoutubeApiClient.androidSdkless],
+      [YoutubeApiClient.android, YoutubeApiClient.ios],
     ];
 
     for (final clients in clientProfiles) {
@@ -370,39 +370,25 @@ class YouTubeImporterService {
         final mp4Audio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'mp4').toList();
         final webmAudio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'webm').toList();
 
-        // Optimized candidate ordering:
-        // Priority 1: Standalone AAC MP4 (itag 140, ~128 kbps pure audio, ~3MB file size).
-        // Instant hardware decoding on Android MediaCodec, buffers in <150ms without video overhead.
-        // Priority 2: Standalone WebM Opus (itag 251, ~160 kbps pure audio).
-        // Priority 3: Progressive Muxed MP4 (itag 18, 360p) as fallback.
-        if (preferProgressiveMp4) {
-          if (muxedMp4.isNotEmpty) {
-            final itag18 = muxedMp4.firstWhere(
-              (s) => s.tag == 18,
-              orElse: () => muxedMp4.first,
-            );
-            candidates.add(itag18.url.toString());
-          }
-          if (mp4Audio.isNotEmpty) {
-            candidates.add(mp4Audio.withHighestBitrate().url.toString());
-          }
-          if (webmAudio.isNotEmpty) {
-            candidates.add(webmAudio.withHighestBitrate().url.toString());
-          }
-        } else {
-          if (mp4Audio.isNotEmpty) {
-            candidates.add(mp4Audio.withHighestBitrate().url.toString());
-          }
-          if (webmAudio.isNotEmpty) {
-            candidates.add(webmAudio.withHighestBitrate().url.toString());
-          }
-          if (muxedMp4.isNotEmpty) {
-            final itag18 = muxedMp4.firstWhere(
-              (s) => s.tag == 18,
-              orElse: () => muxedMp4.first,
-            );
-            candidates.add(itag18.url.toString());
-          }
+        // Rock-Solid Instant Candidate Ordering:
+        // Priority 1: Progressive Muxed MP4 (itag 18, 360p container with AAC audio).
+        // Immune to DASH cipher throttling, no PO token requirement, buffers in ~200ms on ExoPlayer.
+        if (muxedMp4.isNotEmpty) {
+          final itag18 = muxedMp4.firstWhere(
+            (s) => s.tag == 18,
+            orElse: () => muxedMp4.first,
+          );
+          candidates.add(itag18.url.toString());
+        }
+
+        // Priority 2: Standalone MP4 AAC (itag 140, ~128 kbps pure audio)
+        if (mp4Audio.isNotEmpty) {
+          candidates.add(mp4Audio.withHighestBitrate().url.toString());
+        }
+
+        // Priority 3: Standalone WebM Opus (itag 251, ~160 kbps pure audio)
+        if (webmAudio.isNotEmpty) {
+          candidates.add(webmAudio.withHighestBitrate().url.toString());
         }
 
         if (candidates.isNotEmpty) {

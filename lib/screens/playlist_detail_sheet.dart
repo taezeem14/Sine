@@ -7,6 +7,7 @@ import '../models/song.dart';
 import '../models/playlist.dart';
 import '../providers/player_provider.dart';
 import '../theme/ember_theme.dart';
+import '../constants/app_constants.dart';
 import '../widgets/sine_qr_code_sheet.dart';
 import '../widgets/aesthetic_playlist_cover.dart';
 import 'track_options_sheet.dart';
@@ -139,6 +140,11 @@ class PlaylistDetailSheet extends StatelessWidget {
                     icon: FaIcon(FontAwesomeIcons.qrcode, size: 16, color: EmberColors.primaryBlue),
                     tooltip: 'Share Playlist QR Code',
                     onPressed: () => SineQrCodeSheet.showForPlaylist(context, currentPl),
+                  ),
+                  IconButton(
+                    icon: FaIcon(FontAwesomeIcons.fileArrowDown, size: 16, color: EmberColors.primaryBlue),
+                    tooltip: 'Export Playlist JSON',
+                    onPressed: () => _showExportPlaylistDialog(context, player, currentPl),
                   ),
                   if (currentPl.id != 'downloaded_songs')
                     IconButton(
@@ -520,6 +526,125 @@ class PlaylistDetailSheet extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  void _showExportPlaylistDialog(BuildContext context, PlayerProvider player, Playlist pl) {
+    bool isSaving = false;
+    final messenger = ScaffoldMessenger.of(context);
+
+    showDialog(
+      context: context,
+      builder: (dCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          backgroundColor: EmberColors.obsidianBase,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Row(
+            children: [
+              FaIcon(FontAwesomeIcons.fileArrowDown, color: EmberColors.primaryBlue, size: 18),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Export Playlist JSON',
+                  style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Export "${pl.title}" into a portable JSON file. You can share or restore this playlist on any Sine device.',
+                style: const TextStyle(color: EmberColors.textSecondary, fontSize: 12.5, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: EmberColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.5)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('• Title: ${pl.title}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 3),
+                    Text('• Tracks: ${pl.songs.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    const SizedBox(height: 3),
+                    Text('• Duration: ${_formatTotalDuration(pl)}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    const SizedBox(height: 3),
+                    Text('• Format: SINE_PLAYLIST (v${AppConstants.version})', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dCtx).pop(),
+              child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+            ),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: EmberColors.textSecondary,
+                side: const BorderSide(color: EmberColors.outlineVariant),
+              ),
+              icon: const Icon(Icons.copy_rounded, size: 14),
+              label: const Text('Copy JSON', style: TextStyle(fontSize: 12)),
+              onPressed: () {
+                final jsonStr = player.exportPlaylistJson(pl);
+                Clipboard.setData(ClipboardData(text: jsonStr));
+                Navigator.of(dCtx).pop();
+                messenger.showSnackBar(
+                  SnackBar(
+                    backgroundColor: EmberColors.surfaceContainerHigh,
+                    content: Text('Playlist "${pl.title}" JSON copied to clipboard!', style: TextStyle(color: EmberColors.primaryBlueHi)),
+                  ),
+                );
+              },
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: EmberColors.primaryBlue,
+                foregroundColor: Colors.white,
+              ),
+              icon: isSaving
+                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.save_alt_rounded, size: 16),
+              label: Text(isSaving ? 'Saving...' : 'Save File'),
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      setDialogState(() => isSaving = true);
+                      final file = await player.exportPlaylistToFile(pl);
+                      setDialogState(() => isSaving = false);
+                      Navigator.of(dCtx).pop();
+                      if (file != null) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            backgroundColor: EmberColors.surfaceContainerHigh,
+                            duration: const Duration(seconds: 4),
+                            content: Text('Playlist saved to:\n${file.path}', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12)),
+                          ),
+                        );
+                      } else {
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            backgroundColor: Colors.redAccent,
+                            content: Text('Failed to save playlist file.', style: TextStyle(color: Colors.white)),
+                          ),
+                        );
+                      }
+                    },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

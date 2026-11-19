@@ -440,20 +440,136 @@ class _SettingsContentState extends State<SettingsContent> {
     );
   }
 
-  void _showExportBackupDialog(BuildContext context, PlayerProvider player) {
+  void _showExportSettingsDialog(BuildContext context, PlayerProvider player) {
     bool isExporting = false;
+    final messenger = ScaffoldMessenger.of(context);
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          backgroundColor: EmberColors.obsidianBase,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Row(
+            children: [
+              FaIcon(FontAwesomeIcons.sliders, color: EmberColors.primaryBlue, size: 18),
+              const SizedBox(width: 10),
+              const Text('Export Settings JSON', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Extract your audio effects, equalizer presets, theme preferences, and playback settings into a portable JSON file.',
+                style: TextStyle(color: EmberColors.textSecondary, fontSize: 12.5, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: EmberColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.5)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('• EQ Preset: ${player.eqPreset}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    const SizedBox(height: 3),
+                    Text('• Speed: ${player.speed}x | Crossfade: ${player.crossfadeSeconds}s', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    const SizedBox(height: 3),
+                    Text('• Theme: ${player.activeThemePreset} | OLED: ${player.isOledBlack ? "On" : "Off"}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    const SizedBox(height: 3),
+                    Text('• Bass Boost: ${player.bassBoost.toStringAsFixed(1)} dB', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    const SizedBox(height: 5),
+                    Text('Format: SINE_SETTINGS', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+            ),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: EmberColors.textSecondary,
+                side: const BorderSide(color: EmberColors.outlineVariant),
+              ),
+              icon: const Icon(Icons.copy_rounded, size: 14),
+              label: const Text('Copy JSON', style: TextStyle(fontSize: 12)),
+              onPressed: () {
+                final jsonStr = player.exportSettingsJson();
+                Clipboard.setData(ClipboardData(text: jsonStr));
+                Navigator.of(ctx).pop();
+                messenger.showSnackBar(
+                  SnackBar(
+                    backgroundColor: EmberColors.surfaceContainerHigh,
+                    content: Text('Settings JSON copied to clipboard!', style: TextStyle(color: EmberColors.primaryBlueHi)),
+                  ),
+                );
+              },
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: EmberColors.primaryBlue,
+                foregroundColor: Colors.white,
+              ),
+              icon: isExporting
+                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.save_alt_rounded, size: 16),
+              label: Text(isExporting ? 'Saving...' : 'Save File'),
+              onPressed: isExporting
+                  ? null
+                  : () async {
+                      setDialogState(() => isExporting = true);
+                      final file = await player.exportSettingsToFile();
+                      setDialogState(() => isExporting = false);
+                      Navigator.of(ctx).pop();
+                      if (file != null) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            backgroundColor: EmberColors.surfaceContainerHigh,
+                            duration: const Duration(seconds: 4),
+                            content: Text('Settings saved to:\n${file.path}', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12)),
+                          ),
+                        );
+                      } else {
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            backgroundColor: Colors.redAccent,
+                            content: Text('Failed to save settings file to storage.', style: TextStyle(color: Colors.white)),
+                          ),
+                        );
+                      }
+                    },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showExportBackupDialog(BuildContext context, PlayerProvider player) {
+    bool isExporting = false;
+    final messenger = ScaffoldMessenger.of(context);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
           backgroundColor: EmberColors.obsidianBase,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: Row(
             children: [
               FaIcon(FontAwesomeIcons.fileExport, color: EmberColors.primaryBlue, size: 18),
               const SizedBox(width: 10),
-              Text('Export Library Backup', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('Export Library Backup', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
           content: Column(
@@ -466,6 +582,7 @@ class _SettingsContentState extends State<SettingsContent> {
               ),
               const SizedBox(height: 12),
               Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: EmberColors.surfaceContainerLow,
@@ -475,12 +592,15 @@ class _SettingsContentState extends State<SettingsContent> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('• Playlists: ${player.playlists.length}', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
-                    Text('• Favorites: ${player.favorites.length}', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
-                    Text('• History Tracks: ${player.history.length}', style: TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    Text('• Playlists: ${player.playlists.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    const SizedBox(height: 3),
+                    Text('• Favorites: ${player.favorites.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    const SizedBox(height: 3),
+                    Text('• History Tracks: ${player.history.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    const SizedBox(height: 3),
                     Text('• Target: /Sine-Music/Backups/', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text('Persists safely across app updates and uninstalls.', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
+                    const Text('Persists safely across app updates and uninstalls.', style: TextStyle(color: EmberColors.textMuted, fontSize: 11)),
                   ],
                 ),
               ),
@@ -489,12 +609,12 @@ class _SettingsContentState extends State<SettingsContent> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+              child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
             ),
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 foregroundColor: EmberColors.textSecondary,
-                side: BorderSide(color: EmberColors.outlineVariant),
+                side: const BorderSide(color: EmberColors.outlineVariant),
               ),
               icon: const Icon(Icons.copy_rounded, size: 14),
               label: const Text('Copy JSON', style: TextStyle(fontSize: 12)),
@@ -502,7 +622,7 @@ class _SettingsContentState extends State<SettingsContent> {
                 final jsonStr = player.exportLibraryBackup();
                 Clipboard.setData(ClipboardData(text: jsonStr));
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   SnackBar(
                     backgroundColor: EmberColors.surfaceContainerHigh,
                     content: Text('Backup JSON copied to clipboard!', style: TextStyle(color: EmberColors.primaryBlueHi)),
@@ -525,25 +645,22 @@ class _SettingsContentState extends State<SettingsContent> {
                       setDialogState(() => isExporting = true);
                       final file = await player.exportLibraryBackupToFile();
                       setDialogState(() => isExporting = false);
-                      if (context.mounted) {
-                        Navigator.of(ctx).pop();
-                        final messenger = ScaffoldMessenger.of(context);
-                        if (file != null) {
-                          messenger.showSnackBar(
-                            SnackBar(
-                              backgroundColor: EmberColors.surfaceContainerHigh,
-                              duration: const Duration(seconds: 4),
-                              content: Text('Backup saved to:\n${file.path}', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12)),
-                            ),
-                          );
-                        } else {
-                          messenger.showSnackBar(
-                            const SnackBar(
-                              backgroundColor: Colors.redAccent,
-                              content: Text('Failed to save backup file to storage.', style: TextStyle(color: Colors.white)),
-                            ),
-                          );
-                        }
+                      Navigator.of(ctx).pop();
+                      if (file != null) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            backgroundColor: EmberColors.surfaceContainerHigh,
+                            duration: const Duration(seconds: 4),
+                            content: Text('Backup saved to:\n${file.path}', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12)),
+                          ),
+                        );
+                      } else {
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            backgroundColor: Colors.redAccent,
+                            content: Text('Failed to save backup file to storage.', style: TextStyle(color: Colors.white)),
+                          ),
+                        );
                       }
                     },
             ),
@@ -1731,6 +1848,19 @@ class _SettingsContentState extends State<SettingsContent> {
       );
     }
 
+    if (matches('settings') || matches('export') || matches('json') || matches('config')) {
+      items.add(
+        _SettingsTile(
+          icon: FontAwesomeIcons.sliders,
+          iconColor: activeAccent,
+          title: 'Export Settings (JSON File)',
+          subtitle: 'Extract equalizer presets, themes & audio settings to JSON',
+          trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+          onTap: () => _showExportSettingsDialog(context, player),
+        ),
+      );
+    }
+
     if (matches('backup') || matches('export') || matches('json') || matches('file')) {
       items.add(
         _SettingsTile(
@@ -1749,7 +1879,7 @@ class _SettingsContentState extends State<SettingsContent> {
         _SettingsTile(
           icon: FontAwesomeIcons.fileImport,
           iconColor: activeAccent,
-          title: 'Restore Library from Backup',
+          title: 'Restore Library / Settings from Backup',
           subtitle: '1-tap restore from /Sine-Music/Backups or paste JSON',
           trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
           onTap: () => _showRestoreBackupDialog(context, player),
@@ -2331,6 +2461,14 @@ class _SettingsContentState extends State<SettingsContent> {
                 },
               ),
               _SettingsTile(
+                icon: FontAwesomeIcons.sliders,
+                iconColor: activeAccent,
+                title: 'Export Settings (JSON File)',
+                subtitle: 'Extract equalizer presets, themes & audio settings to JSON',
+                trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
+                onTap: () => _showExportSettingsDialog(context, player),
+              ),
+              _SettingsTile(
                 icon: FontAwesomeIcons.fileExport,
                 iconColor: activeAccent,
                 title: 'Export Library Backup (JSON File)',
@@ -2341,7 +2479,7 @@ class _SettingsContentState extends State<SettingsContent> {
               _SettingsTile(
                 icon: FontAwesomeIcons.fileImport,
                 iconColor: activeAccent,
-                title: 'Restore Library from Backup',
+                title: 'Restore Library / Settings from Backup',
                 subtitle: '1-tap restore from /Sine-Music/Backups or paste JSON',
                 trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 12, color: EmberColors.textMuted),
                 onTap: () => _showRestoreBackupDialog(context, player),

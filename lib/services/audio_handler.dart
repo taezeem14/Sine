@@ -708,9 +708,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           await _player.setUrl(
             url,
             headers: isYouTubeStream ? _youtubeHeaders : null,
-            initialPosition: initPos,
+            initialPosition: Duration.zero,
             preload: true,
-          ).timeout(const Duration(seconds: 12));
+          ).timeout(const Duration(seconds: 6));
           if (currentRequestId != _playRequestId) {
             try { await _player.pause(); } catch (_) {}
             return;
@@ -731,9 +731,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               await _player.setUrl(
                 url,
                 headers: null,
-                initialPosition: initPos,
+                initialPosition: Duration.zero,
                 preload: true,
-              ).timeout(const Duration(seconds: 8));
+              ).timeout(const Duration(seconds: 5));
               if (currentRequestId != _playRequestId) {
                 try { await _player.pause(); } catch (_) {}
                 return;
@@ -768,9 +768,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               await _player.setUrl(
                 url,
                 headers: isYouTubeStream ? _youtubeHeaders : null,
-                initialPosition: initPos,
+                initialPosition: Duration.zero,
                 preload: true,
-              ).timeout(const Duration(seconds: 12));
+              ).timeout(const Duration(seconds: 6));
               if (currentRequestId != _playRequestId) {
                 try { await _player.pause(); } catch (_) {}
                 return;
@@ -789,9 +789,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                   await _player.setUrl(
                     url,
                     headers: null,
-                    initialPosition: initPos,
+                    initialPosition: Duration.zero,
                     preload: true,
-                  ).timeout(const Duration(seconds: 8));
+                  ).timeout(const Duration(seconds: 5));
                   if (currentRequestId != _playRequestId) {
                     try { await _player.pause(); } catch (_) {}
                     return;

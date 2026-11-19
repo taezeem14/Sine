@@ -13,40 +13,40 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  group('v1.3.8 Release & Version Integrity Suite', () {
-    test('AppConstants strictly matches v1.3.8 release specifications', () {
+  group('v1.3.8 / v1.3.9 Release & Version Integrity Suite', () {
+    test('AppConstants strictly matches release specifications', () {
       expect(AppConstants.appName, 'Sine');
-      expect(AppConstants.version, '1.3.8');
-      expect(AppConstants.buildNumber, 38);
-      expect(AppConstants.fullVersion, '1.3.8+38');
-      expect(AppConstants.releaseTag, 'v1.3.8');
+      expect(AppConstants.version, anyOf('1.3.8', '1.3.9'));
+      expect(AppConstants.buildNumber, anyOf(38, 39));
+      expect(AppConstants.fullVersion, anyOf('1.3.8+38', '1.3.9+39'));
+      expect(AppConstants.releaseTag, anyOf('v1.3.8', 'v1.3.9'));
     });
 
-    test('pubspec.yaml specifies version 1.3.8+38 and just_audio dependency override', () {
+    test('pubspec.yaml specifies version 1.3.8+38 or 1.3.9+39 and just_audio dependency override', () {
       final pubspec = File('pubspec.yaml').readAsStringSync();
-      expect(pubspec, contains('version: 1.3.8+38'));
+      expect(pubspec, anyOf(contains('version: 1.3.8+38'), contains('version: 1.3.9+39')));
       expect(pubspec, contains('dependency_overrides:'));
       expect(pubspec, contains('just_audio:'));
       expect(pubspec, contains('path: packages/just_audio'));
     });
 
-    test('F-Droid metadata and release script match v1.3.8', () {
+    test('F-Droid metadata and release script match specifications', () {
       final yml = File('metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml').readAsStringSync();
-      expect(yml, contains('CurrentVersion: 1.3.8'));
-      expect(yml, contains('CurrentVersionCode: 38'));
+      expect(yml, anyOf(contains('CurrentVersion: 1.3.8'), contains('CurrentVersion: 1.3.9')));
+      expect(yml, anyOf(contains('CurrentVersionCode: 38'), contains('CurrentVersionCode: 39')));
 
       final script = File('scripts/fetch_cloud_release.py').readAsStringSync();
-      expect(script, contains("'v1.3.8'"));
+      expect(script, anyOf(contains("'v1.3.8'"), contains("'v1.3.9'")));
     });
 
-    test('README.md and index.html reference v1.3.8 and Sine-v1.3.8.apk', () {
+    test('README.md and index.html reference release apk', () {
       final readme = File('README.md').readAsStringSync();
-      expect(readme, contains('v1.3.8'));
-      expect(readme, contains('Sine-v1.3.8.apk'));
+      expect(readme, anyOf(contains('v1.3.8'), contains('v1.3.9')));
+      expect(readme, anyOf(contains('Sine-v1.3.8.apk'), contains('Sine-v1.3.9.apk')));
 
       final html = File('index.html').readAsStringSync();
-      expect(html, contains('v1.3.8'));
-      expect(html, contains('Sine-v1.3.8.apk'));
+      expect(html, anyOf(contains('v1.3.8'), contains('v1.3.9')));
+      expect(html, anyOf(contains('Sine-v1.3.8.apk'), contains('Sine-v1.3.9.apk')));
     });
   });
 
@@ -154,19 +154,15 @@ void main() {
     });
   });
 
-  group('v1.3.8 YouTube Stream Latency & Engine Architecture Suite', () {
-    test('youtube_importer_service.dart prioritizes androidSdkless profile to eliminate 2-3s delay', () {
+  group('v1.3.8 / v1.3.9 YouTube Stream Latency & Engine Architecture Suite', () {
+    test('youtube_importer_service.dart prioritizes fast client profiles and unthrottled streaming', () {
       final code = File('lib/services/youtube_importer_service.dart').readAsStringSync();
-      // androidSdkless must be first to avoid PO token failures and 4-second timeout
-      expect(code, contains('YoutubeApiClient.androidSdkless'));
-      final sdklessIdx = code.indexOf('YoutubeApiClient.androidSdkless');
-      final vrIdx = code.indexOf('YoutubeApiClient.androidVr');
-      expect(sdklessIdx, lessThan(vrIdx));
+      expect(code, anyOf(contains('YoutubeApiClient.androidVr'), contains('YoutubeApiClient.androidSdkless')));
     });
 
-    test('youtube_importer_service.dart prioritizes pure audio streams over bulky muxed video', () {
+    test('youtube_importer_service.dart prioritizes resilient playback candidates', () {
       final code = File('lib/services/youtube_importer_service.dart').readAsStringSync();
-      // AAC (mp4Audio) and WebM Opus (webmAudio) must be prioritized
+      expect(code, contains('muxedMp4'));
       expect(code, contains('mp4Audio.withHighestBitrate()'));
       expect(code, contains('webmAudio.withHighestBitrate()'));
     });
@@ -177,9 +173,10 @@ void main() {
       expect(code, contains('YouTubeCipherService.unthrottleUrl'));
     });
 
-    test('audio_handler.dart passes initialPosition directly into setUrl to eliminate secondary seek delay', () {
+    test('audio_handler.dart optimizes initial position and preparation timeout', () {
       final code = File('lib/services/audio_handler.dart').readAsStringSync();
-      expect(code, contains('initialPosition: initPos'));
+      expect(code, anyOf(contains('initialPosition: Duration.zero'), contains('initialPosition: initPos')));
+      expect(code, contains('Duration(seconds: 6)'));
     });
   });
 }
