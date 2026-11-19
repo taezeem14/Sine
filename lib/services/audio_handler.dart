@@ -692,6 +692,10 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       LogService.instance.recordCandidates(candidates);
 
       bool started = false;
+      final initPos = _skipSilenceEnabled && song.duration > const Duration(seconds: 15)
+          ? const Duration(milliseconds: 900)
+          : Duration.zero;
+
       for (int i = 0; i < candidates.length; i++) {
         if (currentRequestId != _playRequestId) return; // Superseded by newer track selection
         final url = candidates[i];
@@ -704,15 +708,12 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           await _player.setUrl(
             url,
             headers: isYouTubeStream ? _youtubeHeaders : null,
-            initialPosition: Duration.zero,
+            initialPosition: initPos,
             preload: true,
           ).timeout(const Duration(seconds: 12));
           if (currentRequestId != _playRequestId) {
             try { await _player.pause(); } catch (_) {}
             return;
-          }
-          if (_skipSilenceEnabled && song.duration > const Duration(seconds: 15)) {
-            await _player.seek(const Duration(milliseconds: 900)).catchError((_) {});
           }
           await _player.play();
           started = true;
@@ -730,7 +731,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               await _player.setUrl(
                 url,
                 headers: null,
-                initialPosition: Duration.zero,
+                initialPosition: initPos,
                 preload: true,
               ).timeout(const Duration(seconds: 8));
               if (currentRequestId != _playRequestId) {
@@ -767,7 +768,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               await _player.setUrl(
                 url,
                 headers: isYouTubeStream ? _youtubeHeaders : null,
-                initialPosition: Duration.zero,
+                initialPosition: initPos,
                 preload: true,
               ).timeout(const Duration(seconds: 12));
               if (currentRequestId != _playRequestId) {
@@ -788,7 +789,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                   await _player.setUrl(
                     url,
                     headers: null,
-                    initialPosition: Duration.zero,
+                    initialPosition: initPos,
                     preload: true,
                   ).timeout(const Duration(seconds: 8));
                   if (currentRequestId != _playRequestId) {

@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.3.7%20(Build%2037)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.3.8%20(Build%2038)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.3.7)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.7.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.3.8)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.8.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy studio-grade ad-free music instantly.*
 
@@ -36,6 +36,8 @@
 
 ## 📖 Table of Contents
 - [What Is Sine?](#-what-is-sine)
+- [What's New in v1.3.8](#-whats-new-in-v138)
+- [What's New in v1.3.7](#-whats-new-in-v137)
 - [What's New in v1.3.6](#-whats-new-in-v136)
 - [What's New in v1.3.5](#-whats-new-in-v135)
 - [What's New in v1.3.4](#-whats-new-in-v134)
@@ -66,7 +68,26 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 
 ---
 
-## 🌟 What's New in v1.3.6
+## 🌟 What's New in v1.3.8
+
+1. **Instant Sub-300ms Song Playback & InnerTube Latency Elimination**:
+   - Reordered InnerTube client cascade to prioritize `androidSdkless` and `ios` profiles, bypassing the failing PO token checks and 3-4s timeout delays introduced by YouTube in 2026.
+   - Stream extractor now prioritizes lightweight, standalone AAC MP4 (itag 140, ~128 kbps pure audio, ~3 MB) and WebM Opus (itag 251, ~160 kbps pure audio) over bulky 50-100 MB muxed video streams.
+   - Replaced sequential stream cipher unthrottling with high-concurrency parallel unthrottling.
+   - Streamlined initial playback position passing directly into ExoPlayer `setUrl()` to eliminate secondary HTTP range request seek overhead.
+   - Immediate next-track prefetching on queue updates for instant track switching.
+
+2. **Continuous Dynamic Album Cover Ambient Light Aura**:
+   - Real-time dominant, secondary, and accent color extraction from song album artwork using fast native 24x24 bitmap sampling.
+   - Player ambient lighting halo dynamically matches the exact color scheme of the currently playing song's artwork.
+   - Continuous 24-second orbital halo rotation and smooth 3.6-second breathing pulse that never restarts, stutters, or jumps when tracks change.
+   - Smooth 1000ms `Color.lerp` cross-fade between colors during song transitions.
+
+3. **Color-Matched Dynamic Vinyl Disc Label**:
+   - Vinyl record center label and radial sheen dynamically rendered using the song artwork's vibrant palette with micro-grooves and metallic spindle rim.
+   - Continuous smooth rotation synchronized with playback state without resetting across widget rebuilds.
+
+---
 
 1. **Responsive, Overflow-Free Lyrics Toolbar**:
    - The floating toolbar with `Karaoke`, `Translate`, `Romaji`, and `Story Card` pills is now dynamically width-constrained and horizontally scrollable with bouncing physics.

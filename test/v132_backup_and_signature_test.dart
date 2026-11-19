@@ -9,12 +9,12 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('v1.3.2 Permanent Keystore & File-Based Backup Suite', () {
-    test('AppConstants matches v1.3.2/v1.3.3/v1.3.4/v1.3.5/v1.3.6/v1.3.7 Release Spec', () {
+    test('AppConstants matches v1.3.2 through v1.3.8 Release Spec', () {
       expect(AppConstants.appName, 'Sine');
-      expect(AppConstants.version, anyOf('1.3.2', '1.3.3', '1.3.4', '1.3.5', '1.3.6', '1.3.7'));
-      expect(AppConstants.buildNumber, anyOf(32, 33, 34, 35, 36, 37));
-      expect(AppConstants.fullVersion, anyOf('1.3.2+32', '1.3.3+33', '1.3.4+34', '1.3.5+35', '1.3.6+36', '1.3.7+37'));
-      expect(AppConstants.releaseTag, anyOf('v1.3.2', 'v1.3.3', 'v1.3.4', 'v1.3.5', 'v1.3.6', 'v1.3.7'));
+      expect(AppConstants.version, anyOf('1.3.2', '1.3.3', '1.3.4', '1.3.5', '1.3.6', '1.3.7', '1.3.8'));
+      expect(AppConstants.buildNumber, anyOf(32, 33, 34, 35, 36, 37, 38));
+      expect(AppConstants.fullVersion, anyOf('1.3.2+32', '1.3.3+33', '1.3.4+34', '1.3.5+35', '1.3.6+36', '1.3.7+37', '1.3.8+38'));
+      expect(AppConstants.releaseTag, anyOf('v1.3.2', 'v1.3.3', 'v1.3.4', 'v1.3.5', 'v1.3.6', 'v1.3.7', 'v1.3.8'));
     });
 
     test('Permanent RSA-2048 sine-release.jks keystore exists in android/app', () {
@@ -78,8 +78,8 @@ void main() {
 
       final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
       expect(decoded['format'], 'SINE_BACKUP');
-      expect(decoded['version'], anyOf('1.3.2', '1.3.3', '1.3.4', '1.3.5', '1.3.6', '1.3.7'));
-      expect(decoded['versionCode'], anyOf(32, 33, 34, 35, 36, 37));
+      expect(decoded['version'], anyOf('1.3.2', '1.3.3', '1.3.4', '1.3.5', '1.3.6', '1.3.7', '1.3.8'));
+      expect(decoded['versionCode'], anyOf(32, 33, 34, 35, 36, 37, 38));
 
       final playlists = decoded['playlists'] as List;
       expect(playlists.length, 1);

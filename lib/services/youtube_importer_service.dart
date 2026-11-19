@@ -347,8 +347,8 @@ class YouTubeImporterService {
     // 3. androidVr: Meta Quest 3 endpoint, often bypasses regular mobile rate-limits
     // 4. androidMusic: YouTube Music endpoint, dedicated audio streams
     final clientProfiles = [
-      [YoutubeApiClient.android, YoutubeApiClient.ios],
       [YoutubeApiClient.androidSdkless],
+      [YoutubeApiClient.ios],
       [YoutubeApiClient.androidVr],
       [YoutubeApiClient.androidMusic],
     ];
@@ -370,27 +370,45 @@ class YouTubeImporterService {
         final mp4Audio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'mp4').toList();
         final webmAudio = manifest.audioOnly.where((s) => s.container.name.toLowerCase() == 'webm').toList();
 
-        // Rock-solid stream candidate ordering (from proven v1.0.8 architecture):
-        // 1. Primary (Fastest & 100% Reliable): Progressive Muxed MP4 (itag 18, 360p container with AAC audio)
-        // Instant hardware decoding on Android ExoPlayer, immune to DASH cipher throttling & PO-token 403 blocks (~300ms playback)
-        if (muxedMp4.isNotEmpty) {
-          candidates.add(muxedMp4.withHighestBitrate().url.toString());
-        }
-
-        // 2. Secondary Fallback: Standalone MP4 AAC (itag 140, ~128 kbps)
-        if (mp4Audio.isNotEmpty) {
-          candidates.add(mp4Audio.withHighestBitrate().url.toString());
-        }
-
-        // 3. Tertiary Fallback: Standalone WebM Opus (itag 251, ~160 kbps)
-        if (webmAudio.isNotEmpty) {
-          candidates.add(webmAudio.withHighestBitrate().url.toString());
-        }
-        if (candidates.isNotEmpty) {
-          final unthrottled = <String>[];
-          for (final c in candidates) {
-            unthrottled.add(await YouTubeCipherService.unthrottleUrl(c));
+        // Optimized candidate ordering:
+        // Priority 1: Standalone AAC MP4 (itag 140, ~128 kbps pure audio, ~3MB file size).
+        // Instant hardware decoding on Android MediaCodec, buffers in <150ms without video overhead.
+        // Priority 2: Standalone WebM Opus (itag 251, ~160 kbps pure audio).
+        // Priority 3: Progressive Muxed MP4 (itag 18, 360p) as fallback.
+        if (preferProgressiveMp4) {
+          if (muxedMp4.isNotEmpty) {
+            final itag18 = muxedMp4.firstWhere(
+              (s) => s.tag == 18,
+              orElse: () => muxedMp4.first,
+            );
+            candidates.add(itag18.url.toString());
           }
+          if (mp4Audio.isNotEmpty) {
+            candidates.add(mp4Audio.withHighestBitrate().url.toString());
+          }
+          if (webmAudio.isNotEmpty) {
+            candidates.add(webmAudio.withHighestBitrate().url.toString());
+          }
+        } else {
+          if (mp4Audio.isNotEmpty) {
+            candidates.add(mp4Audio.withHighestBitrate().url.toString());
+          }
+          if (webmAudio.isNotEmpty) {
+            candidates.add(webmAudio.withHighestBitrate().url.toString());
+          }
+          if (muxedMp4.isNotEmpty) {
+            final itag18 = muxedMp4.firstWhere(
+              (s) => s.tag == 18,
+              orElse: () => muxedMp4.first,
+            );
+            candidates.add(itag18.url.toString());
+          }
+        }
+
+        if (candidates.isNotEmpty) {
+          final unthrottled = await Future.wait(
+            candidates.map((c) => YouTubeCipherService.unthrottleUrl(c)),
+          );
           LogService.stream('YouTubeEngine', 'InnerTube resolved ${unthrottled.length} candidate(s) via $clientName for $cleanId (n-unthrottled)');
           _cacheStreams(cacheKey, unthrottled);
           return unthrottled;

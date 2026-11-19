@@ -6,6 +6,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/song.dart';
 import '../providers/player_provider.dart';
 import '../theme/ember_theme.dart';
+import '../services/cover_color_service.dart';
 import '../widgets/ambient_glow.dart';
 import '../widgets/vinyl_disc.dart';
 import '../widgets/synchronized_lyrics_view.dart';
@@ -26,10 +27,30 @@ class NowPlayingScreen extends StatefulWidget {
 
 class _NowPlayingScreenState extends State<NowPlayingScreen> {
   bool _showLyrics = false;
+  CoverPalette? _coverPalette;
+  String? _lastArtworkUrl;
+
+  void _updatePalette(Song song) {
+    if (_lastArtworkUrl == song.artworkUrl && _coverPalette != null) return;
+    _lastArtworkUrl = song.artworkUrl;
+    _coverPalette = CoverColorService.instance.getPaletteSync(song);
+    CoverColorService.instance.getPalette(song).then((palette) {
+      if (mounted && _lastArtworkUrl == song.artworkUrl) {
+        setState(() {
+          _coverPalette = palette;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final song = context.select<PlayerProvider, Song?>((p) => p.currentSong);
+
+    if (song != null) {
+      _updatePalette(song);
+    }
+    final palette = _coverPalette ?? CoverColorService.instance.getPaletteSync(song);
 
     if (song == null) {
       return Scaffold(
@@ -252,6 +273,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                         child: RepaintBoundary(
                                           child: AmbientGlow(
                                             isPlaying: isPlaying,
+                                            glowColor: palette.dominant,
+                                            secondaryGlowColor: palette.secondary,
                                             child: FittedBox(
                                               fit: BoxFit.contain,
                                               child: AnimatedScale(
@@ -271,6 +294,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                                           child: VinylDisc(
                                                             size: 240,
                                                             isPlaying: isPlaying,
+                                                            labelColor: palette.dominant,
+                                                            accentColor: palette.accent,
                                                           ),
                                                         ),
                                                       ),

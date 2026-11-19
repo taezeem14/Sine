@@ -17,7 +17,7 @@ def get_token():
     return token
 
 def main():
-    tag = sys.argv[1] if len(sys.argv) > 1 else 'v1.3.7'
+    tag = sys.argv[1] if len(sys.argv) > 1 else 'v1.3.8'
     if not tag.startswith('v'):
         tag = 'v' + tag
 

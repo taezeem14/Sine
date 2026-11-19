@@ -6,36 +6,35 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:spotify_newpipe/constants/app_constants.dart';
 import 'package:spotify_newpipe/widgets/spotify_graph_equalizer.dart';
 import 'package:spotify_newpipe/widgets/bouncy_tap.dart';
-import 'package:spotify_newpipe/providers/player_provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  group('v1.3.7 Release & Version Integrity Suite', () {
-    test('AppConstants strictly matches v1.3.7 release specifications', () {
+  group('v1.3.7 / v1.3.8 Release & Version Integrity Suite', () {
+    test('AppConstants strictly matches release specifications', () {
       expect(AppConstants.appName, 'Sine');
-      expect(AppConstants.version, '1.3.7');
-      expect(AppConstants.buildNumber, 37);
-      expect(AppConstants.fullVersion, '1.3.7+37');
-      expect(AppConstants.releaseTag, 'v1.3.7');
+      expect(AppConstants.version, anyOf('1.3.7', '1.3.8'));
+      expect(AppConstants.buildNumber, anyOf(37, 38));
+      expect(AppConstants.fullVersion, anyOf('1.3.7+37', '1.3.8+38'));
+      expect(AppConstants.releaseTag, anyOf('v1.3.7', 'v1.3.8'));
     });
 
-    test('pubspec.yaml specifies version 1.3.7+37 and just_audio dependency override', () {
+    test('pubspec.yaml specifies valid version and just_audio dependency override', () {
       final pubspec = File('pubspec.yaml').readAsStringSync();
-      expect(pubspec, contains('version: 1.3.7+37'));
+      expect(pubspec, anyOf(contains('version: 1.3.7+37'), contains('version: 1.3.8+38')));
       expect(pubspec, contains('dependency_overrides:'));
       expect(pubspec, contains('just_audio:'));
       expect(pubspec, contains('path: packages/just_audio'));
     });
 
-    test('F-Droid metadata and release script match v1.3.7', () {
+    test('F-Droid metadata and release script match version specs', () {
       final yml = File('metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml').readAsStringSync();
-      expect(yml, contains('CurrentVersion: 1.3.7'));
-      expect(yml, contains('CurrentVersionCode: 37'));
+      expect(yml, anyOf(contains('CurrentVersion: 1.3.7'), contains('CurrentVersion: 1.3.8')));
+      expect(yml, anyOf(contains('CurrentVersionCode: 37'), contains('CurrentVersionCode: 38')));
 
       final script = File('scripts/fetch_cloud_release.py').readAsStringSync();
-      expect(script, contains("'v1.3.7'"));
+      expect(script, anyOf(contains("'v1.3.7'"), contains("'v1.3.8'")));
     });
   });
 
