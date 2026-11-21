@@ -25,21 +25,62 @@ class NowPlayingScreen extends StatefulWidget {
   State<NowPlayingScreen> createState() => _NowPlayingScreenState();
 }
 
-class _NowPlayingScreenState extends State<NowPlayingScreen> {
+class _NowPlayingScreenState extends State<NowPlayingScreen> with SingleTickerProviderStateMixin {
   bool _showLyrics = false;
   CoverPalette? _coverPalette;
   String? _lastPaletteKey;
+
+  // Interactive swipe-down-to-minimize gesture state (zero setState during 120 FPS drag!)
+  final ValueNotifier<double> _dismissDragY = ValueNotifier<double>(0.0);
+  late final AnimationController _snapBackController;
+  double _snapBackStart = 0.0;
 
   @override
   void initState() {
     super.initState();
     CoverColorService.instance.paletteRevision.addListener(_onPaletteRevision);
+    _snapBackController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+    )..addListener(() {
+        final t = Curves.easeOutCubic.transform(_snapBackController.value);
+        _dismissDragY.value = _snapBackStart * (1.0 - t);
+      });
   }
 
   @override
   void dispose() {
     CoverColorService.instance.paletteRevision.removeListener(_onPaletteRevision);
+    _snapBackController.dispose();
+    _dismissDragY.dispose();
     super.dispose();
+  }
+
+  void _handleDismissDragUpdate(DragUpdateDetails details) {
+    if (_snapBackController.isAnimating) _snapBackController.stop();
+    final next = (_dismissDragY.value + details.delta.dy).clamp(0.0, 420.0);
+    _dismissDragY.value = next;
+  }
+
+  void _handleDismissDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0.0;
+    final current = _dismissDragY.value;
+    if (current > 110.0 || velocity > 480.0) {
+      HapticFeedback.lightImpact();
+      Navigator.of(context).pop();
+      return;
+    }
+    if (current > 0.0) {
+      _snapBackStart = current;
+      _snapBackController.forward(from: 0.0);
+    }
+  }
+
+  void _handleDismissDragCancel() {
+    if (_dismissDragY.value > 0.0) {
+      _snapBackStart = _dismissDragY.value;
+      _snapBackController.forward(from: 0.0);
+    }
   }
 
   void _onPaletteRevision() {
@@ -120,78 +161,96 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
     final isStemLoading = context.select<PlayerProvider, bool>((p) => p.isLoadingStem);
     final isPlaying = context.select<PlayerProvider, bool>((p) => p.isPlaying);
 
-    return Scaffold(
-      backgroundColor: EmberColors.obsidianBase,
-      body: FluidMeshGradientBackground(
-        song: song,
-        palette: palette,
-        isPlaying: isPlaying,
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              // Single-pass bounded height eliminates IntrinsicHeight double-measure jank
-              final targetHeight = constraints.maxHeight > 540 ? constraints.maxHeight : 540.0;
-              return SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: SizedBox(
-                  height: targetHeight,
-                  child: Column(
+    return ValueListenableBuilder<double>(
+      valueListenable: _dismissDragY,
+      builder: (context, dragY, child) {
+        final cornerRadius = (dragY / 6.0).clamp(0.0, 26.0);
+        return Transform.translate(
+          offset: Offset(0, dragY),
+          child: ClipRRect(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(cornerRadius)),
+            child: child,
+          ),
+        );
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        // Interactive swipe-down-to-minimize when in cover view (lyrics scrolls vertically when active)
+        onVerticalDragUpdate: _showLyrics ? null : _handleDismissDragUpdate,
+        onVerticalDragEnd: _showLyrics ? null : _handleDismissDragEnd,
+        onVerticalDragCancel: _showLyrics ? null : _handleDismissDragCancel,
+        child: Scaffold(
+          backgroundColor: EmberColors.obsidianBase,
+          body: FluidMeshGradientBackground(
+            song: song,
+            palette: palette,
+            isPlaying: isPlaying,
+            child: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final content = Column(
                     children: [
-                        // 1. Top Navigation Bar
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                icon: FaIcon(FontAwesomeIcons.chevronDown, size: 18, color: EmberColors.textPrimary),
-                                tooltip: 'Collapse',
-                                onPressed: () => Navigator.of(context).pop(),
-                              ),
-                              Expanded(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'PLAYING FROM',
-                                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                            color: EmberColors.textMuted,
-                                            letterSpacing: 1.5,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      playingFrom.toUpperCase(),
-                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                            color: EmberColors.primaryBlue,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
+                        // 1. Top Navigation Bar (also acts as a dedicated swipe-down handle even in lyrics mode)
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onVerticalDragUpdate: _handleDismissDragUpdate,
+                          onVerticalDragEnd: _handleDismissDragEnd,
+                          onVerticalDragCancel: _handleDismissDragCancel,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                IconButton(
+                                  icon: FaIcon(FontAwesomeIcons.chevronDown, size: 18, color: EmberColors.textPrimary),
+                                  tooltip: 'Collapse',
+                                  onPressed: () => Navigator.of(context).pop(),
                                 ),
-                              ),
-                              // Car / Driving Mode Quick Toggle (Feature 8)
-                              IconButton(
-                                icon: const FaIcon(FontAwesomeIcons.car, size: 17, color: EmberColors.textSecondary),
-                                tooltip: 'Driving Mode',
-                                onPressed: () => CarModeScreen.show(context),
-                              ),
-                              // Quick Sine QR Code Share
-                              IconButton(
-                                icon: FaIcon(FontAwesomeIcons.qrcode, size: 18, color: EmberColors.textSecondary),
-                                tooltip: 'Show Sine QR Code',
-                                onPressed: () => SineQrCodeSheet.show(context, song),
-                              ),
-                              // Three Dots Menu -> Opens Track Options Bottom Sheet
-                              IconButton(
-                                icon: FaIcon(FontAwesomeIcons.ellipsis, size: 18, color: EmberColors.textSecondary),
-                                tooltip: 'More Options',
-                                onPressed: () => TrackOptionsSheet.show(context, song),
-                              ),
-                            ],
+                                Expanded(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'PLAYING FROM',
+                                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                              color: EmberColors.textMuted,
+                                              letterSpacing: 1.5,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        playingFrom.toUpperCase(),
+                                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                              color: EmberColors.primaryBlue,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Car / Driving Mode Quick Toggle (Feature 8)
+                                IconButton(
+                                  icon: const FaIcon(FontAwesomeIcons.car, size: 17, color: EmberColors.textSecondary),
+                                  tooltip: 'Driving Mode',
+                                  onPressed: () => CarModeScreen.show(context),
+                                ),
+                                // Quick Sine QR Code Share
+                                IconButton(
+                                  icon: FaIcon(FontAwesomeIcons.qrcode, size: 18, color: EmberColors.textSecondary),
+                                  tooltip: 'Show Sine QR Code',
+                                  onPressed: () => SineQrCodeSheet.show(context, song),
+                                ),
+                                // Three Dots Menu -> Opens Track Options Bottom Sheet
+                                IconButton(
+                                  icon: FaIcon(FontAwesomeIcons.ellipsis, size: 18, color: EmberColors.textSecondary),
+                                  tooltip: 'More Options',
+                                  onPressed: () => TrackOptionsSheet.show(context, song),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
 
@@ -262,126 +321,130 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                           ),
                         ),
 
-                      // 3. Center Viewport: Animated flip between Album Art / Vinyl and Synchronized Lyrics
-                      // Expanded ensures it occupies all available vertical display space without any dead space at the bottom
+                      // 3. Center Viewport: Smooth cross-fade between Album Art / Vinyl and Synchronized Lyrics
+                      // Keeps AmbientGlow & VinylDisc alive so toggling lyrics never cold-restarts animation controllers.
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          child: Center(
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 320),
-                              transitionBuilder: (child, anim) => FadeTransition(
-                                opacity: anim,
-                                child: ScaleTransition(
-                                  scale: Tween<double>(begin: 0.96, end: 1.0).animate(anim),
-                                  child: child,
-                                ),
-                              ),
-                              child: _showLyrics
-                                  ? Container(
-                                      key: const ValueKey('lyrics_mode'),
-                                      margin: const EdgeInsets.symmetric(vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: EmberColors.surfaceContainerLow.withValues(alpha: 0.6),
-                                        borderRadius: BorderRadius.circular(24),
-                                        border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.4)),
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(24),
-                                        child: const RepaintBoundary(
-                                          child: SynchronizedLyricsView(),
-                                        ),
-                                      ),
-                                    )
-                                  : Center(
-                                      key: const ValueKey('vinyl_mode'),
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          HapticFeedback.selectionClick();
-                                          setState(() => _showLyrics = true);
-                                        },
-                                        onHorizontalDragEnd: (details) {
-                                          final v = details.primaryVelocity ?? 0;
-                                          if (v < -260) {
-                                            HapticFeedback.lightImpact();
-                                            context.read<PlayerProvider>().skipNext();
-                                          } else if (v > 260) {
-                                            HapticFeedback.lightImpact();
-                                            context.read<PlayerProvider>().skipPrevious();
-                                          }
-                                        },
-                                        child: RepaintBoundary(
-                                          child: AmbientGlow(
-                                            isPlaying: isPlaying,
-                                            glowColor: palette.dominant,
-                                            secondaryGlowColor: palette.secondary,
-                                            child: FittedBox(
-                                              fit: BoxFit.contain,
-                                              child: AnimatedScale(
-                                                scale: isPlaying ? 1.0 : 0.94,
-                                                duration: const Duration(milliseconds: 350),
-                                                curve: Curves.easeOutBack,
-                                                child: SizedBox(
-                                                  width: 320,
-                                                  height: 280,
-                                                  child: Stack(
-                                                    alignment: Alignment.centerLeft,
-                                                    children: [
-                                                      // Vinyl disc peek from right
-                                                      Positioned(
-                                                        right: 0,
-                                                        child: RepaintBoundary(
-                                                          child: VinylDisc(
-                                                            size: 240,
-                                                            isPlaying: isPlaying,
-                                                            labelColor: palette.dominant,
-                                                            accentColor: palette.accent,
-                                                          ),
-                                                        ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              IgnorePointer(
+                                ignoring: _showLyrics,
+                                child: AnimatedOpacity(
+                                  opacity: _showLyrics ? 0.0 : 1.0,
+                                  duration: const Duration(milliseconds: 240),
+                                  curve: Curves.easeOutCubic,
+                                  child: Center(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        HapticFeedback.selectionClick();
+                                        setState(() => _showLyrics = true);
+                                      },
+                                      onHorizontalDragEnd: (details) {
+                                        final v = details.primaryVelocity ?? 0;
+                                        if (v < -260) {
+                                          HapticFeedback.lightImpact();
+                                          context.read<PlayerProvider>().skipNext();
+                                        } else if (v > 260) {
+                                          HapticFeedback.lightImpact();
+                                          context.read<PlayerProvider>().skipPrevious();
+                                        }
+                                      },
+                                      child: AmbientGlow(
+                                        isPlaying: isPlaying && !_showLyrics,
+                                        glowColor: palette.dominant,
+                                        secondaryGlowColor: palette.secondary,
+                                        child: FittedBox(
+                                          fit: BoxFit.contain,
+                                          child: AnimatedScale(
+                                            scale: isPlaying ? 1.0 : 0.94,
+                                            duration: const Duration(milliseconds: 300),
+                                            curve: Curves.easeOutCubic,
+                                            child: SizedBox(
+                                              width: 320,
+                                              height: 280,
+                                              child: Stack(
+                                                alignment: Alignment.centerLeft,
+                                                children: [
+                                                  // Vinyl disc peek from right
+                                                  Positioned(
+                                                    right: 0,
+                                                    child: RepaintBoundary(
+                                                      child: VinylDisc(
+                                                        size: 240,
+                                                        isPlaying: isPlaying && !_showLyrics,
+                                                        labelColor: palette.dominant,
+                                                        accentColor: palette.accent,
                                                       ),
-                                                      // Square album cover
-                                                      Hero(
-                                                        tag: 'player_art_${song.id.isNotEmpty ? song.id : "default"}',
-                                                        child: ClipRRect(
-                                                          borderRadius: BorderRadius.circular(24),
-                                                          child: Container(
-                                                            width: 260,
-                                                            height: 260,
-                                                            decoration: BoxDecoration(
-                                                              color: EmberColors.surfaceContainerHigh,
-                                                              boxShadow: [
-                                                                BoxShadow(
-                                                                  color: Colors.black.withValues(alpha: 0.5),
-                                                                  blurRadius: 20,
-                                                                  offset: const Offset(4, 4),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                            child: song.artworkUrl.isNotEmpty
-                                                                ? CachedNetworkImage(
-                                                                    imageUrl: song.artworkUrl,
-                                                                    memCacheWidth: 600,
-                                                                    fit: BoxFit.cover,
-                                                                    errorWidget: (_, _, _) => Center(
-                                                                      child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
-                                                                    ),
-                                                                  )
-                                                                : Center(
-                                                                    child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
-                                                                  ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
+                                                    ),
                                                   ),
-                                                ),
+                                                  // Square album cover (no Hero/FittedBox rect mismatch stutter)
+                                                  ClipRRect(
+                                                    borderRadius: BorderRadius.circular(24),
+                                                    child: Container(
+                                                      width: 260,
+                                                      height: 260,
+                                                      decoration: BoxDecoration(
+                                                        color: EmberColors.surfaceContainerHigh,
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                            color: Colors.black.withValues(alpha: 0.48),
+                                                            blurRadius: 18,
+                                                            offset: const Offset(4, 4),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      child: song.artworkUrl.isNotEmpty
+                                                          ? CachedNetworkImage(
+                                                              imageUrl: song.artworkUrl,
+                                                              memCacheWidth: 600,
+                                                              fit: BoxFit.cover,
+                                                              errorWidget: (_, _, _) => Center(
+                                                                child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
+                                                              ),
+                                                            )
+                                                          : Center(
+                                                              child: FaIcon(FontAwesomeIcons.music, size: 48, color: EmberColors.primaryBlue),
+                                                            ),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                           ),
                                         ),
                                       ),
                                     ),
-                            ),
+                                  ),
+                                ),
+                              ),
+                              IgnorePointer(
+                                ignoring: !_showLyrics,
+                                child: AnimatedOpacity(
+                                  opacity: _showLyrics ? 1.0 : 0.0,
+                                  duration: const Duration(milliseconds: 240),
+                                  curve: Curves.easeOutCubic,
+                                  child: _showLyrics
+                                      ? Container(
+                                          key: const ValueKey('lyrics_mode'),
+                                          margin: const EdgeInsets.symmetric(vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: EmberColors.surfaceContainerLow.withValues(alpha: 0.62),
+                                            borderRadius: BorderRadius.circular(24),
+                                            border: Border.all(color: EmberColors.outlineVariant.withValues(alpha: 0.4)),
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(24),
+                                            child: const RepaintBoundary(
+                                              child: SynchronizedLyricsView(),
+                                            ),
+                                          ),
+                                        )
+                                      : const SizedBox.shrink(),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -466,10 +529,17 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
 
                       const SizedBox(height: 16),
                     ],
-                  ),
-                ),
-              );
-            },
+                  );
+                  if (constraints.maxHeight < 540) {
+                    return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: SizedBox(height: 540.0, child: content),
+                    );
+                  }
+                  return SizedBox(height: constraints.maxHeight, child: content);
+                },
+              ),
+            ),
           ),
         ),
       ),
@@ -620,31 +690,32 @@ class _TransportControlsSection extends StatelessWidget {
               player.skipPrevious();
             },
           ),
-          // Hero 68px circular play/pause button with glowing blue shadow
-          AnimatedScale(
-            scale: isLoadingStream ? 0.93 : 1.0,
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutBack,
-            child: Container(
-              width: 68,
-              height: 68,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [EmberColors.primaryBlueHi, EmberColors.primaryBlue],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: EmberColors.primaryBlue.withValues(alpha: 0.45),
-                    blurRadius: 22,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 6),
+          // 68px circular play/pause button isolated in RepaintBoundary
+          RepaintBoundary(
+            child: AnimatedScale(
+              scale: isLoadingStream ? 0.93 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              child: Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [EmberColors.primaryBlueHi, EmberColors.primaryBlue],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                ],
-              ),
-              child: IconButton(
+                  boxShadow: [
+                    BoxShadow(
+                      color: EmberColors.primaryBlue.withValues(alpha: 0.42),
+                      blurRadius: 18,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: IconButton(
                 icon: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 220),
                   transitionBuilder: (child, anim) => ScaleTransition(
@@ -668,10 +739,11 @@ class _TransportControlsSection extends StatelessWidget {
                           size: 24,
                         ),
                 ),
-                onPressed: () {
-                  HapticFeedback.selectionClick();
-                  player.togglePlay();
-                },
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    player.togglePlay();
+                  },
+                ),
               ),
             ),
           ),
@@ -940,6 +1012,9 @@ class _UtilityPillsRow extends StatelessWidget {
     final eqPreset = context.select<PlayerProvider, String>((p) => p.eqPreset);
     final eqEnabled = context.select<PlayerProvider, bool>((p) => p.eqEnabled);
     final sleepAtTrackEnd = context.select<PlayerProvider, bool>((p) => p.sleepAtTrackEnd);
+    final speed = context.select<PlayerProvider, double>((p) => p.speed);
+    final queueLength = context.select<PlayerProvider, int>((p) => p.queue.length);
+    final currentIndex = context.select<PlayerProvider, int>((p) => p.currentIndex);
     final player = context.read<PlayerProvider>();
 
     return Padding(
@@ -983,17 +1058,17 @@ class _UtilityPillsRow extends StatelessWidget {
             const SizedBox(width: 8),
             _PillAction(
               icon: FontAwesomeIcons.gaugeHigh,
-              label: '${(player.speed * 10).round() == player.speed * 10 ? player.speed.toStringAsFixed(1) : player.speed.toStringAsFixed(2)}x',
-              active: (player.speed - 1.0).abs() > 0.01,
+              label: '${(speed * 10).round() == speed * 10 ? speed.toStringAsFixed(1) : speed.toStringAsFixed(2)}x',
+              active: (speed - 1.0).abs() > 0.01,
               onTap: () => PlaybackSpeedSheet.show(context),
             ),
             const SizedBox(width: 8),
             _PillAction(
               icon: FontAwesomeIcons.listUl,
-              label: player.queue.isNotEmpty
-                  ? 'Queue (${player.currentIndex + 1}/${player.queue.length})'
+              label: queueLength > 0
+                  ? 'Queue (${currentIndex + 1}/$queueLength)'
                   : 'Queue',
-              active: player.queue.length > 1,
+              active: queueLength > 1,
               onTap: () {
                 if (_isQueueNavigating) return;
                 _isQueueNavigating = true;

@@ -393,9 +393,17 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
     context.select<PlayerProvider, int>((p) => p.favorites.length);
     context.select<PlayerProvider, int>((p) => p.downloads.length);
     context.select<PlayerProvider, int>((p) => p.downloadedVideos.length);
-    context.select<PlayerProvider, int>((p) => p.playlists.length);
-    context.select<PlayerProvider, int>((p) => p.history.length);
-    context.select<PlayerProvider, String?>((p) => p.currentSong?.id);
+    context.select<PlayerProvider, int>(
+      (p) => Object.hash(
+        p.playlists.length,
+        Object.hashAll(p.playlists.map((pl) => Object.hash(pl.id, pl.title, pl.coverUrl, pl.songs.length))),
+      ),
+    );
+    context.select<PlayerProvider, (int, String?)>(
+      (p) => (p.history.length, p.history.isNotEmpty ? p.history.first.id : null),
+    );
+    context.select<PlayerProvider, (int, bool)>((p) => (p.deviceSongs.length, p.isScanningDevice));
+    context.select<PlayerProvider, (String?, bool)>((p) => (p.currentSong?.id, p.isPlaying));
     final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
     final player = context.read<PlayerProvider>();
 

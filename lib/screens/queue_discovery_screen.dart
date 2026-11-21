@@ -22,17 +22,20 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
   @override
   Widget build(BuildContext context) {
     final player = context.read<PlayerProvider>();
-    // Surgical selectors eliminate micro-jank during queue scroll & drag-reorder
+    // Surgical selectors with value-stable hashes (never allocate fresh List<Song>.from per check!)
     final currentSong = context.select<PlayerProvider, Song?>((p) => p.currentSong);
-    final queue = context.select<PlayerProvider, List<Song>>((p) => List<Song>.from(p.queue));
     final currentIndex = context.select<PlayerProvider, int>((p) => p.currentIndex);
-    final recommendations = context.select<PlayerProvider, List<Song>>((p) => List<Song>.from(p.recommendations));
     final isPlaying = context.select<PlayerProvider, bool>((p) => p.isPlaying);
     final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
-    final themeData = context.select<PlayerProvider, ThemeData>((p) => p.themeData);
+    context.select<PlayerProvider, int>((p) => Object.hash(p.queue.length, Object.hashAll(p.queue.map((s) => s.id))));
+    context.select<PlayerProvider, int>((p) => Object.hash(p.recommendations.length, Object.hashAll(p.recommendations.map((s) => s.id))));
     context.select<PlayerProvider, String>((p) => p.playingFrom);
     context.select<PlayerProvider, bool>((p) => p.isLoadingRecommendations);
+    context.select<PlayerProvider, bool>((p) => p.isAutoplayEnabled);
     context.select<PlayerProvider, bool>((p) => currentSong != null && p.isFavorite(currentSong.id));
+
+    final queue = player.queue;
+    final recommendations = player.recommendations;
 
     final upNext = currentIndex >= 0 && currentIndex < queue.length - 1
         ? queue.sublist(currentIndex + 1)
@@ -40,14 +43,10 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
 
     final bgColor = isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase;
 
-    return AnimatedTheme(
-      data: themeData,
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeInOutCubic,
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: bgColor,
+      appBar: AppBar(
         backgroundColor: bgColor,
-        appBar: AppBar(
-          backgroundColor: bgColor,
         elevation: 0,
         leading: IconButton(
           icon: FaIcon(FontAwesomeIcons.chevronDown, size: 18, color: EmberColors.textPrimary),
@@ -509,9 +508,8 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _NowPlayingHighlightCard extends StatefulWidget {
@@ -572,32 +570,28 @@ class _NowPlayingHighlightCardState extends State<_NowPlayingHighlightCard>
   Widget build(BuildContext context) {
     final activeAccent = Theme.of(context).colorScheme.primary;
 
-    return AnimatedBuilder(
-      animation: _pulseAnimation,
-      builder: (context, _) {
-        final pulseVal = widget.isPlaying ? _pulseAnimation.value : 0.0;
-        final borderAlpha = 0.35 + (0.35 * pulseVal);
-        final glowAlpha = 0.10 + (0.15 * pulseVal);
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _pulseAnimation,
+        builder: (context, child) {
+          final pulseVal = widget.isPlaying ? _pulseAnimation.value : 0.0;
+          final borderAlpha = 0.35 + (0.40 * pulseVal);
 
-        return Container(
-          decoration: BoxDecoration(
-            color: EmberColors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: activeAccent.withValues(alpha: borderAlpha),
-              width: 1.4,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: activeAccent.withValues(alpha: glowAlpha),
-                blurRadius: 14,
-                spreadRadius: 1,
+          return Container(
+            decoration: BoxDecoration(
+              color: EmberColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: activeAccent.withValues(alpha: borderAlpha),
+                width: 1.4,
               ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
+            ),
+            child: child,
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
               children: [
                 // Album Art with Playing Overlay & Equalizer Bars
                 ClipRRect(
@@ -701,8 +695,7 @@ class _NowPlayingHighlightCardState extends State<_NowPlayingHighlightCard>
               ],
             ),
           ),
-        );
-      },
+      ),
     );
   }
 }

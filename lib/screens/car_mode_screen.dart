@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../models/song.dart';
 import '../providers/player_provider.dart';
 import '../theme/ember_theme.dart';
 
@@ -12,9 +13,13 @@ class CarModeScreen extends StatelessWidget {
   static void show(BuildContext context) {
     Navigator.of(context).push(
       PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 260),
+        reverseTransitionDuration: const Duration(milliseconds: 220),
         pageBuilder: (context, anim, secAnim) => const CarModeScreen(),
         transitionsBuilder: (context, anim, secAnim, child) {
-          return FadeTransition(opacity: anim, child: child);
+          final fade = Tween<double>(begin: 0.0, end: 1.0)
+              .chain(CurveTween(curve: Curves.easeOutCubic));
+          return FadeTransition(opacity: anim.drive(fade), child: child);
         },
       ),
     );
@@ -22,9 +27,13 @@ class CarModeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
-    final currentSong = player.currentSong;
-    final isPlaying = player.isPlaying;
+    final player = context.read<PlayerProvider>();
+    final currentSong = context.select<PlayerProvider, Song?>((p) => p.currentSong);
+    final isPlaying = context.select<PlayerProvider, bool>((p) => p.isPlaying);
+    final duration = context.select<PlayerProvider, Duration>((p) => p.duration);
+    final isFav = context.select<PlayerProvider, bool>(
+      (p) => p.currentSong != null && p.isFavorite(p.currentSong!.id),
+    );
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -145,24 +154,31 @@ class CarModeScreen extends StatelessWidget {
 
                 const Spacer(flex: 1),
 
-                // Simple High-Contrast Progress Bar
-                SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 6,
-                    activeTrackColor: EmberColors.primaryBlue,
-                    inactiveTrackColor: const Color(0xFF1E293B),
-                    thumbColor: EmberColors.primaryBlueHi,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                  ),
-                  child: Slider(
-                    value: player.duration.inMilliseconds > 0
-                        ? (player.position.inMilliseconds / player.duration.inMilliseconds).clamp(0.0, 1.0)
-                        : 0.0,
-                    onChanged: (val) {
-                      final targetMs = (val * player.duration.inMilliseconds).round();
-                      player.seek(Duration(milliseconds: targetMs));
-                    },
-                  ),
+                // Live 120 FPS High-Contrast Progress Bar via positionNotifier
+                ValueListenableBuilder<Duration>(
+                  valueListenable: player.positionNotifier,
+                  builder: (context, pos, _) {
+                    final totalMs = duration.inMilliseconds;
+                    final progress = totalMs > 0
+                        ? (pos.inMilliseconds / totalMs).clamp(0.0, 1.0)
+                        : 0.0;
+                    return SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 6,
+                        activeTrackColor: EmberColors.primaryBlue,
+                        inactiveTrackColor: const Color(0xFF1E293B),
+                        thumbColor: EmberColors.primaryBlueHi,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                      ),
+                      child: Slider(
+                        value: progress,
+                        onChanged: (val) {
+                          final targetMs = (val * totalMs).round();
+                          player.seek(Duration(milliseconds: targetMs));
+                        },
+                      ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 16),
@@ -175,10 +191,10 @@ class CarModeScreen extends StatelessWidget {
                     IconButton(
                       iconSize: 32,
                       icon: FaIcon(
-                        currentSong != null && player.isFavorite(currentSong.id)
+                        isFav
                             ? FontAwesomeIcons.solidHeart
                             : FontAwesomeIcons.heart,
-                        color: currentSong != null && player.isFavorite(currentSong.id)
+                        color: isFav
                             ? EmberColors.primaryBlue
                             : Colors.white70,
                       ),

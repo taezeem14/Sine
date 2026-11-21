@@ -156,12 +156,17 @@ class CoverColorService {
         // Reuse CachedNetworkImageProvider so we read straight from disk/memory cache (~10ms)
         return await _decodeAndExtract(CachedNetworkImageProvider(url), song);
       } catch (_) {
-        // Some older YouTube tracks lack maxresdefault.jpg (HTTP 404); transparently retry hqdefault.jpg
-        if (url.contains('maxresdefault.jpg')) {
-          final hqUrl = url.replaceFirst('maxresdefault.jpg', 'hqdefault.jpg');
-          return await _decodeAndExtract(CachedNetworkImageProvider(hqUrl), song);
+        // Fallback 1: Direct NetworkImage in case cache manager failed on this URL
+        try {
+          return await _decodeAndExtract(NetworkImage(url), song);
+        } catch (_) {
+          // Fallback 2: Some older YouTube tracks lack maxresdefault.jpg (HTTP 404); transparently retry hqdefault.jpg
+          if (url.contains('maxresdefault.jpg')) {
+            final hqUrl = url.replaceFirst('maxresdefault.jpg', 'hqdefault.jpg');
+            return await _decodeAndExtract(CachedNetworkImageProvider(hqUrl), song);
+          }
+          rethrow;
         }
-        rethrow;
       }
     }
 

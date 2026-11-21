@@ -117,21 +117,21 @@ class AestheticPlaylistCover extends StatelessWidget {
       );
     }
 
-    // 2. Local File Image
+    // 2. Local File Image (zero synchronous existsSync() on UI thread; errorBuilder handles missing paths)
     if (rawCover.isNotEmpty && !rawCover.startsWith('http')) {
-      final file = File(rawCover);
-      if (file.existsSync()) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(borderRadius),
-          child: Image.file(
-            file,
-            width: size,
-            height: size,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => _buildDefaultFallback(),
-          ),
-        );
-      }
+      final cacheDim = (size * 2).round().clamp(64, 320);
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: Image.file(
+          File(rawCover),
+          width: size,
+          height: size,
+          cacheWidth: cacheDim,
+          cacheHeight: cacheDim,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultFallback(),
+        ),
+      );
     }
 
     // 3. Remote Network Image
@@ -151,10 +151,10 @@ class AestheticPlaylistCover extends StatelessWidget {
             height: size,
             color: EmberColors.charcoalCard,
             child: Center(
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: EmberColors.primaryBlue),
+              child: FaIcon(
+                FontAwesomeIcons.music,
+                size: size * 0.28,
+                color: EmberColors.textMuted.withValues(alpha: 0.4),
               ),
             ),
           ),

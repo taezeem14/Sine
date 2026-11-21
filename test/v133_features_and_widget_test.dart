@@ -355,20 +355,20 @@ void main() {
     // -----------------------------------------------------------------------
     // Feature 8: Fluid Hero Transitions
     // -----------------------------------------------------------------------
-    test('T1.8.1: MiniPlayer wraps album art in Hero widget', () {
+    test('T1.8.1: MiniPlayer provides smooth GPU sheet transition & ClipRRect album art', () {
       final miniFile = File('lib/widgets/mini_player.dart');
       expect(miniFile.existsSync(), isTrue);
       final content = miniFile.readAsStringSync();
-      expect(content, contains('Hero('));
-      expect(content, contains('player_art_'));
+      expect(content, contains('SlideTransition'));
+      expect(content, contains('ClipRRect'));
     });
 
-    test('T1.8.2: NowPlayingScreen wraps primary cover in matching Hero widget', () {
+    test('T1.8.2: NowPlayingScreen provides interactive swipe-down minimize & ClipRRect cover', () {
       final nowFile = File('lib/screens/now_playing_screen.dart');
       expect(nowFile.existsSync(), isTrue);
       final content = nowFile.readAsStringSync();
-      expect(content, contains('Hero('));
-      expect(content, contains('player_art_'));
+      expect(content, contains('_dismissDragY'));
+      expect(content, contains('ClipRRect'));
     });
 
     test('T1.8.3: Hero tag matches between mini player and now playing screen for any song ID', () {

@@ -177,6 +177,7 @@ class PlayerProvider extends ChangeNotifier {
 
   Timer? _sleepTimer;
   Timer? _bandSaveTimer;
+  Timer? _bassSaveTimer;
   int _sleepSecondsRemaining = 0;
   bool _sleepAtTrackEnd = false;
   int _crossfadeSeconds = 0;
@@ -285,6 +286,7 @@ class PlayerProvider extends ChangeNotifier {
 
   SineThemePreset get activeThemePreset => _activeThemePreset;
   Color get customThemeColor => _customThemeColor;
+  Color get activeAccentColor => _themeData.colorScheme.primary;
   bool get isOledBlack => _isOledBlack;
   ThemeData get themeData => _themeData;
 
@@ -521,17 +523,18 @@ class PlayerProvider extends ChangeNotifier {
     _stemStatusBadgeText = null;
     _isLoadingStem = false;
 
-    // Apply saved EQ preset & settings (custom band gains first so preset sync reads restored curve)
-    if (_bandGains.isNotEmpty) {
-      _audioHandler.setCustomBandGains(_bandGains);
-    }
-    _audioHandler.setEqualizerEnabled(_eqEnabled);
-    if (_bassBoost > 0.0) {
-      _audioHandler.setBassBoost(_bassBoost);
-    }
-    _audioHandler.applyEqualizerPreset(_eqPreset);
+    // Apply saved EQ preset & settings atomically (without silently forcing EQ ON when user turned it OFF)
+    _audioHandler.configureEqualizer(
+      enabled: _eqEnabled,
+      preset: _eqPreset,
+      customGains: _bandGains.isNotEmpty ? _bandGains : null,
+      bassBoost: _bassBoost,
+    );
     _audioHandler.setSpeed(_speed);
     _audioHandler.setPlayerRepeatMode(_repeatMode);
+    _audioHandler.setLoudnessNormalizationEnabled(_loudnessNormalization);
+    _audioHandler.setSkipSilenceEnabled(_skipSilence);
+    _volumeNormalizationEnabled = _loudnessNormalization;
 
     // Ensure all restored lists are completely free of legacy mock/placeholder tracks
     _favorites = _favorites.where((s) => !Song.isPlaceholder(s)).toList();
@@ -1971,22 +1974,29 @@ class PlayerProvider extends ChangeNotifier {
       _isolationMode = IsolationMode.none;
     }
 
-    // Auto-enable equalizer on preset selection
-    if (!_eqEnabled) {
+    // Mutate all in-memory EQ state synchronously BEFORE any await (eliminates async clobber races)
+    final bool wasDisabled = !_eqEnabled;
+    if (wasDisabled) {
       _eqEnabled = true;
-      await _storageService.saveEqualizerEnabled(true);
-      await _audioHandler.setEqualizerEnabled(true);
     }
 
     final gains = presetGains ?? SpotifyGraphEqualizer.getPresetGains(preset);
     for (int i = 0; i < gains.length; i++) {
       _bandGains[i] = gains[i];
     }
-    await _storageService.saveBandGains(_bandGains);
-    await _storageService.saveEqualizerPreset(preset);
-    _audioHandler.setCustomBandGains(_bandGains);
-    await _audioHandler.applyEqualizerPreset(preset);
     notifyListeners();
+
+    // Persist asynchronously and execute ONE atomic DSP sync
+    if (wasDisabled) {
+      unawaited(_storageService.saveEqualizerEnabled(true));
+    }
+    unawaited(_storageService.saveBandGains(_bandGains));
+    unawaited(_storageService.saveEqualizerPreset(preset));
+    await _audioHandler.configureEqualizer(
+      enabled: _eqEnabled,
+      preset: preset,
+      customGains: _bandGains,
+    );
   }
 
   Future<void> toggleIsolationMode(IsolationMode mode) async {
@@ -2108,31 +2118,40 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> setEqualizerEnabled(bool enabled) async {
     _eqEnabled = enabled;
-    await _storageService.saveEqualizerEnabled(enabled);
-    await _audioHandler.setEqualizerEnabled(enabled);
     notifyListeners();
+    unawaited(_storageService.saveEqualizerEnabled(enabled));
+    await _audioHandler.configureEqualizer(enabled: enabled);
   }
 
   Future<void> setBassBoost(double gain) async {
-    _bassBoost = gain;
-    if (gain > 0.0 && !_eqEnabled) {
+    final clamped = gain.clamp(0.0, 1.0);
+    final bool autoEnable = clamped > 0.0 && !_eqEnabled;
+    _bassBoost = clamped;
+    if (autoEnable) {
       _eqEnabled = true;
-      await _storageService.saveEqualizerEnabled(true);
-      await _audioHandler.setEqualizerEnabled(true);
     }
-    await _storageService.saveBassBoost(gain);
-    await _audioHandler.setBassBoost(gain);
     notifyListenersPlatform();
+
+    if (autoEnable) {
+      unawaited(_storageService.saveEqualizerEnabled(true));
+    }
+    _bassSaveTimer?.cancel();
+    _bassSaveTimer = Timer(const Duration(milliseconds: 160), () {
+      _storageService.saveBassBoost(_bassBoost);
+    });
+    await _audioHandler.configureEqualizer(
+      enabled: _eqEnabled,
+      bassBoost: clamped,
+    );
   }
 
   void notifyListenersPlatform() => notifyListeners();
 
   Future<void> setBandGain(int index, double gain) async {
-    // Auto-enable equalizer on custom band gain adjustment
-    if (!_eqEnabled) {
+    // Update all in-memory state synchronously BEFORE any await to eliminate stale-gain overwrite races
+    final bool autoEnable = !_eqEnabled;
+    if (autoEnable) {
       _eqEnabled = true;
-      await _storageService.saveEqualizerEnabled(true);
-      await _audioHandler.setEqualizerEnabled(true);
     }
 
     // Ensure all 6 bands are initialized so other bands don't collapse to 0
@@ -2146,14 +2165,22 @@ class PlayerProvider extends ChangeNotifier {
     _bandGains[index] = gain;
     _eqPreset = 'Custom';
     _isolationMode = IsolationMode.none;
-    _audioHandler.setCustomBandGains(_bandGains);
     notifyListeners();
+
+    if (autoEnable) {
+      unawaited(_storageService.saveEqualizerEnabled(true));
+    }
     _bandSaveTimer?.cancel();
-    _bandSaveTimer = Timer(const Duration(milliseconds: 150), () {
+    _bandSaveTimer = Timer(const Duration(milliseconds: 160), () {
       _storageService.saveBandGains(_bandGains);
       _storageService.saveEqualizerPreset('Custom');
     });
-    await _audioHandler.setBandGain(index, gain);
+
+    await _audioHandler.configureEqualizer(
+      enabled: _eqEnabled,
+      preset: 'Custom',
+      customGains: _bandGains,
+    );
   }
 
   Future<void> resetEqualizer() async {
@@ -2162,22 +2189,27 @@ class PlayerProvider extends ChangeNotifier {
     _eqPreset = 'Flat';
     _isolationMode = IsolationMode.none;
     _bandGains.clear();
-    await _storageService.saveEqualizerEnabled(false);
-    await _storageService.saveBassBoost(0.0);
-    await _storageService.saveEqualizerPreset('Flat');
-    await _storageService.saveBandGains({});
-    _audioHandler.setCustomBandGains({0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0});
-    await _audioHandler.setEqualizerEnabled(false);
-    await _audioHandler.setBassBoost(0.0);
-    await _audioHandler.applyEqualizerPreset('Flat');
     notifyListeners();
+
+    unawaited(_storageService.saveEqualizerEnabled(false));
+    unawaited(_storageService.saveBassBoost(0.0));
+    unawaited(_storageService.saveEqualizerPreset('Flat'));
+    unawaited(_storageService.saveBandGains({}));
+
+    await _audioHandler.configureEqualizer(
+      enabled: false,
+      preset: 'Flat',
+      customGains: {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0},
+      bassBoost: 0.0,
+    );
   }
 
   Future<void> setLoudnessNormalizationEnabled(bool enabled) async {
     _loudnessNormalization = enabled;
+    _volumeNormalizationEnabled = enabled;
+    notifyListeners();
     await _storageService.saveLoudnessNormalization(enabled);
     await _audioHandler.setLoudnessNormalizationEnabled(enabled);
-    notifyListeners();
   }
 
   Future<void> setSkipSilenceEnabled(bool enabled) async {
@@ -2444,9 +2476,7 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> setVolumeNormalizationEnabled(bool enabled) async {
-    _volumeNormalizationEnabled = enabled;
-    await _audioHandler.setNormalizationGain(enabled ? 0.85 : 1.0);
-    notifyListeners();
+    await setLoudnessNormalizationEnabled(enabled);
   }
 
   Future<void> updateSongMetadata(Song updatedSong) async {
@@ -2491,12 +2521,15 @@ class PlayerProvider extends ChangeNotifier {
     try {
       await _audioHandler.setSpeed(_speed);
       await _audioHandler.setPlayerRepeatMode(_repeatMode);
-      await _audioHandler.setEqualizerEnabled(_eqEnabled);
-      await _audioHandler.applyEqualizerPreset(_eqPreset);
-      await _audioHandler.setBassBoost(_bassBoost);
-      for (final entry in _bandGains.entries) {
-        await _audioHandler.setBandGain(entry.key, entry.value);
-      }
+      await _audioHandler.setLoudnessNormalizationEnabled(_loudnessNormalization);
+      await _audioHandler.setSkipSilenceEnabled(_skipSilence);
+      _volumeNormalizationEnabled = _loudnessNormalization;
+      await _audioHandler.configureEqualizer(
+        enabled: _eqEnabled,
+        preset: _eqPreset,
+        customGains: _bandGains.isNotEmpty ? _bandGains : null,
+        bassBoost: _bassBoost,
+      );
     } catch (_) {}
   }
 
@@ -2576,6 +2609,7 @@ class PlayerProvider extends ChangeNotifier {
     _stateSub?.cancel();
     _sleepTimer?.cancel();
     _bandSaveTimer?.cancel();
+    _bassSaveTimer?.cancel();
     _searchDebounce?.cancel();
     super.dispose();
   }

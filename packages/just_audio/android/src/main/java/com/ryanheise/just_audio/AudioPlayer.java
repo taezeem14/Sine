@@ -1,6 +1,7 @@
 package com.ryanheise.just_audio;
 
 import android.content.Context;
+import android.media.AudioManager;
 import android.media.audiofx.AudioEffect;
 import android.media.audiofx.Equalizer;
 import android.media.audiofx.LoudnessEnhancer;
@@ -102,6 +103,11 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
     private List<Object> rawAudioEffects;
     private List<AudioEffect> audioEffects = new ArrayList<AudioEffect>();
     private Map<String, AudioEffect> audioEffectsMap = new HashMap<String, AudioEffect>();
+    // Persist live native DSP state across ExoPlayer audioSessionId changes (route/Bluetooth/track swaps)
+    private Boolean savedEqEnabled = null;
+    private final Map<Short, Short> savedEqBandLevels = new HashMap<Short, Short>();
+    private Boolean savedLoudnessEnabled = null;
+    private Integer savedLoudnessGainMb = null;
     private int lastPlaylistLength = 0;
     private Map<String, Object> pendingPlaybackEvent;
 
@@ -221,15 +227,53 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
             this.audioSessionId = audioSessionId;
         }
         clearAudioEffects();
-        if (this.audioSessionId != null) {
+        if (this.audioSessionId != null && rawAudioEffects != null) {
             for (Object rawAudioEffect : rawAudioEffects) {
                 Map<?, ?> json = (Map<?, ?>)rawAudioEffect;
+                String type = (String)json.get("type");
                 AudioEffect audioEffect = decodeAudioEffect(rawAudioEffect, this.audioSessionId);
-                if ((Boolean)json.get("enabled")) {
-                    audioEffect.setEnabled(true);
+                if (audioEffect == null) {
+                    continue;
+                }
+                try {
+                    if ("AndroidEqualizer".equals(type) && audioEffect instanceof Equalizer) {
+                        Equalizer eq = (Equalizer) audioEffect;
+                        short[] range = eq.getBandLevelRange();
+                        short minMb = range[0];
+                        short maxMb = range[1];
+                        short numBands = eq.getNumberOfBands();
+                        for (Map.Entry<Short, Short> entry : savedEqBandLevels.entrySet()) {
+                            short bandIdx = entry.getKey();
+                            if (bandIdx >= 0 && bandIdx < numBands) {
+                                short clamped = (short) Math.max(minMb, Math.min(maxMb, entry.getValue()));
+                                eq.setBandLevel(bandIdx, clamped);
+                            }
+                        }
+                        boolean shouldEnable = savedEqEnabled != null
+                            ? savedEqEnabled
+                            : Boolean.TRUE.equals(json.get("enabled"));
+                        if (shouldEnable) {
+                            eq.setEnabled(true);
+                        }
+                    } else if ("AndroidLoudnessEnhancer".equals(type) && audioEffect instanceof LoudnessEnhancer) {
+                        LoudnessEnhancer le = (LoudnessEnhancer) audioEffect;
+                        if (savedLoudnessGainMb != null) {
+                            le.setTargetGain(savedLoudnessGainMb);
+                        }
+                        boolean shouldEnable = savedLoudnessEnabled != null
+                            ? savedLoudnessEnabled
+                            : Boolean.TRUE.equals(json.get("enabled"));
+                        if (shouldEnable) {
+                            le.setEnabled(true);
+                        }
+                    } else if (Boolean.TRUE.equals(json.get("enabled"))) {
+                        audioEffect.setEnabled(true);
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "Failed restoring audio effect state for " + type + ": " + e);
                 }
                 audioEffects.add(audioEffect);
-                audioEffectsMap.put((String)json.get("type"), audioEffect);
+                audioEffectsMap.put(type, audioEffect);
             }
         }
         enqueuePlaybackEvent();
@@ -703,19 +747,28 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
     private AudioEffect decodeAudioEffect(final Object json, int audioSessionId) {
         Map<?, ?> map = (Map<?, ?>)json;
         String type = (String)map.get("type");
-        switch (type) {
-        case "AndroidLoudnessEnhancer":
-            if (Build.VERSION.SDK_INT < 19)
-                throw new RuntimeException("AndroidLoudnessEnhancer requires minSdkVersion >= 19");
-            int targetGain = (int)Math.round((((Double)map.get("targetGain")) * 100.0)); // target gain needs to be provided in milliBel, the user provides the value in deciBel
-            LoudnessEnhancer loudnessEnhancer = new LoudnessEnhancer(audioSessionId);
-            loudnessEnhancer.setTargetGain(targetGain);
-            return loudnessEnhancer;
-        case "AndroidEqualizer":
-            Equalizer equalizer = new Equalizer(0, audioSessionId);
-            return equalizer;
-        default:
-            throw new IllegalArgumentException("Unknown AudioEffect type: " + map.get("type"));
+        try {
+            switch (type) {
+            case "AndroidLoudnessEnhancer":
+                if (Build.VERSION.SDK_INT < 19)
+                    throw new RuntimeException("AndroidLoudnessEnhancer requires minSdkVersion >= 19");
+                int targetGain = (int)Math.round((((Double)map.get("targetGain")) * 100.0)); // target gain needs to be provided in milliBel, the user provides the value in deciBel
+                LoudnessEnhancer loudnessEnhancer = new LoudnessEnhancer(audioSessionId);
+                loudnessEnhancer.setTargetGain(targetGain);
+                return loudnessEnhancer;
+            case "AndroidEqualizer":
+                // Prefer elevated priority so OEM global DSP (SoundAlive/Dolby/Dirac) doesn't silently steal EQ control
+                try {
+                    return new Equalizer(1000, audioSessionId);
+                } catch (Exception ignored) {
+                    return new Equalizer(0, audioSessionId);
+                }
+            default:
+                throw new IllegalArgumentException("Unknown AudioEffect type: " + map.get("type"));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating AudioEffect " + type + " on session " + audioSessionId + ": " + e);
+            return null;
         }
     }
 
@@ -802,7 +855,22 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
                     .setAudioOffloadPreferences(audioOffloadPreferences)
                     .build()
             );
-            setAudioSessionId(player.getAudioSessionId());
+            int sessionId = player.getAudioSessionId();
+            if (sessionId == C.AUDIO_SESSION_ID_UNSET && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                try {
+                    AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                    if (am != null) {
+                        int generated = am.generateAudioSessionId();
+                        if (generated != AudioManager.ERROR && generated != C.AUDIO_SESSION_ID_UNSET) {
+                            player.setAudioSessionId(generated);
+                            sessionId = generated;
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "Could not pre-allocate audioSessionId: " + e);
+                }
+            }
+            setAudioSessionId(sessionId);
             player.addListener(this);
         }
     }
@@ -824,37 +892,85 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
     }
 
     private void audioEffectSetEnabled(String type, boolean enabled) {
-        audioEffectsMap.get(type).setEnabled(enabled);
+        if ("AndroidEqualizer".equals(type)) {
+            savedEqEnabled = enabled;
+        } else if ("AndroidLoudnessEnhancer".equals(type)) {
+            savedLoudnessEnabled = enabled;
+        }
+        AudioEffect effect = audioEffectsMap.get(type);
+        if (effect == null) {
+            return;
+        }
+        try {
+            int status = effect.setEnabled(enabled);
+            if (status != AudioEffect.SUCCESS) {
+                Log.w(TAG, "AudioEffect.setEnabled(" + enabled + ") returned status=" + status + " for " + type);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error toggling AudioEffect " + type + ": " + e);
+        }
     }
 
     private void loudnessEnhancerSetTargetGain(double targetGain) {
         int targetGainMillibels = (int)Math.round(targetGain * 100.0); // target gain needs to be provided in milliBel, the user provides the value in deciBel
-        ((LoudnessEnhancer)audioEffectsMap.get("AndroidLoudnessEnhancer")).setTargetGain(targetGainMillibels);
+        savedLoudnessGainMb = targetGainMillibels;
+        AudioEffect effect = audioEffectsMap.get("AndroidLoudnessEnhancer");
+        if (effect instanceof LoudnessEnhancer) {
+            try {
+                ((LoudnessEnhancer)effect).setTargetGain(targetGainMillibels);
+            } catch (Exception e) {
+                Log.w(TAG, "Error setting LoudnessEnhancer gain: " + e);
+            }
+        }
     }
 
     private Map<String, Object> equalizerAudioEffectGetParameters() {
-        Equalizer equalizer = (Equalizer)audioEffectsMap.get("AndroidEqualizer");
+        AudioEffect effect = audioEffectsMap.get("AndroidEqualizer");
         ArrayList<Object> rawBands = new ArrayList<>();
+        if (!(effect instanceof Equalizer)) {
+            return mapOf(
+                "parameters", mapOf(
+                    "minDecibels", -15.0,
+                    "maxDecibels", 15.0,
+                    "bands", rawBands
+                )
+            );
+        }
+        Equalizer equalizer = (Equalizer) effect;
+        short[] levelRange = equalizer.getBandLevelRange();
         for (short i = 0; i < equalizer.getNumberOfBands(); i++) {
+            int[] freqRange = equalizer.getBandFreqRange(i);
             rawBands.add(mapOf(
                 "index", i,
-                "lowerFrequency", (double)equalizer.getBandFreqRange(i)[0] / 1000.0, // returns a value in milliHertz, we want Hertz
-                "upperFrequency", (double)equalizer.getBandFreqRange(i)[1] / 1000.0, // returns a value in milliHertz, we want Hertz
+                "lowerFrequency", (double)freqRange[0] / 1000.0, // returns a value in milliHertz, we want Hertz
+                "upperFrequency", (double)freqRange[1] / 1000.0, // returns a value in milliHertz, we want Hertz
                 "centerFrequency", (double)equalizer.getCenterFreq(i) / 1000.0, // returns a value in milliHertz, we want Hertz
                 "gain", equalizer.getBandLevel(i) / 100.0 // returns a value in milliBel, we want deciBel
             ));
         }
         return mapOf(
             "parameters", mapOf(
-                "minDecibels", equalizer.getBandLevelRange()[0] / 100.0, // returns a value in milliBel, we want deciBel
-                "maxDecibels", equalizer.getBandLevelRange()[1] / 100.0, // returns a value in milliBel, we want deciBel
+                "minDecibels", levelRange[0] / 100.0, // returns a value in milliBel, we want deciBel
+                "maxDecibels", levelRange[1] / 100.0, // returns a value in milliBel, we want deciBel
                 "bands", rawBands
             )
         );
     }
 
     private void equalizerBandSetGain(int bandIndex, double gain) {
-        ((Equalizer)audioEffectsMap.get("AndroidEqualizer")).setBandLevel((short)bandIndex, (short)(Math.round(gain * 100.0))); // target gain needs to be provided in milliBel, the user provides the value in deciBel
+        short millibels = (short) Math.round(gain * 100.0); // target gain needs to be provided in milliBel, the user provides the value in deciBel
+        savedEqBandLevels.put((short) bandIndex, millibels);
+        AudioEffect effect = audioEffectsMap.get("AndroidEqualizer");
+        if (effect instanceof Equalizer) {
+            try {
+                Equalizer eq = (Equalizer) effect;
+                short[] range = eq.getBandLevelRange();
+                short clamped = (short) Math.max(range[0], Math.min(range[1], millibels));
+                eq.setBandLevel((short) bandIndex, clamped);
+            } catch (Exception e) {
+                Log.w(TAG, "Error setting EQ band " + bandIndex + " gain=" + gain + ": " + e);
+            }
+        }
     }
 
     /// Creates an event based on the current state.

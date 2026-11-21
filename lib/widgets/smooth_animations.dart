@@ -124,18 +124,18 @@ class _SineEntranceState extends State<SineEntrance>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      child: widget.child,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _opacity.value,
-          child: Transform.translate(
+    return FadeTransition(
+      opacity: _opacity,
+      child: AnimatedBuilder(
+        animation: _slide,
+        child: widget.child,
+        builder: (context, child) {
+          return Transform.translate(
             offset: _slide.value,
             child: child,
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

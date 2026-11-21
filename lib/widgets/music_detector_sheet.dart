@@ -60,7 +60,7 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
   @override
   Widget build(BuildContext context) {
     final service = MusicDetectionService.instance;
-    final player = context.watch<PlayerProvider>();
+    final player = context.read<PlayerProvider>();
 
     return Container(
       decoration: const BoxDecoration(

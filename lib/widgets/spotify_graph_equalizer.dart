@@ -214,11 +214,16 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
   late List<double> _targetGains;
   late AnimationController _animController;
   int? _activeDragBand;
+  Offset? _pointerDownPos;
   String? _lastSyncedPreset;
   DateTime _lastHaptic = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastAudioSend = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastTapTime = DateTime.fromMillisecondsSinceEpoch(0);
   int? _lastTappedBand;
+  double? _pendingFlushGain;
+  int? _pendingFlushBand;
   String _selectedCategory = 'All';
+  final ValueNotifier<int> _graphRevision = ValueNotifier<int>(0);
 
   static Color get sineBlue => EmberColors.primaryBlue;
   static Color get sineBlueDark => EmberColors.primaryBlue;
@@ -242,11 +247,11 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
       duration: const Duration(milliseconds: 320),
     )..addListener(() {
         final t = Curves.easeOutCubic.transform(_animController.value);
-        setState(() {
-          for (int i = 0; i < 6; i++) {
-            _currentGains[i] = _startGains[i] + (_targetGains[i] - _startGains[i]) * t;
-          }
-        });
+        for (int i = 0; i < 6; i++) {
+          _currentGains[i] = _startGains[i] + (_targetGains[i] - _startGains[i]) * t;
+        }
+        // Only repaint the isolated graph CustomPaint — never rebuild the 25 preset rows per frame!
+        _graphRevision.value++;
       });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -268,6 +273,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
   @override
   void dispose() {
     _animController.dispose();
+    _graphRevision.dispose();
     super.dispose();
   }
 
@@ -288,11 +294,10 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
     }
 
     _lastSyncedPreset = presetName;
-    setState(() {
-      _currentGains = List.from(gains);
-      _startGains = List.from(gains);
-      _targetGains = List.from(gains);
-    });
+    _currentGains = List.from(gains);
+    _startGains = List.from(gains);
+    _targetGains = List.from(gains);
+    _graphRevision.value++;
   }
 
   void _selectPreset(SpotifyEqPreset preset) {
@@ -309,11 +314,12 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
 
   void _resetBandToZero(int bandIndex) {
     HapticFeedback.mediumImpact();
-    setState(() {
-      _currentGains[bandIndex] = 0.0;
-      _targetGains[bandIndex] = 0.0;
-      _startGains[bandIndex] = 0.0;
-    });
+    _currentGains[bandIndex] = 0.0;
+    _targetGains[bandIndex] = 0.0;
+    _startGains[bandIndex] = 0.0;
+    _pendingFlushBand = null;
+    _pendingFlushGain = null;
+    _graphRevision.value++;
     _lastSyncedPreset = 'Custom';
     final player = context.read<PlayerProvider>();
     player.setBandGain(bandIndex, 0.0);
@@ -321,6 +327,7 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
 
   void _resetAllBands() {
     HapticFeedback.mediumImpact();
+    _lastSyncedPreset = 'Flat';
     _startGains = List.from(_currentGains);
     _targetGains = List.filled(6, 0.0);
     _animController.forward(from: 0.0);
@@ -328,25 +335,25 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
     player.setEqualizerPreset('Flat', presetGains: List.filled(6, 0.0));
   }
 
-  void _handleTouch(Offset localPos, Size size) {
+  int _resolveBandIndex(double dx, Size size) {
+    const horizontalPadding = 24.0;
+    final usableWidth = size.width - (horizontalPadding * 2);
+    final colWidth = usableWidth / 5.0;
+    final touchX = (dx - horizontalPadding).clamp(0.0, usableWidth);
+    return (touchX / colWidth).round().clamp(0, 5);
+  }
+
+  /// Pointer DOWN handler: resolves active band and checks double-tap-to-zero EXCLUSIVELY here
+  /// (never inside onPointerMove, which previously snapped dragged bands to 0.0 dB every alternate frame!).
+  void _handlePointerDown(Offset localPos, Size size) {
     if (_animController.isAnimating) {
       _animController.stop();
     }
 
-    const horizontalPadding = 24.0;
-    final usableWidth = size.width - (horizontalPadding * 2);
-    final colWidth = usableWidth / 5.0;
+    final bandIndex = _resolveBandIndex(localPos.dx, size);
+    _activeDragBand = bandIndex;
+    _pointerDownPos = localPos;
 
-    int bandIndex;
-    if (_activeDragBand != null) {
-      bandIndex = _activeDragBand!;
-    } else {
-      final touchX = (localPos.dx - horizontalPadding).clamp(0.0, usableWidth);
-      bandIndex = (touchX / colWidth).round().clamp(0, 5);
-      _activeDragBand = bandIndex;
-    }
-
-    // Check for double-tap on band node to reset to 0 dB
     final now = DateTime.now();
     if (_lastTappedBand == bandIndex && now.difference(_lastTapTime).inMilliseconds < 280) {
       _resetBandToZero(bandIndex);
@@ -357,10 +364,37 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
     _lastTappedBand = bandIndex;
     _lastTapTime = now;
 
-    _updateGainFromY(bandIndex, localPos.dy, size);
+    _updateGainFromY(bandIndex, localPos.dy, size, forceSend: true);
   }
 
-  void _updateGainFromY(int bandIndex, double dy, Size size) {
+  /// Pointer MOVE handler: smoothly tracks vertical drag at 120 FPS while throttling hardware DSP writes.
+  void _handlePointerMove(Offset localPos, Size size) {
+    final bandIndex = _activeDragBand;
+    if (bandIndex == null) return;
+
+    // Cancel double-tap state once user meaningfully drags (> 8px)
+    if (_pointerDownPos != null && (localPos - _pointerDownPos!).distance > 8.0) {
+      _lastTappedBand = null;
+    }
+
+    _updateGainFromY(bandIndex, localPos.dy, size, forceSend: false);
+  }
+
+  void _handlePointerRelease() {
+    final band = _pendingFlushBand;
+    final gain = _pendingFlushGain;
+    _pendingFlushBand = null;
+    _pendingFlushGain = null;
+    _activeDragBand = null;
+    _pointerDownPos = null;
+    _graphRevision.value++;
+
+    if (band != null && gain != null && mounted) {
+      context.read<PlayerProvider>().setBandGain(band, gain);
+    }
+  }
+
+  void _updateGainFromY(int bandIndex, double dy, Size size, {required bool forceSend}) {
     const verticalPadding = 28.0;
     final usableHeight = size.height - (verticalPadding * 2);
     final clampedY = (dy - verticalPadding).clamp(0.0, usableHeight);
@@ -368,11 +402,10 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
     final gain = ((normalized * 24.0) - 12.0).clamp(-12.0, 12.0);
     final roundedGain = (gain * 10).round() / 10.0;
 
-    setState(() {
-      _currentGains[bandIndex] = roundedGain;
-      _targetGains[bandIndex] = roundedGain;
-      _startGains[bandIndex] = roundedGain;
-    });
+    _currentGains[bandIndex] = roundedGain;
+    _targetGains[bandIndex] = roundedGain;
+    _startGains[bandIndex] = roundedGain;
+    _graphRevision.value++;
 
     final now = DateTime.now();
     if (now.difference(_lastHaptic).inMilliseconds > 60) {
@@ -381,14 +414,22 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
     }
 
     _lastSyncedPreset = 'Custom';
-    final player = context.read<PlayerProvider>();
-    player.setBandGain(bandIndex, roundedGain);
+    if (forceSend || now.difference(_lastAudioSend).inMilliseconds >= 35) {
+      _lastAudioSend = now;
+      _pendingFlushBand = null;
+      _pendingFlushGain = null;
+      context.read<PlayerProvider>().setBandGain(bandIndex, roundedGain);
+    } else {
+      _pendingFlushBand = bandIndex;
+      _pendingFlushGain = roundedGain;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
-    final activePreset = player.eqPreset;
+    // Surgical selectors: avoid full-tree rebuilds on unrelated playback updates
+    final activePreset = context.select<PlayerProvider, String>((p) => p.eqPreset);
+    final isEqEnabled = context.select<PlayerProvider, bool>((p) => p.eqEnabled);
     if (_activeDragBand == null && _lastSyncedPreset != null && _lastSyncedPreset != activePreset) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _activeDragBand == null) _syncFromPlayer();
@@ -433,29 +474,33 @@ class _SpotifyGraphEqualizerState extends State<SpotifyGraphEqualizer> with Sing
                       behavior: HitTestBehavior.opaque,
                       onPointerDown: (e) {
                         widget.onDragStateChanged?.call(true);
-                        _handleTouch(e.localPosition, size);
+                        _handlePointerDown(e.localPosition, size);
                       },
                       onPointerMove: (e) {
                         if (_activeDragBand != null) {
-                          _handleTouch(e.localPosition, size);
+                          _handlePointerMove(e.localPosition, size);
                         }
                       },
                       onPointerUp: (e) {
                         widget.onDragStateChanged?.call(false);
-                        if (mounted) setState(() => _activeDragBand = null);
+                        _handlePointerRelease();
                       },
                       onPointerCancel: (e) {
                         widget.onDragStateChanged?.call(false);
-                        if (mounted) setState(() => _activeDragBand = null);
+                        _handlePointerRelease();
                       },
                       child: RepaintBoundary(
-                        child: CustomPaint(
-                          size: size,
-                          painter: _SpotifyEqPainter(
-                            gains: _currentGains,
-                            activeBand: _activeDragBand,
-                            strokeColor: sineBlue,
-                            gradientDark: sineBlueDark,
+                        child: ValueListenableBuilder<int>(
+                          valueListenable: _graphRevision,
+                          builder: (context, _, _) => CustomPaint(
+                            size: size,
+                            painter: _SpotifyEqPainter(
+                              gains: List<double>.of(_currentGains),
+                              activeBand: _activeDragBand,
+                              strokeColor: isEqEnabled ? sineBlue : Colors.white.withValues(alpha: 0.35),
+                              gradientDark: isEqEnabled ? sineBlueDark : Colors.white.withValues(alpha: 0.14),
+                              isEnabled: isEqEnabled,
+                            ),
                           ),
                         ),
                       ),
@@ -672,12 +717,14 @@ class _SpotifyEqPainter extends CustomPainter {
   final int? activeBand;
   final Color strokeColor;
   final Color gradientDark;
+  final bool isEnabled;
 
   _SpotifyEqPainter({
     required this.gains,
     required this.activeBand,
     required this.strokeColor,
     required this.gradientDark,
+    this.isEnabled = true,
   });
 
   @override
@@ -780,31 +827,33 @@ class _SpotifyEqPainter extends CustomPainter {
       final pt = points[i];
       final isDragged = activeBand == i;
 
-      // Soft shadow under knob
+      // Zero-blur GPU shadow ring under knob (20x faster than Gaussian blur)
       canvas.drawCircle(
-        pt.translate(0, 2),
-        isDragged ? 12.0 : 10.0,
-        Paint()
-          ..color = Colors.black.withValues(alpha: 0.5)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0),
+        pt.translate(0, 1.5),
+        isDragged ? 12.5 : 10.5,
+        Paint()..color = Colors.black.withValues(alpha: 0.42),
       );
 
-      // Glow halo if actively dragged
+      // Zero-blur radial glow halo if actively dragged
       if (isDragged) {
         canvas.drawCircle(
           pt,
-          17.0,
+          20.0,
           Paint()
-            ..color = strokeColor.withValues(alpha: 0.4)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6.0),
+            ..shader = RadialGradient(
+              colors: [
+                strokeColor.withValues(alpha: 0.45),
+                strokeColor.withValues(alpha: 0.0),
+              ],
+            ).createShader(Rect.fromCircle(center: pt, radius: 20.0)),
         );
       }
 
-      // Pure white circular knob
+      // Crisp circular knob (dimmed gently when EQ bypassed)
       canvas.drawCircle(
         pt,
         isDragged ? 11.5 : 9.5,
-        Paint()..color = Colors.white,
+        Paint()..color = isEnabled ? Colors.white : Colors.white.withValues(alpha: 0.55),
       );
 
       // Floating dB readout bubble directly above the active dragged knob
@@ -856,6 +905,7 @@ class _SpotifyEqPainter extends CustomPainter {
     return !listEquals(oldDelegate.gains, gains) ||
         oldDelegate.activeBand != activeBand ||
         oldDelegate.strokeColor != strokeColor ||
-        oldDelegate.gradientDark != gradientDark;
+        oldDelegate.gradientDark != gradientDark ||
+        oldDelegate.isEnabled != isEnabled;
   }
 }

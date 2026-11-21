@@ -113,10 +113,14 @@ class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> with Widget
   }
 
   void _onTabTapped(int index) {
+    if (_currentIndex == index) return;
     setState(() {
       _currentIndex = index;
     });
   }
+
+  void _openSearchTab() => _onTabTapped(1);
+  void _openLibraryTab() => _onTabTapped(2);
 
   @override
   Widget build(BuildContext context) {
@@ -128,14 +132,14 @@ class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> with Widget
       backgroundColor: bgColor,
       body: Stack(
         children: [
-          // 1. Tab Views with Smooth GPU-Composited Fade + Micro-Scale Transitions
+          // 1. Tab Views with Smooth GPU-Composited Transitions
           AnimatedIndexedStack(
             index: _currentIndex,
-            duration: const Duration(milliseconds: 220),
+            duration: const Duration(milliseconds: 180),
             children: [
               PulsePipeHomeTab(
-                onOpenSearch: () => _onTabTapped(1),
-                onOpenLibrary: () => _onTabTapped(2),
+                onOpenSearch: _openSearchTab,
+                onOpenLibrary: _openLibraryTab,
               ),
               const PulsePipeSearchTab(),
               const PulsePipeLibraryTab(),

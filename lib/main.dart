@@ -84,7 +84,10 @@ class SineMobileApp extends StatelessWidget {
           title: 'Sine',
           debugShowCheckedModeBanner: false,
           theme: themeData,
-          home: const PerformanceHudOverlay(child: PulsePipeShellScreen()),
+          builder: (context, child) => PerformanceHudOverlay(
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: const PulsePipeShellScreen(),
         ),
       ),
     );

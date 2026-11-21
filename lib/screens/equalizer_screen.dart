@@ -26,6 +26,8 @@ class EqualizerScreen extends StatefulWidget {
 class _EqualizerScreenState extends State<EqualizerScreen> {
   bool _showAdvancedShaping = false;
   bool _isDraggingGraph = false;
+  double? _draggingBass;
+  DateTime _lastBassSent = DateTime.fromMillisecondsSinceEpoch(0);
 
   void _showDspCreditsDialog(BuildContext context) {
     showDialog(
@@ -87,7 +89,12 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
+    final player = context.read<PlayerProvider>();
+    final eqEnabled = context.select<PlayerProvider, bool>((p) => p.eqEnabled);
+    final bassBoost = context.select<PlayerProvider, double>((p) => p.bassBoost);
+    final isolationMode = context.select<PlayerProvider, IsolationMode>((p) => p.isolationMode);
+    final isLoadingStem = context.select<PlayerProvider, bool>((p) => p.isLoadingStem);
+    final activeBass = (_draggingBass ?? bassBoost).clamp(0.0, 1.0);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0C0C0F), // True Spotify obsidian pitch-black
@@ -118,7 +125,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
           Transform.scale(
             scale: 0.85,
             child: Switch(
-              value: player.eqEnabled,
+              value: eqEnabled,
               activeThumbColor: EmberColors.primaryBlue,
               activeTrackColor: EmberColors.primaryBlue.withValues(alpha: 0.35),
               inactiveThumbColor: Colors.white.withValues(alpha: 0.6),
@@ -142,7 +149,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
               const SizedBox(height: 8),
 
               // Status indicator if EQ is disabled
-              if (!player.eqEnabled)
+              if (!eqEnabled)
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -213,7 +220,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                         ),
                       ),
                       subtitle: Text(
-                        'Bass Boost: ${(player.bassBoost * 100).toInt()}% • Mode: ${player.isolationMode == IsolationMode.vocalsOnly ? "Acapella" : (player.isolationMode == IsolationMode.instrumentsOnly ? "Karaoke" : "Full Track")}',
+                        'Bass Boost: ${(activeBass * 100).toInt()}% • Mode: ${isolationMode == IsolationMode.vocalsOnly ? "Acapella" : (isolationMode == IsolationMode.instrumentsOnly ? "Karaoke" : "Full Track")}',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.5),
                           fontSize: 11.5,
@@ -237,7 +244,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                                     style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                                   ),
                                   Text(
-                                    '${(player.bassBoost * 100).toInt()}%',
+                                    '${(activeBass * 100).toInt()}%',
                                     style: TextStyle(color: EmberColors.primaryBlue, fontSize: 13, fontWeight: FontWeight.bold),
                                   ),
                                 ],
@@ -251,10 +258,19 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                                   inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
                                 ),
                                 child: Slider(
-                                  value: player.bassBoost.clamp(0.0, 1.0),
+                                  value: activeBass,
                                   min: 0.0,
                                   max: 1.0,
                                   onChanged: (val) {
+                                    setState(() => _draggingBass = val);
+                                    final now = DateTime.now();
+                                    if (now.difference(_lastBassSent).inMilliseconds >= 45) {
+                                      _lastBassSent = now;
+                                      player.setBassBoost(val);
+                                    }
+                                  },
+                                  onChangeEnd: (val) {
+                                    setState(() => _draggingBass = null);
                                     player.setBassBoost(val);
                                   },
                                 ),
@@ -279,8 +295,8 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                                       title: 'Vocals',
                                       subtitle: 'Acapella',
                                       icon: Icons.mic_rounded,
-                                      isActive: player.isolationMode == IsolationMode.vocalsOnly,
-                                      isLoading: player.isLoadingStem && player.isolationMode == IsolationMode.vocalsOnly,
+                                      isActive: isolationMode == IsolationMode.vocalsOnly,
+                                      isLoading: isLoadingStem && isolationMode == IsolationMode.vocalsOnly,
                                       onTap: () => player.toggleIsolationMode(IsolationMode.vocalsOnly),
                                     ),
                                   ),
@@ -290,14 +306,14 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                                       title: 'Karaoke',
                                       subtitle: 'Instrumental',
                                       icon: Icons.music_note_rounded,
-                                      isActive: player.isolationMode == IsolationMode.instrumentsOnly,
-                                      isLoading: player.isLoadingStem && player.isolationMode == IsolationMode.instrumentsOnly,
+                                      isActive: isolationMode == IsolationMode.instrumentsOnly,
+                                      isLoading: isLoadingStem && isolationMode == IsolationMode.instrumentsOnly,
                                       onTap: () => player.toggleIsolationMode(IsolationMode.instrumentsOnly),
                                     ),
                                   ),
                                 ],
                               ),
-                              if (player.isolationMode != IsolationMode.none) ...[
+                              if (isolationMode != IsolationMode.none) ...[
                                 const SizedBox(height: 8),
                                 Center(
                                   child: TextButton.icon(

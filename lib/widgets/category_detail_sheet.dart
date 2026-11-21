@@ -75,7 +75,8 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
+    final player = context.read<PlayerProvider>();
+    context.select<PlayerProvider, (String?, bool)>((p) => (p.currentSong?.id, p.isPlaying));
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.88,

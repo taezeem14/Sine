@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
+import '../models/playlist.dart';
 import '../providers/player_provider.dart';
 import '../theme/ember_theme.dart';
 import '../widgets/sine_qr_code_sheet.dart';
@@ -10,15 +12,16 @@ import '../widgets/track_metadata_sheet.dart';
 
 class TrackOptionsSheet extends StatelessWidget {
   final Song song;
+  final BuildContext? parentContext;
 
-  const TrackOptionsSheet({super.key, required this.song});
+  const TrackOptionsSheet({super.key, required this.song, this.parentContext});
 
   static void show(BuildContext context, Song song) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => TrackOptionsSheet(song: song),
+      builder: (_) => TrackOptionsSheet(song: song, parentContext: context),
     );
   }
 
@@ -99,54 +102,64 @@ class TrackOptionsSheet extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                if (player.playlists.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Text('No playlists yet', style: TextStyle(color: EmberColors.textMuted)),
-                          const SizedBox(height: 10),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: EmberColors.primaryBlue),
-                            onPressed: () {
-                              player.createPlaylist('My Favorites');
-                              Navigator.pop(ctx);
-                            },
-                            icon: FaIcon(FontAwesomeIcons.plus, size: 14, color: EmberColors.obsidianBase),
-                            label: Text('Create "My Favorites"', style: TextStyle(color: EmberColors.obsidianBase, fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  for (final p in player.playlists)
-                    ListTile(
-                      leading: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: EmberColors.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                Selector<PlayerProvider, List<Playlist>>(
+                  selector: (_, p) => List<Playlist>.of(p.playlists),
+                  builder: (selCtx, playlists, _) {
+                    if (playlists.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
                         child: Center(
-                          child: FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryBlue),
-                        ),
-                      ),
-                      title: Text(p.title, style: TextStyle(color: EmberColors.textPrimary, fontWeight: FontWeight.w600)),
-                      subtitle: Text('${p.songs.length} tracks', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
-                      onTap: () {
-                        player.addSongToPlaylist(p.id, song);
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: EmberColors.surfaceContainerHigh,
-                            content: Text('Added to "${p.title}"', style: TextStyle(color: EmberColors.primaryBlueHi)),
+                          child: Column(
+                            children: [
+                              Text('No playlists yet', style: TextStyle(color: EmberColors.textMuted)),
+                              const SizedBox(height: 10),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(backgroundColor: EmberColors.primaryBlue),
+                                onPressed: () {
+                                  player.createPlaylist('My Favorites');
+                                  Navigator.pop(ctx);
+                                },
+                                icon: FaIcon(FontAwesomeIcons.plus, size: 14, color: EmberColors.obsidianBase),
+                                label: Text('Create "My Favorites"', style: TextStyle(color: EmberColors.obsidianBase, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    }
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final p in playlists)
+                          ListTile(
+                            leading: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: EmberColors.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryBlue),
+                              ),
+                            ),
+                            title: Text(p.title, style: TextStyle(color: EmberColors.textPrimary, fontWeight: FontWeight.w600)),
+                            subtitle: Text('${p.songs.length} tracks', style: TextStyle(color: EmberColors.textMuted, fontSize: 12)),
+                            onTap: () {
+                              player.addSongToPlaylist(p.id, song);
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: EmberColors.surfaceContainerHigh,
+                                  content: Text('Added to "${p.title}"', style: TextStyle(color: EmberColors.primaryBlueHi)),
+                                ),
+                              );
+                            },
+                          ),
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -197,8 +210,10 @@ class TrackOptionsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
-    final isDownloaded = player.isDownloaded(song.id);
+    final player = context.read<PlayerProvider>();
+    final isDownloaded = context.select<PlayerProvider, bool>((p) => p.isDownloaded(song.id));
+    final isCurrentSong = context.select<PlayerProvider, bool>((p) => p.currentSong?.id == song.id);
+    final hostContext = parentContext ?? Navigator.of(context, rootNavigator: true).context;
 
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
@@ -234,7 +249,15 @@ class TrackOptionsSheet extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: song.artworkUrl.isNotEmpty
-                      ? Image.network(song.artworkUrl, width: 48, height: 48, fit: BoxFit.cover, errorBuilder: (_, _, _) => FaIcon(FontAwesomeIcons.music, size: 20, color: EmberColors.primaryBlue))
+                      ? CachedNetworkImage(
+                          imageUrl: song.artworkUrl,
+                          width: 48,
+                          height: 48,
+                          memCacheWidth: 150,
+                          memCacheHeight: 150,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) => FaIcon(FontAwesomeIcons.music, size: 20, color: EmberColors.primaryBlue),
+                        )
                       : FaIcon(FontAwesomeIcons.music, size: 20, color: EmberColors.primaryBlue),
                 ),
                 const SizedBox(width: 14),
@@ -255,14 +278,14 @@ class TrackOptionsSheet extends StatelessWidget {
             const SizedBox(height: 8),
 
             // Action Options
-            if (player.currentSong?.id == song.id)
+            if (isCurrentSong)
               _OptionTile(
                 icon: FontAwesomeIcons.stop,
                 iconColor: EmberColors.error,
                 title: 'Stop Playback / Cut Song',
                 subtitle: 'Immediately stop playing and dismiss active song',
                 onTap: () {
-                  final messenger = ScaffoldMessenger.of(context);
+                  final messenger = ScaffoldMessenger.of(hostContext);
                   Navigator.pop(context);
                   player.stopPlayback();
                   messenger.showSnackBar(
@@ -280,17 +303,20 @@ class TrackOptionsSheet extends StatelessWidget {
               subtitle: 'Scannable QR code for instant offline & online sharing',
               onTap: () {
                 Navigator.pop(context);
-                SineQrCodeSheet.show(context, song);
+                if (hostContext.mounted) {
+                  SineQrCodeSheet.show(hostContext, song);
+                }
               },
             ),
             _OptionTile(
               icon: FontAwesomeIcons.folderPlus,
               title: 'Add to Playlist',
-
               subtitle: 'Save track into custom playlist',
               onTap: () {
                 Navigator.pop(context);
-                _showAddToPlaylistDialog(context, player);
+                if (hostContext.mounted) {
+                  _showAddToPlaylistDialog(hostContext, player);
+                }
               },
             ),
             if (isDownloaded)
@@ -446,7 +472,7 @@ class TrackOptionsSheet extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 Future.microtask(() {
-                  if (context.mounted) SoundShapingSheet.show(context);
+                  if (hostContext.mounted) SoundShapingSheet.show(hostContext);
                 });
               },
             ),
@@ -457,7 +483,7 @@ class TrackOptionsSheet extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 Future.microtask(() {
-                  if (context.mounted) TrackMetadataSheet.show(context, song);
+                  if (hostContext.mounted) TrackMetadataSheet.show(hostContext, song);
                 });
               },
             ),
@@ -468,7 +494,7 @@ class TrackOptionsSheet extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 Future.microtask(() {
-                  if (context.mounted) _showSpecsDialog(context);
+                  if (hostContext.mounted) _showSpecsDialog(hostContext);
                 });
               },
             ),

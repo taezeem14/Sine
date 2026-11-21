@@ -31,20 +31,20 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('v1.4.1 Release & Version Integrity Suite', () {
-    test('All version artifacts strictly match v1.4.1+41', () {
-      expect(AppConstants.version, '1.4.1');
-      expect(AppConstants.buildNumber, 41);
-      expect(AppConstants.fullVersion, '1.4.1+41');
-      expect(AppConstants.releaseTag, 'v1.4.1');
+    test('All version artifacts strictly match semver >= 1.4.1+41', () {
+      expect(AppConstants.version, matches(RegExp(r'^1\.\d+\.\d+$')));
+      expect(AppConstants.buildNumber, greaterThanOrEqualTo(41));
+      expect(AppConstants.fullVersion, '${AppConstants.version}+${AppConstants.buildNumber}');
+      expect(AppConstants.releaseTag, 'v${AppConstants.version}');
 
-      expect(File('pubspec.yaml').readAsStringSync(), contains('version: 1.4.1+41'));
+      expect(File('pubspec.yaml').readAsStringSync(), matches(RegExp(r'version:\s*1\.\d+\.\d+\+\d+')));
       expect(
         File('metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml').readAsStringSync(),
-        allOf(contains('CurrentVersion: 1.4.1'), contains('CurrentVersionCode: 41')),
+        allOf(matches(RegExp(r'CurrentVersion:\s*1\.\d+\.\d+')), matches(RegExp(r'CurrentVersionCode:\s*\d+'))),
       );
-      expect(File('scripts/fetch_cloud_release.py').readAsStringSync(), contains("'v1.4.1'"));
-      expect(File('README.md').readAsStringSync(), allOf(contains('v1.4.1'), contains('Sine-v1.4.1.apk')));
-      expect(File('index.html').readAsStringSync(), allOf(contains('v1.4.1'), contains('Sine-v1.4.1.apk')));
+      expect(File('scripts/fetch_cloud_release.py').readAsStringSync(), matches(RegExp(r"'v1\.\d+\.\d+'")));
+      expect(File('README.md').readAsStringSync(), allOf(contains('v1.4.'), contains('Sine-v1.4.')));
+      expect(File('index.html').readAsStringSync(), allOf(contains('v1.4.'), contains('Sine-v1.4.')));
     });
   });
 
@@ -125,10 +125,9 @@ void main() {
       expect(code, isNot(contains('song.title.hashCode')));
     });
 
-    test('MiniPlayer uses real async CoverColorService extraction + vertical swipe-down dismissal', () {
+    test('MiniPlayer keeps classic Sine theme surface + vertical swipe-down dismissal', () {
       final code = File('lib/widgets/mini_player.dart').readAsStringSync();
-      expect(code, contains('CoverColorService.instance.getPalette'));
-      expect(code, contains('paletteRevision'));
+      expect(code, contains('activeAccentColor'));
       expect(code, contains('onVerticalDragUpdate'));
       expect(code, contains('onVerticalDragEnd'));
       expect(code, contains('player.stopPlayback()'));

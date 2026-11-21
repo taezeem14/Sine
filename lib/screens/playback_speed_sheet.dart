@@ -33,8 +33,8 @@ class PlaybackSpeedSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
-    final currentSpeed = player.speed;
+    final player = context.read<PlayerProvider>();
+    final currentSpeed = context.select<PlayerProvider, double>((p) => p.speed);
 
     return SafeArea(
       child: ConstrainedBox(

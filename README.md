@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.4.1%20(Build%2041)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.4.2%20(Build%2042)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.4.1)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.1.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.4.2)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.2.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy studio-grade ad-free music instantly.*
 
@@ -36,6 +36,7 @@
 
 ## 📖 Table of Contents
 - [What Is Sine?](#-what-is-sine)
+- [What's New in v1.4.2](#-whats-new-in-v142)
 - [What's New in v1.4.1](#-whats-new-in-v141)
 - [What's New in v1.4.0](#-whats-new-in-v140)
 - [What's New in v1.3.9](#-whats-new-in-v139)
@@ -68,6 +69,14 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 - **Pure Local Data**: Playlists, listening history, and cached media remain 100% on your device.
 - **Sub-1.2s Cold-Start Playback**: Progressive hardware decoding starting audio almost instantaneously.
 - **Direct Public Storage Vault**: Music downloads save directly to `/storage/emulated/0/Sine-Music` with standard ID3 tags and HD artwork.
+
+---
+
+## 🌟 What's New in v1.4.2
+- **Studio-Grade Working Hardware Equalizer**: Fixed 7 deep EQ bugs across Dart & Android Java — eliminated knob drag snap-to-zero (`onPointerMove` double-tap collision), replaced blocking `await _player.play()` so EQ restores immediately on every track/resume, implemented log-frequency 6→5 band interpolation so `400 Hz` actively shapes audio, hardened `AudioPlayer.java` with elevated OEM priority (`1000`), eager `audioSessionId` allocation, and live state retention across Bluetooth/route changes.
+- **Vivid Cover-Color Fluid Aurora & Zero-Blur GPU Glow**: Restored lush, unmistakably visible cover-matched fluid aurora waves with mathematically seamless `C∞` integer-harmonic 14s motion, and replaced `AmbientGlow`'s 94px per-frame Gaussian `BoxShadow` blurs with zero-blur GPU `RadialGradient` shaders (~40× faster).
+- **120 FPS Maximize / Minimize & Classic-Color MiniPlayer**: Added full bottom-up sheet expansion with interactive swipe-down-to-minimize directly on `NowPlayingScreen`, paused background shaders during route slides for locked 60/120 FPS, and kept Sine's clean signature theme color on the MiniPlayer while preserving all swipe gestures.
+- **Zero-Lag Settings & App-Wide Smoothness**: Cached `GoogleFonts` `TextTheme` in `EmberTheme`, converted Settings to lazy `ListView.builder` with surgical `context.select` and zero shared `DraggableScrollableSheet` conflicts, and eliminated every remaining `context.watch` / popped-context / sync disk I/O bug across Queue, Lyrics, Track Options, Library, and Car Mode.
 
 ---
 

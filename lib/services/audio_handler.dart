@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
@@ -157,6 +158,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
   SineAudioHandler() {
     _player = AudioPlayer(
+      handleInterruptions: false,
       audioLoadConfiguration: const AudioLoadConfiguration(
         androidLoadControl: AndroidLoadControl(
           minBufferDuration: Duration(seconds: 15),
@@ -182,6 +184,16 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     );
     _initAudioStreams();
     _initAudioSession();
+  }
+
+  /// Starts ExoPlayer playback without awaiting the track-end Future returned by
+  /// just_audio's AudioPlayer.play() (which only resolves when paused/completed).
+  void _triggerPlayNonBlocking() {
+    unawaited(
+      _player.play().catchError((Object e) {
+        debugPrint('[AudioHandler] Non-blocking play() error: $e');
+      }),
+    );
   }
 
   Future<void> _initAudioSession() async {
@@ -213,8 +225,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         } else {
           switch (event.type) {
             case AudioInterruptionType.duck:
-              _player.setVolume(_preDuckVolume);
               _isDucked = false;
+              _updateHeadroomGain();
               break;
             case AudioInterruptionType.pause:
               if (_wasPlayingBeforeInterrupt) play();
@@ -520,11 +532,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             preload: true,
           ).timeout(const Duration(seconds: 12));
 
-          await _restorePlaybackParameters(forceRebindEq: true);
-          if (_skipSilenceEnabled && targetSong.duration > const Duration(seconds: 15)) {
-            await _player.seek(const Duration(milliseconds: 900)).catchError((_) {});
-          }
-          await _player.play();
+          await _restorePlaybackParameters(forceRebindEq: false);
+          _triggerPlayNonBlocking();
           reconnected = true;
           _isReconnecting = false;
           _consecutiveReconnectAttempts = 0;
@@ -552,8 +561,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
               preload: true,
             ).timeout(const Duration(seconds: 7));
 
-            await _player.play();
-            await _restorePlaybackParameters(forceRebindEq: true);
+            await _restorePlaybackParameters(forceRebindEq: false);
+            _triggerPlayNonBlocking();
             _isReconnecting = false;
             _consecutiveReconnectAttempts = 0;
             _currentTrackActive = true;
@@ -668,11 +677,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             try { await _player.pause(); } catch (_) {}
             return;
           }
-          await _restorePlaybackParameters(forceRebindEq: true);
-          if (_skipSilenceEnabled && song.duration > const Duration(seconds: 15)) {
-            await _player.seek(const Duration(milliseconds: 900)).catchError((_) {});
-          }
-          await _player.play();
+          await _restorePlaybackParameters(forceRebindEq: false);
+          _triggerPlayNonBlocking();
           return;
         } else {
           // File does not exist locally anymore; fall through to online stream resolver
@@ -692,9 +698,6 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       LogService.instance.recordCandidates(candidates);
 
       bool started = false;
-      final initPos = _skipSilenceEnabled && song.duration > const Duration(seconds: 15)
-          ? const Duration(milliseconds: 900)
-          : Duration.zero;
 
       for (int i = 0; i < candidates.length; i++) {
         if (currentRequestId != _playRequestId) return; // Superseded by newer track selection
@@ -715,7 +718,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
             try { await _player.pause(); } catch (_) {}
             return;
           }
-          await _player.play();
+          await _restorePlaybackParameters(forceRebindEq: false);
+          _triggerPlayNonBlocking();
           started = true;
           LogService.instance.recordPlaybackSuccess(song);
           debugPrint('Successfully playing "${song.title}" via candidate #${i + 1}');
@@ -738,7 +742,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 try { await _player.pause(); } catch (_) {}
                 return;
               }
-              await _player.play();
+              await _restorePlaybackParameters(forceRebindEq: false);
+              _triggerPlayNonBlocking();
               started = true;
               LogService.instance.recordPlaybackSuccess(song);
               debugPrint('Successfully playing "${song.title}" via candidate #${i + 1} (clean headers)');
@@ -775,7 +780,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 try { await _player.pause(); } catch (_) {}
                 return;
               }
-              await _player.play();
+              await _restorePlaybackParameters(forceRebindEq: false);
+              _triggerPlayNonBlocking();
               started = true;
               LogService.instance.recordPlaybackSuccess(song);
               debugPrint('Successfully playing "${song.title}" via fresh candidate #${i + 1}');
@@ -796,7 +802,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                     try { await _player.pause(); } catch (_) {}
                     return;
                   }
-                  await _player.play();
+                  await _restorePlaybackParameters(forceRebindEq: false);
+                  _triggerPlayNonBlocking();
                   started = true;
                   LogService.instance.recordPlaybackSuccess(song);
                   debugPrint('Successfully playing "${song.title}" via fresh candidate #${i + 1} (clean headers)');
@@ -831,7 +838,8 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
                 try { await _player.pause(); } catch (_) {}
                 return;
               }
-              await _player.play();
+              await _restorePlaybackParameters(forceRebindEq: false);
+              _triggerPlayNonBlocking();
               started = true;
               LogService.instance.recordPlaybackSuccess(song);
               StreamResolverService.cacheStream(song.id, pipedUrl);
@@ -845,7 +853,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       }
 
       if (started) {
-        await _restorePlaybackParameters(forceRebindEq: true);
+        unawaited(_restorePlaybackParameters(forceRebindEq: false));
       }
 
       if (!started) {
@@ -963,9 +971,13 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       }
     }
 
-    if (maxBoost > 0.5) {
-      final attenuationDb = (maxBoost * 0.5).clamp(0.0, 8.0);
-      _headroomAttenuation = ((1.0 / (1.0 + (attenuationDb * 0.14))) * pitchSpeedHeadroom).clamp(0.40, 1.0);
+    if (maxBoost > 1.5) {
+      // Gentle logarithmic preamp headroom (-0.0 to -2.8 dB max) so enabling EQ stays punchy and rich
+      // without sounding noticeably quieter than bypass.
+      final excessDb = (maxBoost - 1.5).clamp(0.0, 10.5);
+      final attenuationDb = (excessDb * 0.26).clamp(0.0, 2.8);
+      final linearFactor = math.pow(10.0, -attenuationDb / 20.0).toDouble();
+      _headroomAttenuation = (linearFactor * pitchSpeedHeadroom).clamp(0.68, 1.0);
     } else {
       _headroomAttenuation = pitchSpeedHeadroom;
     }
@@ -978,11 +990,27 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     }
   }
 
+  /// Atomic equalizer configuration helper: updates multiple EQ fields in-memory first
+  /// and runs ONE clean DSP sync instead of 2-3 competing MethodChannel bursts.
+  Future<void> configureEqualizer({
+    bool? enabled,
+    String? preset,
+    Map<int, double>? customGains,
+    double? bassBoost,
+  }) async {
+    if (enabled != null) _eqEnabled = enabled;
+    if (preset != null) _currentPreset = preset;
+    if (customGains != null) {
+      _userCustomBandGains
+        ..clear()
+        ..addAll(customGains);
+    }
+    if (bassBoost != null) _bassBoost = bassBoost.clamp(0.0, 1.0);
+    await _scheduleDspSync(forceRebind: false);
+  }
+
   Future<void> setBassBoost(double gain) async {
     _bassBoost = gain.clamp(0.0, 1.0);
-    if (_bassBoost > 0.0 && !_eqEnabled) {
-      _eqEnabled = true;
-    }
     await _scheduleDspSync(forceRebind: false);
   }
 
@@ -995,6 +1023,41 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> applyEqualizerPreset(String preset) async {
     _currentPreset = preset;
     await _scheduleDspSync(forceRebind: false);
+  }
+
+  /// Log-frequency interpolation mapping Sine's 6 UI anchor frequencies
+  /// [60 Hz, 150 Hz, 400 Hz, 1 kHz, 2.4 kHz, 15 kHz] cleanly to any Android hardware
+  /// band's real center frequency (5-band, 7-band, or 10-band DSP).
+  /// Guarantees UI band 2 (400 Hz) actively shapes both 230 Hz and 910 Hz on 5-band hardware.
+  static const List<double> uiBandCenterFrequenciesHz = [
+    60.0,
+    150.0,
+    400.0,
+    1000.0,
+    2400.0,
+    15000.0,
+  ];
+
+  @visibleForTesting
+  static double interpolateSixBandGain(double hwCenterFreqHz, List<double> sixBandGains) {
+    if (sixBandGains.isEmpty) return 0.0;
+    if (sixBandGains.length == 1) return sixBandGains.first;
+    final freq = hwCenterFreqHz.clamp(20.0, 20000.0);
+    final anchors = uiBandCenterFrequenciesHz;
+    final count = math.min(sixBandGains.length, anchors.length);
+    if (freq <= anchors[0]) return sixBandGains[0];
+    if (freq >= anchors[count - 1]) return sixBandGains[count - 1];
+
+    final logFreq = math.log(freq);
+    for (int i = 0; i < count - 1; i++) {
+      if (freq >= anchors[i] && freq <= anchors[i + 1]) {
+        final logLow = math.log(anchors[i]);
+        final logHigh = math.log(anchors[i + 1]);
+        final t = ((logFreq - logLow) / (logHigh - logLow)).clamp(0.0, 1.0);
+        return sixBandGains[i] + (sixBandGains[i + 1] - sixBandGains[i]) * t;
+      }
+    }
+    return sixBandGains[count - 1];
   }
 
   /// Serialized single-writer DSP sync queue. Prevents concurrent track/session/UI calls
@@ -1068,13 +1131,6 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
     for (int attempt = 0; attempt < 5; attempt++) {
       try {
-        // On track switch or audio session change, toggle off->on cleanly so Android AudioFlinger
-        // forcibly re-binds hardware DSP filters onto the active AudioTrack.
-        if (forceRebind && attempt == 0) {
-          await _equalizer.setEnabled(false).catchError((_) {});
-          await Future<void>.delayed(const Duration(milliseconds: 12));
-        }
-
         await _equalizer.setEnabled(true);
         final params = await _equalizer.parameters.timeout(const Duration(seconds: 2));
         final bands = params.bands;
@@ -1099,47 +1155,30 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         final activePreset = _currentPreset;
         final lowerPreset = activePreset.toLowerCase().trim();
 
+        final List<double> sixBandTarget;
         if (_spotifyPresetMap.containsKey(lowerPreset)) {
-          final targetList = _spotifyPresetMap[lowerPreset]!;
-          for (int i = 0; i < n; i++) {
-            final targetIdx = ((i / (n > 1 ? (n - 1) : 1)) * (targetList.length - 1)).round().clamp(0, targetList.length - 1);
-            var g = targetList[targetIdx];
-            if (i == 0) {
-              g += bassAdd;
-            } else if (i == 1) {
-              g += lowMidAdd;
-            }
-            final finalGain = clampGain(g);
-            _appliedHardwareBandGains[i] = finalGain;
-            await bands[i].setGain(finalGain);
-          }
+          sixBandTarget = _spotifyPresetMap[lowerPreset]!;
         } else if (activePreset == 'Custom') {
-          for (int i = 0; i < n; i++) {
-            final targetIdx = ((i / (n > 1 ? (n - 1) : 1)) * 5).round().clamp(0, 5);
-            final baseGain = _userCustomBandGains[targetIdx] ?? 0.0;
-            var g = baseGain;
-            if (i == 0) {
-              g += bassAdd;
-            } else if (i == 1) {
-              g += lowMidAdd;
-            }
-            final finalGain = clampGain(g);
-            _appliedHardwareBandGains[i] = finalGain;
-            await bands[i].setGain(finalGain);
-          }
+          sixBandTarget = List<double>.generate(6, (idx) => _userCustomBandGains[idx] ?? 0.0);
         } else {
-          // Default / Flat
-          for (int i = 0; i < n; i++) {
-            var g = 0.0;
-            if (i == 0) {
-              g += bassAdd;
-            } else if (i == 1) {
-              g += lowMidAdd;
-            }
-            final finalGain = clampGain(g);
-            _appliedHardwareBandGains[i] = finalGain;
-            await bands[i].setGain(finalGain);
+          sixBandTarget = const [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        }
+
+        for (int i = 0; i < n; i++) {
+          final hwFreq = bands[i].centerFrequency;
+          var g = hwFreq > 0
+              ? interpolateSixBandGain(hwFreq, sixBandTarget)
+              : sixBandTarget[((i / (n > 1 ? (n - 1) : 1)) * (sixBandTarget.length - 1))
+                  .round()
+                  .clamp(0, sixBandTarget.length - 1)];
+          if (i == 0) {
+            g += bassAdd;
+          } else if (i == 1) {
+            g += lowMidAdd;
           }
+          final finalGain = clampGain(g);
+          _appliedHardwareBandGains[i] = finalGain;
+          await bands[i].setGain(finalGain);
         }
 
         await _updateHeadroomGain();
@@ -1184,7 +1223,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     // If already playing this exact stream, maintain continuity
     if (_activeStreamUrl == candidateUrls.first) {
       if (playImmediately && !_player.playing) {
-        await _player.play();
+        _triggerPlayNonBlocking();
       }
       return true;
     }
@@ -1303,14 +1342,14 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       }
 
       // 4. Restore playback parameters (speed, repeat mode, DSP equalizer)
-      await _restorePlaybackParameters(forceRebindEq: true);
+      await _restorePlaybackParameters(forceRebindEq: false);
 
-      // 5. Resume playback if requested or if previously playing
+      // 5. Resume playback without blocking on just_audio's track-end play() Future
       if (shouldPlay) {
-        await _player.play();
+        _triggerPlayNonBlocking();
       }
 
-      // 6. Update tracking state & disarm guards
+      // 6. Update tracking state & disarm guards immediately
       _activeStreamUrl = successfulUrl;
       _lastKnownPosition = targetPosition;
       _currentTrackActive = true;
@@ -1360,7 +1399,7 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         }
         await _restorePlaybackParameters();
         if (shouldPlay) {
-          await _player.play();
+          _triggerPlayNonBlocking();
         }
         _activeStreamUrl = recoveryUrl;
         _currentTrackActive = true;
@@ -1390,9 +1429,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
   @override
   Future<void> play() async {
-    await _player.play();
-    // Maintain hardware DSP equalizer, bass boost, and headroom limiter after pause/earbud resume
+    // Restore hardware DSP equalizer, bass boost, and headroom BEFORE starting non-blocking play
     await _restorePlaybackParameters();
+    _triggerPlayNonBlocking();
     _syncWidget();
   }
 
@@ -1468,6 +1507,9 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   bool get skipSilenceEnabled => _skipSilenceEnabled;
   Future<void> setSkipSilenceEnabled(bool enabled) async {
     _skipSilenceEnabled = enabled;
+    try {
+      await _player.setSkipSilenceEnabled(enabled);
+    } catch (_) {}
   }
 
   double _bassExciter = 0.0;

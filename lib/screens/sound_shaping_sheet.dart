@@ -26,20 +26,22 @@ class SoundShapingSheet extends StatefulWidget {
 }
 
 class _SoundShapingSheetState extends State<SoundShapingSheet> {
-  double? _localBassBoost;
+  double? _draggingBassBoost;
   DateTime _lastBassSent = DateTime.fromMillisecondsSinceEpoch(0);
   bool _isDraggingGraph = false;
 
   @override
-  void initState() {
-    super.initState();
-    final player = Provider.of<PlayerProvider>(context, listen: false);
-    _localBassBoost = player.bassBoost;
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
+    final player = context.read<PlayerProvider>();
+    final eqEnabled = context.select<PlayerProvider, bool>((p) => p.eqEnabled);
+    final bassBoost = context.select<PlayerProvider, double>((p) => p.bassBoost);
+    final isolationMode = context.select<PlayerProvider, IsolationMode>((p) => p.isolationMode);
+    final isLoadingStem = context.select<PlayerProvider, bool>((p) => p.isLoadingStem);
+    final stemStatusBadgeText = context.select<PlayerProvider, String?>((p) => p.stemStatusBadgeText);
+    final pitchSemitones = context.select<PlayerProvider, int>((p) => p.pitchSemitones);
+    final speed = context.select<PlayerProvider, double>((p) => p.speed);
+    final volumeNormEnabled = context.select<PlayerProvider, bool>((p) => p.isLoudnessNormalizationEnabled);
+    final activeBass = (_draggingBassBoost ?? bassBoost).clamp(0.0, 1.0);
 
     return SafeArea(
       child: Padding(
@@ -108,7 +110,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       TextButton(
                         onPressed: () {
                           setState(() {
-                            _localBassBoost = null;
+                            _draggingBassBoost = null;
                           });
                           player.resetEqualizer();
                           player.setPitchSemitones(0);
@@ -122,7 +124,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       ),
                       const SizedBox(width: 8),
                       Switch(
-                        value: player.eqEnabled,
+                        value: eqEnabled,
                         activeTrackColor: EmberColors.primaryBlue,
                         onChanged: (val) => player.setEqualizerEnabled(val),
                       ),
@@ -149,7 +151,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (player.stemStatusBadgeText != null)
+                  if (stemStatusBadgeText != null)
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
@@ -167,7 +169,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (player.isLoadingStem) ...[
+                          if (isLoadingStem) ...[
                             SizedBox(
                               width: 10,
                               height: 10,
@@ -176,7 +178,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                             const SizedBox(width: 6),
                           ],
                           Text(
-                            player.stemStatusBadgeText!,
+                            stemStatusBadgeText,
                             style: TextStyle(
                               color: EmberColors.primaryBlueHi,
                               fontSize: 10.5,
@@ -196,8 +198,8 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       title: 'Vocals Only',
                       subtitle: 'AI acapella & studio vocals',
                       icon: Icons.mic_rounded,
-                      isActive: player.isolationMode == IsolationMode.vocalsOnly,
-                      isLoading: player.isLoadingStem && player.isolationMode == IsolationMode.vocalsOnly,
+                      isActive: isolationMode == IsolationMode.vocalsOnly,
+                      isLoading: isLoadingStem && isolationMode == IsolationMode.vocalsOnly,
                       onTap: () => player.toggleIsolationMode(IsolationMode.vocalsOnly),
                     ),
                   ),
@@ -207,14 +209,14 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       title: 'Instruments Only',
                       subtitle: 'AI karaoke & backing tracks',
                       icon: Icons.music_note_rounded,
-                      isActive: player.isolationMode == IsolationMode.instrumentsOnly,
-                      isLoading: player.isLoadingStem && player.isolationMode == IsolationMode.instrumentsOnly,
+                      isActive: isolationMode == IsolationMode.instrumentsOnly,
+                      isLoading: isLoadingStem && isolationMode == IsolationMode.instrumentsOnly,
                       onTap: () => player.toggleIsolationMode(IsolationMode.instrumentsOnly),
                     ),
                   ),
                 ],
               ),
-              if (player.isolationMode != IsolationMode.none) ...[
+              if (isolationMode != IsolationMode.none) ...[
                 const SizedBox(height: 10),
                 Center(
                   child: InkWell(
@@ -253,7 +255,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Hearth Bass Boost', style: TextStyle(color: EmberColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
-                  Text('${((_localBassBoost ?? player.bassBoost) * 100).toInt()}%', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('${(activeBass * 100).toInt()}%', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 13, fontWeight: FontWeight.bold)),
                 ],
               ),
               SliderTheme(
@@ -264,11 +266,11 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                   inactiveTrackColor: EmberColors.surfaceContainerHigh,
                 ),
                 child: Slider(
-                  value: (_localBassBoost ?? player.bassBoost).clamp(0.0, 1.0),
+                  value: activeBass,
                   min: 0.0,
                   max: 1.0,
                   onChanged: (val) {
-                    setState(() => _localBassBoost = val);
+                    setState(() => _draggingBassBoost = val);
                     final now = DateTime.now();
                     if (now.difference(_lastBassSent).inMilliseconds >= 50) {
                       _lastBassSent = now;
@@ -276,7 +278,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                     }
                   },
                   onChangeEnd: (val) {
-                    setState(() => _localBassBoost = val);
+                    setState(() => _draggingBassBoost = null);
                     player.setBassBoost(val);
                   },
                 ),
@@ -315,7 +317,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'Pitch Transpose (${player.pitchSemitones > 0 ? "+${player.pitchSemitones}" : "${player.pitchSemitones}"} st)',
+                        'Pitch Transpose (${pitchSemitones > 0 ? "+$pitchSemitones" : "$pitchSemitones"} st)',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               color: EmberColors.textPrimary,
                               fontWeight: FontWeight.bold,
@@ -324,11 +326,11 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                     ],
                   ),
                   TextButton(
-                    onPressed: player.pitchSemitones == 0 ? null : () => player.setPitchSemitones(0),
+                    onPressed: pitchSemitones == 0 ? null : () => player.setPitchSemitones(0),
                     child: Text(
                       'Original Key',
                       style: TextStyle(
-                        color: player.pitchSemitones == 0 ? EmberColors.textMuted : EmberColors.primaryBlue,
+                        color: pitchSemitones == 0 ? EmberColors.textMuted : EmberColors.primaryBlue,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -345,11 +347,11 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                   thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
                 ),
                 child: Slider(
-                  value: player.pitchSemitones.toDouble().clamp(-6.0, 6.0),
+                  value: pitchSemitones.toDouble().clamp(-6.0, 6.0),
                   min: -6.0,
                   max: 6.0,
                   divisions: 12,
-                  label: player.pitchSemitones == 0 ? 'Original (0 st)' : '${player.pitchSemitones > 0 ? "+${player.pitchSemitones}" : "${player.pitchSemitones}"} st',
+                  label: pitchSemitones == 0 ? 'Original (0 st)' : '${pitchSemitones > 0 ? "+$pitchSemitones" : "$pitchSemitones"} st',
                   onChanged: (val) {
                     player.setPitchSemitones(val.round());
                     HapticFeedback.selectionClick();
@@ -361,7 +363,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                 physics: const BouncingScrollPhysics(),
                 child: Row(
                   children: [-3, -2, -1, 0, 1, 2, 3].map((st) {
-                    final isSelected = player.pitchSemitones == st;
+                    final isSelected = pitchSemitones == st;
                     return Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: ChoiceChip(
@@ -407,7 +409,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'Playback Speed (${player.speed.toStringAsFixed(2)}x)',
+                        'Playback Speed (${speed.toStringAsFixed(2)}x)',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               color: EmberColors.textPrimary,
                               fontWeight: FontWeight.bold,
@@ -416,7 +418,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                     ],
                   ),
                   TextButton(
-                    onPressed: player.speed == 1.0 ? null : () => player.setSpeed(1.0),
+                    onPressed: speed == 1.0 ? null : () => player.setSpeed(1.0),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       minimumSize: Size.zero,
@@ -425,7 +427,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                     child: Text(
                       'Normal',
                       style: TextStyle(
-                        color: player.speed == 1.0 ? EmberColors.textMuted : EmberColors.primaryBlue,
+                        color: speed == 1.0 ? EmberColors.textMuted : EmberColors.primaryBlue,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -446,7 +448,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
                       ),
                       child: Slider(
-                        value: player.speed.clamp(0.25, 2.0),
+                        value: speed.clamp(0.25, 2.0),
                         min: 0.25,
                         max: 2.0,
                         divisions: 35,
@@ -508,7 +510,7 @@ class _SoundShapingSheetState extends State<SoundShapingSheet> {
                       ),
                     ),
                     Switch(
-                      value: player.volumeNormalizationEnabled,
+                      value: volumeNormEnabled,
                       activeTrackColor: EmberColors.primaryBlue,
                       onChanged: (val) => player.setVolumeNormalizationEnabled(val),
                     ),

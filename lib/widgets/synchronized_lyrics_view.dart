@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../models/song.dart';
 import '../providers/player_provider.dart';
 import '../services/lyrics_service.dart';
 import '../theme/ember_theme.dart';
@@ -126,8 +127,11 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
-    final cur = player.currentSong;
+    final player = context.read<PlayerProvider>();
+    final cur = context.select<PlayerProvider, Song?>((p) => p.currentSong);
+    context.select<PlayerProvider, (bool, int, int)>(
+      (p) => (p.isLoadingLyrics, p.lyrics.syncedLyrics.length, p.lyrics.plainLyrics.length),
+    );
 
     if (cur != null && cur.id != _currentSongId) {
       _currentSongId = cur.id;
@@ -553,90 +557,73 @@ class _KaraokeLineWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: line.words.map((word) {
-        return _KaraokeWordWidget(
-          word: word,
-          positionNotifier: positionNotifier,
-        );
-      }).toList(),
+    final activeStyle = TextStyle(
+      color: EmberColors.primaryBlueHi,
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+      height: 1.5,
+      letterSpacing: 0.3,
     );
-  }
-}
+    const inactiveStyle = TextStyle(
+      color: Color(0x66FFFFFF),
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+      height: 1.5,
+      letterSpacing: 0.3,
+    );
 
-class _KaraokeWordWidget extends StatelessWidget {
-  final LyricWord word;
-  final ValueListenable<Duration> positionNotifier;
+    // Single line-level ValueListenableBuilder instead of 10-15 per-word listeners!
+    return RepaintBoundary(
+      child: ValueListenableBuilder<Duration>(
+        valueListenable: positionNotifier,
+        builder: (context, currentPos, _) {
+          final curMs = currentPos.inMilliseconds;
+          return Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: line.words.map((word) {
+              final startMs = word.timestamp.inMilliseconds;
+              final durMs = word.duration.inMilliseconds;
+              final leadMs = (durMs * 0.10).round();
+              final effectiveStart = startMs - leadMs;
+              final totalSpan = (durMs * 1.5).round();
 
-  const _KaraokeWordWidget({
-    required this.word,
-    required this.positionNotifier,
-  });
+              double progress = 0.0;
+              if (curMs >= effectiveStart + totalSpan) {
+                progress = 1.0;
+              } else if (curMs > effectiveStart && totalSpan > 0) {
+                progress = ((curMs - effectiveStart) / totalSpan).clamp(0.0, 1.0);
+              }
 
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<Duration>(
-      valueListenable: positionNotifier,
-      builder: (context, currentPos, _) {
-        final startMs = word.timestamp.inMilliseconds;
-        final durMs = word.duration.inMilliseconds;
-        final curMs = currentPos.inMilliseconds;
+              if (progress <= 0.0) {
+                return Text(word.text, style: inactiveStyle);
+              }
+              if (progress >= 1.0) {
+                return Text(word.text, style: activeStyle);
+              }
 
-        final leadMs = (durMs * 0.10).round();
-        final effectiveStart = startMs - leadMs;
-        final totalSpan = (durMs * 1.5).round();
-
-        double progress = 0.0;
-        if (curMs >= effectiveStart + totalSpan) {
-          progress = 1.0;
-        } else if (curMs > effectiveStart && totalSpan > 0) {
-          progress = ((curMs - effectiveStart) / totalSpan).clamp(0.0, 1.0);
-        }
-
-        final activeStyle = TextStyle(
-          color: EmberColors.primaryBlueHi,
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          height: 1.5,
-          letterSpacing: 0.3,
-        );
-
-        const inactiveStyle = TextStyle(
-          color: Color(0x66FFFFFF),
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          height: 1.5,
-          letterSpacing: 0.3,
-        );
-
-        if (progress <= 0.0) {
-          return Text(word.text, style: inactiveStyle);
-        }
-        if (progress >= 1.0) {
-          return Text(word.text, style: activeStyle);
-        }
-
-        return ShaderMask(
-          blendMode: BlendMode.srcIn,
-          shaderCallback: (bounds) {
-            return LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              stops: [
-                progress,
-                (progress + 0.08).clamp(0.0, 1.0),
-              ],
-              colors: [
-                EmberColors.primaryBlueHi,
-                const Color(0x66FFFFFF),
-              ],
-            ).createShader(bounds);
-          },
-          child: Text(word.text, style: activeStyle),
-        );
-      },
+              return ShaderMask(
+                blendMode: BlendMode.srcIn,
+                shaderCallback: (bounds) {
+                  return LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    stops: [
+                      progress,
+                      (progress + 0.08).clamp(0.0, 1.0),
+                    ],
+                    colors: [
+                      EmberColors.primaryBlueHi,
+                      const Color(0x66FFFFFF),
+                    ],
+                  ).createShader(bounds);
+                },
+                child: Text(word.text, style: activeStyle),
+              );
+            }).toList(),
+          );
+        },
+      ),
     );
   }
 }

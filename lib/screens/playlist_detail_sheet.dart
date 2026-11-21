@@ -100,7 +100,9 @@ class PlaylistDetailSheet extends StatelessWidget {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => _showAestheticCoverPicker(context, player, currentPl),
+                    onTap: (currentPl.id == 'downloaded_songs' || currentPl.id == 'liked_songs')
+                        ? null
+                        : () => _showAestheticCoverPicker(context, player, currentPl),
                     child: Stack(
                       children: [
                         AestheticPlaylistCover(
@@ -108,7 +110,7 @@ class PlaylistDetailSheet extends StatelessWidget {
                           size: 64,
                           borderRadius: 12,
                         ),
-                        if (currentPl.id != 'downloaded_songs')
+                        if (currentPl.id != 'downloaded_songs' && currentPl.id != 'liked_songs')
                           Positioned(
                             right: 2,
                             bottom: 2,
@@ -326,7 +328,7 @@ class PlaylistDetailSheet extends StatelessWidget {
                         final isCurrent = player.currentSong?.id == song.id;
 
                         return Dismissible(
-                          key: ValueKey('pl_song_${song.id}_${song.hashCode}_$index'),
+                          key: ValueKey('pl_song_${song.id}_${song.hashCode}'),
                           direction: DismissDirection.endToStart,
                           background: Container(
                             margin: const EdgeInsets.symmetric(vertical: 3),

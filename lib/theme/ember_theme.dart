@@ -122,6 +122,42 @@ class EmberTheme {
     useGoogleFonts: true,
   );
 
+  static TextTheme? _cachedGoogleTextTheme;
+
+  static TextTheme _resolveTextTheme(bool useGoogleFonts) {
+    final canFetchFonts = useGoogleFonts && GoogleFonts.config.allowRuntimeFetching;
+    if (!canFetchFonts) return const TextTheme();
+    if (_cachedGoogleTextTheme != null) return _cachedGoogleTextTheme!;
+    try {
+      final baseTextTheme = Typography.material2021().white;
+
+      final headlineFont = GoogleFonts.soraTextTheme(baseTextTheme);
+      final bodyFont = GoogleFonts.plusJakartaSansTextTheme(baseTextTheme);
+      final labelFont = GoogleFonts.spaceGroteskTextTheme(baseTextTheme);
+
+      _cachedGoogleTextTheme = bodyFont.copyWith(
+        displayLarge: headlineFont.displayLarge?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.bold),
+        displayMedium: headlineFont.displayMedium?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.bold),
+        displaySmall: headlineFont.displaySmall?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.bold),
+        headlineLarge: headlineFont.headlineLarge?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.w700),
+        headlineMedium: headlineFont.headlineMedium?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.w700),
+        headlineSmall: headlineFont.headlineSmall?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.w600),
+        titleLarge: headlineFont.titleLarge?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.w600),
+        titleMedium: headlineFont.titleMedium?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.w500),
+        titleSmall: headlineFont.titleSmall?.copyWith(color: EmberColors.textSecondary, fontWeight: FontWeight.w500),
+        bodyLarge: bodyFont.bodyLarge?.copyWith(color: EmberColors.textPrimary),
+        bodyMedium: bodyFont.bodyMedium?.copyWith(color: EmberColors.textSecondary),
+        bodySmall: bodyFont.bodySmall?.copyWith(color: EmberColors.textMuted),
+        labelLarge: labelFont.labelLarge?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.w600),
+        labelMedium: labelFont.labelMedium?.copyWith(color: EmberColors.textSecondary),
+        labelSmall: labelFont.labelSmall?.copyWith(color: EmberColors.textMuted, letterSpacing: 0.5),
+      );
+      return _cachedGoogleTextTheme!;
+    } catch (_) {
+      return const TextTheme();
+    }
+  }
+
   static ThemeData buildTheme({
     Color? accentColor,
     bool? isOledBlack,
@@ -132,39 +168,7 @@ class EmberTheme {
     final bg = oled ? EmberColors.pitchBlack : EmberColors.obsidianBase;
     final surfaceBg = oled ? EmberColors.pitchBlack : EmberColors.surface;
     final cardBg = oled ? const Color(0xFF0D0D0D) : EmberColors.surfaceContainerLow;
-    TextTheme mergedTextTheme;
-    final canFetchFonts = useGoogleFonts && GoogleFonts.config.allowRuntimeFetching;
-    if (canFetchFonts) {
-      try {
-        final baseTextTheme = Typography.material2021().white;
-
-        final headlineFont = GoogleFonts.soraTextTheme(baseTextTheme);
-        final bodyFont = GoogleFonts.plusJakartaSansTextTheme(baseTextTheme);
-        final labelFont = GoogleFonts.spaceGroteskTextTheme(baseTextTheme);
-
-        mergedTextTheme = bodyFont.copyWith(
-          displayLarge: headlineFont.displayLarge?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.bold),
-          displayMedium: headlineFont.displayMedium?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.bold),
-          displaySmall: headlineFont.displaySmall?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.bold),
-          headlineLarge: headlineFont.headlineLarge?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.w700),
-          headlineMedium: headlineFont.headlineMedium?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.w700),
-          headlineSmall: headlineFont.headlineSmall?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.w600),
-          titleLarge: headlineFont.titleLarge?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.w600),
-          titleMedium: headlineFont.titleMedium?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.w500),
-          titleSmall: headlineFont.titleSmall?.copyWith(color: EmberColors.textSecondary, fontWeight: FontWeight.w500),
-          bodyLarge: bodyFont.bodyLarge?.copyWith(color: EmberColors.textPrimary),
-          bodyMedium: bodyFont.bodyMedium?.copyWith(color: EmberColors.textSecondary),
-          bodySmall: bodyFont.bodySmall?.copyWith(color: EmberColors.textMuted),
-          labelLarge: labelFont.labelLarge?.copyWith(color: EmberColors.textPrimary, fontWeight: FontWeight.w600),
-          labelMedium: labelFont.labelMedium?.copyWith(color: EmberColors.textSecondary),
-          labelSmall: labelFont.labelSmall?.copyWith(color: EmberColors.textMuted, letterSpacing: 0.5),
-        );
-      } catch (_) {
-        mergedTextTheme = const TextTheme();
-      }
-    } else {
-      mergedTextTheme = const TextTheme();
-    }
+    final mergedTextTheme = _resolveTextTheme(useGoogleFonts);
 
     return ThemeData(
       brightness: Brightness.dark,
@@ -215,10 +219,25 @@ class EmberTheme {
   }
 }
 
-/// Smooth cubic page transition builder utilizing [Curves.easeOutQuint] for entry
-/// and [Curves.easeInOutCubic] for shared-axis/secondary transitions.
+/// Smooth cubic page transition builder utilizing [Curves.easeOutCubic] for entry
+/// and [Curves.easeInOutCubic] for secondary transitions via zero-leak [CurveTween] chains.
 class SmoothCubicPageTransitionsBuilder extends PageTransitionsBuilder {
   const SmoothCubicPageTransitionsBuilder();
+
+  static final Animatable<Offset> _entrySlideTween = Tween<Offset>(
+    begin: const Offset(0.08, 0.0),
+    end: Offset.zero,
+  ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+  static final Animatable<double> _entryFadeTween = Tween<double>(
+    begin: 0.0,
+    end: 1.0,
+  ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+  static final Animatable<Offset> _secondarySlideTween = Tween<Offset>(
+    begin: Offset.zero,
+    end: const Offset(-0.04, 0.0),
+  ).chain(CurveTween(curve: Curves.easeInOutCubic));
 
   @override
   Widget buildTransitions<T>(
@@ -228,29 +247,12 @@ class SmoothCubicPageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    final entryCurvedAnimation = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutQuint,
-      reverseCurve: Curves.easeInOutCubic,
-    );
-    final secondaryCurvedAnimation = CurvedAnimation(
-      parent: secondaryAnimation,
-      curve: Curves.easeInOutCubic,
-      reverseCurve: Curves.easeOutQuint,
-    );
-
     return SlideTransition(
-      position: Tween<Offset>(
-        begin: const Offset(0.08, 0.0),
-        end: Offset.zero,
-      ).animate(entryCurvedAnimation),
+      position: animation.drive(_entrySlideTween),
       child: FadeTransition(
-        opacity: Tween<double>(begin: 0.0, end: 1.0).animate(entryCurvedAnimation),
+        opacity: animation.drive(_entryFadeTween),
         child: SlideTransition(
-          position: Tween<Offset>(
-            begin: Offset.zero,
-            end: const Offset(-0.04, 0.0),
-          ).animate(secondaryCurvedAnimation),
+          position: secondaryAnimation.drive(_secondarySlideTween),
           child: child,
         ),
       ),
