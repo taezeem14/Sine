@@ -87,6 +87,12 @@ class Song {
       durationMs = durationVal.toInt();
     } else if (durationVal != null) {
       durationMs = int.tryParse(durationVal.toString()) ?? 0;
+    } else if (map['duration'] != null) {
+      final rawDur = map['duration'] is num
+          ? (map['duration'] as num).toInt()
+          : (int.tryParse(map['duration'].toString()) ?? 0);
+      // Treat small values (< 10000) as seconds, larger values as milliseconds
+      durationMs = rawDur > 0 && rawDur < 10000 ? rawDur * 1000 : rawDur;
     } else {
       durationMs = 0;
     }

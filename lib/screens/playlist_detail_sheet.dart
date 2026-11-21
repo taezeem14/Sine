@@ -46,23 +46,34 @@ class PlaylistDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
-    // Look up latest state of this playlist
-    final Playlist currentPl;
-    if (playlist.id == 'downloaded_songs') {
-      currentPl = Playlist(
-        id: 'downloaded_songs',
-        title: 'Downloaded Songs',
-        description: 'Tracks stored locally on your device for offline playback',
-        songs: player.downloads,
-        createdAt: playlist.createdAt,
-      );
-    } else {
-      currentPl = player.playlists.firstWhere(
-        (p) => p.id == playlist.id,
+    final player = context.read<PlayerProvider>();
+    // Surgical selectors: only rebuild when this playlist or active playing track changes
+    final currentPl = context.select<PlayerProvider, Playlist>((p) {
+      if (playlist.id == 'downloaded_songs') {
+        return Playlist(
+          id: 'downloaded_songs',
+          title: 'Downloaded Songs',
+          description: 'Tracks stored locally on your device for offline playback',
+          songs: List<Song>.from(p.downloads),
+          createdAt: playlist.createdAt,
+        );
+      } else if (playlist.id == 'liked_songs') {
+        return Playlist(
+          id: 'liked_songs',
+          title: 'Liked Songs',
+          description: 'Your favorite tracks',
+          songs: List<Song>.from(p.favorites),
+          createdAt: playlist.createdAt,
+        );
+      }
+      return p.playlists.firstWhere(
+        (pl) => pl.id == playlist.id,
         orElse: () => playlist,
       );
-    }
+    });
+    context.select<PlayerProvider, String?>((p) => p.currentSong?.id);
+    context.select<PlayerProvider, bool>((p) => p.isPlaying);
+    final isSystemPlaylist = currentPl.id == 'downloaded_songs' || currentPl.id == 'liked_songs';
 
     return DraggableScrollableSheet(
       initialChildSize: 0.88,
@@ -146,7 +157,7 @@ class PlaylistDetailSheet extends StatelessWidget {
                     tooltip: 'Export Playlist JSON',
                     onPressed: () => _showExportPlaylistDialog(context, player, currentPl),
                   ),
-                  if (currentPl.id != 'downloaded_songs')
+                  if (!isSystemPlaylist)
                     IconButton(
                       icon: const FaIcon(FontAwesomeIcons.penToSquare, size: 16, color: EmberColors.textMuted),
                       tooltip: 'Rename Playlist',
@@ -184,10 +195,10 @@ class PlaylistDetailSheet extends StatelessWidget {
                             ),
                           ],
                         ),
-                      );
+                      ).then((_) => textController.dispose());
                     },
                   ),
-                  if (currentPl.id != 'downloaded_songs')
+                  if (!isSystemPlaylist)
                     IconButton(
                       icon: const FaIcon(FontAwesomeIcons.trashCan, size: 16, color: EmberColors.textMuted),
                       tooltip: 'Delete Playlist',

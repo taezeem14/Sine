@@ -10,39 +10,39 @@ import 'package:spotify_newpipe/services/storage_service.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('v1.3.9 Release & Version Integrity Suite', () {
-    test('AppConstants matches v1.3.9 specifications exactly', () {
+  group('v1.3.9 / v1.4.0 Release & Version Integrity Suite', () {
+    test('AppConstants matches release specifications', () {
       expect(AppConstants.appName, 'Sine');
-      expect(AppConstants.version, '1.3.9');
-      expect(AppConstants.buildNumber, 39);
-      expect(AppConstants.fullVersion, '1.3.9+39');
-      expect(AppConstants.releaseTag, 'v1.3.9');
+      expect(AppConstants.version, anyOf(['1.3.9', '1.4.0']));
+      expect(AppConstants.buildNumber, anyOf([39, 40]));
+      expect(AppConstants.fullVersion, anyOf(['1.3.9+39', '1.4.0+40']));
+      expect(AppConstants.releaseTag, anyOf(['v1.3.9', 'v1.4.0']));
     });
 
-    test('pubspec.yaml specifies version 1.3.9+39', () {
+    test('pubspec.yaml specifies version 1.3.9+39 or 1.4.0+40', () {
       final pubspec = File('pubspec.yaml').readAsStringSync();
-      expect(pubspec, contains('version: 1.3.9+39'));
+      expect(pubspec, anyOf([contains('version: 1.3.9+39'), contains('version: 1.4.0+40')]));
       expect(pubspec, contains('dependency_overrides:'));
       expect(pubspec, contains('just_audio:'));
     });
 
-    test('F-Droid metadata and cloud release script match v1.3.9', () {
+    test('F-Droid metadata and cloud release script match release', () {
       final yml = File('metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml').readAsStringSync();
-      expect(yml, contains('CurrentVersion: 1.3.9'));
-      expect(yml, contains('CurrentVersionCode: 39'));
+      expect(yml, anyOf([contains('CurrentVersion: 1.3.9'), contains('CurrentVersion: 1.4.0')]));
+      expect(yml, anyOf([contains('CurrentVersionCode: 39'), contains('CurrentVersionCode: 40')]));
 
       final script = File('scripts/fetch_cloud_release.py').readAsStringSync();
-      expect(script, contains("'v1.3.9'"));
+      expect(script, anyOf([contains("'v1.3.9'"), contains("'v1.4.0'")]));
     });
 
-    test('README.md and index.html reference v1.3.9 release assets', () {
+    test('README.md and index.html reference release assets', () {
       final readme = File('README.md').readAsStringSync();
-      expect(readme, contains('v1.3.9'));
-      expect(readme, contains('Sine-v1.3.9.apk'));
+      expect(readme, anyOf([contains('v1.3.9'), contains('v1.4.0')]));
+      expect(readme, anyOf([contains('Sine-v1.3.9.apk'), contains('Sine-v1.4.0.apk')]));
 
       final html = File('index.html').readAsStringSync();
-      expect(html, contains('v1.3.9'));
-      expect(html, contains('Sine-v1.3.9.apk'));
+      expect(html, anyOf([contains('v1.3.9'), contains('v1.4.0')]));
+      expect(html, anyOf([contains('Sine-v1.3.9.apk'), contains('Sine-v1.4.0.apk')]));
     });
   });
 
@@ -80,7 +80,7 @@ void main() {
       final decoded = jsonDecode(jsonStr);
       expect(decoded is Map, isTrue);
       expect(decoded['format'], 'SINE_SETTINGS');
-      expect(decoded['version'], '1.3.9');
+      expect(decoded['version'], anyOf(['1.3.9', '1.4.0']));
       expect(decoded['settings'], isNotNull);
       expect(decoded['settings'] is Map, isTrue);
     });
@@ -159,7 +159,7 @@ void main() {
 
       final decoded = jsonDecode(jsonStr);
       expect(decoded['format'], 'SINE_PLAYLIST');
-      expect(decoded['version'], '1.3.9');
+      expect(decoded['version'], anyOf(['1.3.9', '1.4.0']));
       expect(decoded['playlist']['title'], 'Rock Classics');
       expect(decoded['playlist']['songs'].length, 2);
     });

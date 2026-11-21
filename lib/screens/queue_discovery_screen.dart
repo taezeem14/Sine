@@ -21,20 +21,27 @@ class QueueDiscoveryScreen extends StatefulWidget {
 class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
   @override
   Widget build(BuildContext context) {
-    final player = context.watch<PlayerProvider>();
-    final currentSong = player.currentSong;
-    final queue = player.queue;
-    final currentIndex = player.currentIndex;
+    final player = context.read<PlayerProvider>();
+    // Surgical selectors eliminate micro-jank during queue scroll & drag-reorder
+    final currentSong = context.select<PlayerProvider, Song?>((p) => p.currentSong);
+    final queue = context.select<PlayerProvider, List<Song>>((p) => List<Song>.from(p.queue));
+    final currentIndex = context.select<PlayerProvider, int>((p) => p.currentIndex);
+    final recommendations = context.select<PlayerProvider, List<Song>>((p) => List<Song>.from(p.recommendations));
+    final isPlaying = context.select<PlayerProvider, bool>((p) => p.isPlaying);
+    final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
+    final themeData = context.select<PlayerProvider, ThemeData>((p) => p.themeData);
+    context.select<PlayerProvider, String>((p) => p.playingFrom);
+    context.select<PlayerProvider, bool>((p) => p.isLoadingRecommendations);
+    context.select<PlayerProvider, bool>((p) => currentSong != null && p.isFavorite(currentSong.id));
+
     final upNext = currentIndex >= 0 && currentIndex < queue.length - 1
         ? queue.sublist(currentIndex + 1)
         : <Song>[];
-    final recommendations = player.recommendations;
 
-    final isOled = player.isOledBlack;
     final bgColor = isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase;
 
     return AnimatedTheme(
-      data: player.themeData,
+      data: themeData,
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeInOutCubic,
       child: Scaffold(
@@ -103,7 +110,7 @@ class _QueueDiscoveryScreenState extends State<QueueDiscoveryScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: _NowPlayingHighlightCard(
                   currentSong: currentSong,
-                  isPlaying: player.isPlaying,
+                  isPlaying: isPlaying,
                   isFavorite: player.isFavorite(currentSong.id),
                   onFavoriteToggle: () {
                     HapticFeedback.lightImpact();

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -397,10 +396,11 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
     context.select<PlayerProvider, int>((p) => p.playlists.length);
     context.select<PlayerProvider, int>((p) => p.history.length);
     context.select<PlayerProvider, String?>((p) => p.currentSong?.id);
+    final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
     final player = context.read<PlayerProvider>();
 
     return Scaffold(
-      backgroundColor: EmberColors.obsidianBase,
+      backgroundColor: isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase,
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(

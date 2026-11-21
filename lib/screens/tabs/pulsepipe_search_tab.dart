@@ -185,10 +185,16 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
   @override
   Widget build(BuildContext context) {
     final isSearching = _controller.text.trim().isNotEmpty;
-    final player = isSearching ? context.watch<PlayerProvider>() : context.read<PlayerProvider>();
+    final player = context.read<PlayerProvider>();
+    // Unconditional surgical selectors (always safe, never rebuild on unrelated playback ticks)
+    context.select<PlayerProvider, bool>((p) => p.isSearching);
+    context.select<PlayerProvider, List<Song>>((p) => p.searchResults);
+    context.select<PlayerProvider, String?>((p) => p.currentSong?.id);
+    context.select<PlayerProvider, bool>((p) => p.isPlaying);
+    final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
 
     return Scaffold(
-      backgroundColor: EmberColors.obsidianBase,
+      backgroundColor: isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase,
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(

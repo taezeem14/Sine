@@ -16,15 +16,15 @@ void main() {
   group('v1.3.8 / v1.3.9 Release & Version Integrity Suite', () {
     test('AppConstants strictly matches release specifications', () {
       expect(AppConstants.appName, 'Sine');
-      expect(AppConstants.version, anyOf('1.3.8', '1.3.9'));
-      expect(AppConstants.buildNumber, anyOf(38, 39));
-      expect(AppConstants.fullVersion, anyOf('1.3.8+38', '1.3.9+39'));
-      expect(AppConstants.releaseTag, anyOf('v1.3.8', 'v1.3.9'));
+      expect(AppConstants.version, anyOf(['1.3.8', '1.3.9', '1.4.0']));
+      expect(AppConstants.buildNumber, anyOf([38, 39, 40]));
+      expect(AppConstants.fullVersion, anyOf(['1.3.8+38', '1.3.9+39', '1.4.0+40']));
+      expect(AppConstants.releaseTag, anyOf(['v1.3.8', 'v1.3.9', 'v1.4.0']));
     });
 
-    test('pubspec.yaml specifies version 1.3.8+38 or 1.3.9+39 and just_audio dependency override', () {
+    test('pubspec.yaml specifies version 1.3.8+38 or newer and just_audio dependency override', () {
       final pubspec = File('pubspec.yaml').readAsStringSync();
-      expect(pubspec, anyOf(contains('version: 1.3.8+38'), contains('version: 1.3.9+39')));
+      expect(pubspec, anyOf([contains('version: 1.3.8+38'), contains('version: 1.3.9+39'), contains('version: 1.4.0+40')]));
       expect(pubspec, contains('dependency_overrides:'));
       expect(pubspec, contains('just_audio:'));
       expect(pubspec, contains('path: packages/just_audio'));
@@ -32,21 +32,21 @@ void main() {
 
     test('F-Droid metadata and release script match specifications', () {
       final yml = File('metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml').readAsStringSync();
-      expect(yml, anyOf(contains('CurrentVersion: 1.3.8'), contains('CurrentVersion: 1.3.9')));
-      expect(yml, anyOf(contains('CurrentVersionCode: 38'), contains('CurrentVersionCode: 39')));
+      expect(yml, anyOf([contains('CurrentVersion: 1.3.8'), contains('CurrentVersion: 1.3.9'), contains('CurrentVersion: 1.4.0')]));
+      expect(yml, anyOf([contains('CurrentVersionCode: 38'), contains('CurrentVersionCode: 39'), contains('CurrentVersionCode: 40')]));
 
       final script = File('scripts/fetch_cloud_release.py').readAsStringSync();
-      expect(script, anyOf(contains("'v1.3.8'"), contains("'v1.3.9'")));
+      expect(script, anyOf([contains("'v1.3.8'"), contains("'v1.3.9'"), contains("'v1.4.0'")]));
     });
 
     test('README.md and index.html reference release apk', () {
       final readme = File('README.md').readAsStringSync();
-      expect(readme, anyOf(contains('v1.3.8'), contains('v1.3.9')));
-      expect(readme, anyOf(contains('Sine-v1.3.8.apk'), contains('Sine-v1.3.9.apk')));
+      expect(readme, anyOf([contains('v1.3.8'), contains('v1.3.9'), contains('v1.4.0')]));
+      expect(readme, anyOf([contains('Sine-v1.3.8.apk'), contains('Sine-v1.3.9.apk'), contains('Sine-v1.4.0.apk')]));
 
       final html = File('index.html').readAsStringSync();
-      expect(html, anyOf(contains('v1.3.8'), contains('v1.3.9')));
-      expect(html, anyOf(contains('Sine-v1.3.8.apk'), contains('Sine-v1.3.9.apk')));
+      expect(html, anyOf([contains('v1.3.8'), contains('v1.3.9'), contains('v1.4.0')]));
+      expect(html, anyOf([contains('Sine-v1.3.8.apk'), contains('Sine-v1.3.9.apk'), contains('Sine-v1.4.0.apk')]));
     });
   });
 

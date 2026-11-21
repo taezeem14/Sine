@@ -62,18 +62,26 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
     final currentSongId = context.select<PlayerProvider, String?>((p) => p.currentSong?.id);
     final isPlaying = context.select<PlayerProvider, bool>((p) => p.isPlaying);
     final favoritesCount = context.select<PlayerProvider, int>((p) => p.favorites.length);
+    final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
+    final bgColor = isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase;
     final player = context.read<PlayerProvider>();
 
     return Scaffold(
-      backgroundColor: EmberColors.obsidianBase,
-      body: CustomScrollView(
+      backgroundColor: bgColor,
+      body: RefreshIndicator(
+        color: Theme.of(context).colorScheme.primary,
+        backgroundColor: EmberColors.surfaceContainerHigh,
+        onRefresh: () async {
+          await player.loadYouTubeTrending(force: true);
+        },
+        child: CustomScrollView(
         key: const PageStorageKey<String>('sine_home_scroll'),
         cacheExtent: 800,
         physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         slivers: [
           // 1. Top Bar with Greeting & Quick Actions
           SliverAppBar(
-            backgroundColor: EmberColors.obsidianBase.withValues(alpha: 0.95),
+            backgroundColor: bgColor.withValues(alpha: 0.95),
             elevation: 0,
             floating: true,
             pinned: false,
@@ -494,6 +502,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
           const SliverToBoxAdapter(child: SizedBox(height: 150)),
         ],
       ),
+      ),
     );
   }
 
@@ -508,11 +517,19 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
           color: EmberColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isPlaying
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.55)
+                : EmberColors.outlineVariant.withValues(alpha: 0.25),
+            width: isPlaying ? 1.2 : 0.7,
+          ),
         ),
         clipBehavior: Clip.antiAlias,
         child: Row(

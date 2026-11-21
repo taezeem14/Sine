@@ -6,6 +6,7 @@ import '../models/song.dart';
 import '../providers/player_provider.dart';
 import '../theme/ember_theme.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/smooth_animations.dart';
 import 'tabs/pulsepipe_home_tab.dart';
 import 'tabs/pulsepipe_search_tab.dart';
 import 'tabs/pulsepipe_library_tab.dart';
@@ -119,13 +120,18 @@ class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> with Widget
 
   @override
   Widget build(BuildContext context) {
+    final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
+    final activeAccent = Theme.of(context).colorScheme.primary;
+    final bgColor = isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase;
+
     return Scaffold(
-      backgroundColor: EmberColors.obsidianBase,
+      backgroundColor: bgColor,
       body: Stack(
         children: [
-          // 1. Tab Views
-          IndexedStack(
+          // 1. Tab Views with Smooth GPU-Composited Fade + Micro-Scale Transitions
+          AnimatedIndexedStack(
             index: _currentIndex,
+            duration: const Duration(milliseconds: 220),
             children: [
               PulsePipeHomeTab(
                 onOpenSearch: () => _onTabTapped(1),
@@ -147,21 +153,30 @@ class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> with Widget
                 // Floating MiniPlayer docked above nav bar
                 const MiniPlayer(),
 
-                // Sine Bottom Navigation Bar in Electric Blue
-                Container(
+                // Sine Bottom Navigation Bar (OLED & Theme-Reactive)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
                   decoration: BoxDecoration(
-                    color: EmberColors.obsidianBase.withValues(alpha: 0.98),
+                    color: bgColor.withValues(alpha: 0.96),
                     border: Border(
                       top: BorderSide(
-                        color: EmberColors.glassBorder.withValues(alpha: 0.3),
+                        color: activeAccent.withValues(alpha: 0.16),
                         width: 0.8,
                       ),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        blurRadius: 16,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
                   ),
                   child: SafeArea(
                     top: false,
                     child: SizedBox(
-                      height: 56,
+                      height: 58,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
@@ -170,6 +185,7 @@ class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> with Widget
                             activeIcon: FontAwesomeIcons.house,
                             label: 'Home',
                             isSelected: _currentIndex == 0,
+                            accentColor: activeAccent,
                             onTap: () => _onTabTapped(0),
                           ),
                           _BottomNavItem(
@@ -177,6 +193,7 @@ class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> with Widget
                             activeIcon: FontAwesomeIcons.magnifyingGlass,
                             label: 'Search',
                             isSelected: _currentIndex == 1,
+                            accentColor: activeAccent,
                             onTap: () => _onTabTapped(1),
                           ),
                           _BottomNavItem(
@@ -184,6 +201,7 @@ class _PulsePipeShellScreenState extends State<PulsePipeShellScreen> with Widget
                             activeIcon: FontAwesomeIcons.linesLeaning,
                             label: 'Your Library',
                             isSelected: _currentIndex == 2,
+                            accentColor: activeAccent,
                             onTap: () => _onTabTapped(2),
                           ),
                         ],
@@ -214,6 +232,7 @@ class _BottomNavItem extends StatelessWidget {
   final FaIconData activeIcon;
   final String label;
   final bool isSelected;
+  final Color accentColor;
   final VoidCallback onTap;
 
   const _BottomNavItem({
@@ -221,12 +240,13 @@ class _BottomNavItem extends StatelessWidget {
     required this.activeIcon,
     required this.label,
     required this.isSelected,
+    required this.accentColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected ? EmberColors.primaryBlueHi : EmberColors.textSecondary;
+    final color = isSelected ? accentColor : EmberColors.textSecondary;
 
     return Expanded(
       child: InkWell(
@@ -238,35 +258,39 @@ class _BottomNavItem extends StatelessWidget {
         highlightColor: Colors.transparent,
         child: AnimatedScale(
           scale: isSelected ? 1.05 : 1.0,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutBack,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: EdgeInsets.symmetric(horizontal: isSelected ? 12 : 0, vertical: 2),
-                decoration: isSelected
-                    ? BoxDecoration(
-                        color: EmberColors.primaryBlue.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      )
-                    : null,
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.symmetric(horizontal: isSelected ? 16 : 6, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSelected ? accentColor.withValues(alpha: 0.16) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isSelected ? accentColor.withValues(alpha: 0.35) : Colors.transparent,
+                    width: 0.8,
+                  ),
+                ),
                 child: FaIcon(
                   isSelected ? activeIcon : icon,
-                  size: isSelected ? 20 : 19,
+                  size: isSelected ? 19 : 18,
                   color: color,
                 ),
               ),
               const SizedBox(height: 3),
-              Text(
-                label,
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
                 style: TextStyle(
                   color: color,
                   fontSize: 10.5,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   letterSpacing: -0.2,
                 ),
+                child: Text(label),
               ),
             ],
           ),

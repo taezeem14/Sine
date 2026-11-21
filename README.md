@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.3.9%20(Build%2039)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.4.0%20(Build%2040)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.3.9)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.3.9.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.4.0)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.0.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy studio-grade ad-free music instantly.*
 
@@ -36,6 +36,7 @@
 
 ## 📖 Table of Contents
 - [What Is Sine?](#-what-is-sine)
+- [What's New in v1.4.0](#-whats-new-in-v140)
 - [What's New in v1.3.9](#-whats-new-in-v139)
 - [What's New in v1.3.8](#-whats-new-in-v138)
 - [What's New in v1.3.7](#-whats-new-in-v137)
@@ -66,6 +67,27 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 - **Pure Local Data**: Playlists, listening history, and cached media remain 100% on your device.
 - **Sub-1.2s Cold-Start Playback**: Progressive hardware decoding starting audio almost instantaneously.
 - **Direct Public Storage Vault**: Music downloads save directly to `/storage/emulated/0/Sine-Music` with standard ID3 tags and HD artwork.
+
+---
+
+## 🌟 What's New in v1.4.0
+
+1. **Bulletproof Backup, Settings & Playlist JSON Engine (Critical Bug Fixes)**:
+   - **Fixed Fatal JSON Export Crash**: Resolved `JsonUnsupportedObjectError` caused by `Map<int, double>` equalizer band gain keys — all EQ band keys are now strictly JSON-safe strings across full backups and settings exports.
+   - **Complete 23-Setting Unified Backup & Live Restore**: Full backups now export and immediately apply ALL 23 settings (EQ gains, presets, bass boost, theme, OLED pitch-black, speed, crossfade, gapless, gestures, loudness, skip silence) without needing an app restart.
+   - **4-Tier Resilient File Export & Zero-Prompt Discovery**: Exports cascade through `/Sine-Music/Backups`, `/Download/Sine-Backups`, App External Storage, and App Documents. Restore scans all locations cleanly with colored format pills (`BACKUP`, `SETTINGS`, `PLAYLIST`) and 1-tap Clipboard Paste.
+   - **Smart Playlist Merging & Android 9-14 Permission Fix**: Merging backups now combines new tracks into existing playlists instead of skipping duplicates, and storage permission checks never loop on legacy Android / MIUI devices.
+
+2. **Flagship Smooth UI/UX Motion & 120 FPS Frame Optimization**:
+   - **Animated Tab Transitions (`AnimatedIndexedStack`)**: Silky 220ms GPU-composited fade + micro-scale switching between Home, Search, and Library while preserving scroll state.
+   - **Upgraded Floating MiniPlayer**: Smooth slide+fade entrance/exit, interactive horizontal drag-to-skip with spring displacement, cover-matched ambient border glow, and `AnimatedSwitcher` track cross-fades.
+   - **Zero-Jank Surgical Selectors**: Eliminated full-tree `context.watch<PlayerProvider>()` rebuilds in `MiniPlayer`, `QueueDiscoveryScreen`, `PlaylistDetailSheet`, `SearchTab`, `SettingsScreen`, and `LyricsSheet`, plus removed `IntrinsicHeight` double-layout pass in `NowPlayingScreen`.
+   - **Now Playing Polish**: Swipe left/right directly on the album cover to skip tracks, animated title/artist cross-fade, pull-to-refresh on Home Trending, and full OLED Pitch Black reactivity across every tab.
+
+3. **Systematic Bug Fixes**:
+   - Fixed `Liked Songs` playlist sheet not updating live and erroneously displaying Rename/Delete buttons.
+   - Fixed loading spinner occasionally getting stuck on Play/Pause buttons when streams finish buffering.
+   - Fixed synchronized lyrics lag on seek and widget artwork sync on play/pause.
 
 ---
 

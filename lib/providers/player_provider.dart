@@ -569,6 +569,7 @@ class PlayerProvider extends ChangeNotifier {
 
     _stateSub = _audioHandler.player.playerStateStream.listen((state) {
       final playing = state.playing;
+      final wasLoading = _isLoadingStream;
       if (playing && state.processingState == ProcessingState.ready) {
         // Stream is actively playing and loaded — reset failure counter
         _consecutiveStreamFailures = 0;
@@ -580,13 +581,17 @@ class PlayerProvider extends ChangeNotifier {
       if (state.processingState == ProcessingState.idle) {
         _isLoadingStream = false;
       }
-      if (_isPlaying != playing) {
+      final playingChanged = _isPlaying != playing;
+      if (playingChanged) {
         _isPlaying = playing;
         SineWidgetService.updateWidget(
           title: currentSong?.title,
           artist: currentSong?.artist,
+          artworkUrl: currentSong?.artworkUrl,
           isPlaying: _isPlaying,
         );
+      }
+      if (playingChanged || wasLoading != _isLoadingStream) {
         notifyListeners();
       }
     });
@@ -1229,7 +1234,10 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> seek(Duration position) async {
     _position = position;
     positionNotifier.value = position;
-    notifyListeners();
+    final lyricIdx = _findLyricIndex(position);
+    if (lyricIdx != activeLyricIndexNotifier.value) {
+      activeLyricIndexNotifier.value = lyricIdx;
+    }
     await _audioHandler.seek(position);
   }
 
@@ -2304,8 +2312,8 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadYouTubeTrending() async {
-    if (_youtubeTracks.isNotEmpty) return;
+  Future<void> loadYouTubeTrending({bool force = false}) async {
+    if (!force && _youtubeTracks.isNotEmpty) return;
     _isLoadingYouTube = true;
     notifyListeners();
 
@@ -2469,10 +2477,24 @@ class PlayerProvider extends ChangeNotifier {
     return _storageService.exportSettingsToFile(customFileName: customFileName);
   }
 
+  Future<void> _applyRestoredAudioParams() async {
+    try {
+      await _audioHandler.setSpeed(_speed);
+      await _audioHandler.setPlayerRepeatMode(_repeatMode);
+      await _audioHandler.setEqualizerEnabled(_eqEnabled);
+      await _audioHandler.applyEqualizerPreset(_eqPreset);
+      await _audioHandler.setBassBoost(_bassBoost);
+      for (final entry in _bandGains.entries) {
+        await _audioHandler.setBandGain(entry.key, entry.value);
+      }
+    } catch (_) {}
+  }
+
   Future<bool> importSettingsFromJson(String jsonStr) async {
     final success = await _storageService.importSettingsJson(jsonStr);
     if (success) {
       _loadSavedSettings();
+      await _applyRestoredAudioParams();
       notifyListeners();
     }
     return success;
@@ -2508,6 +2530,8 @@ class PlayerProvider extends ChangeNotifier {
       _playlists = _storageService.loadPlaylists();
       _favorites = _storageService.loadFavorites();
       _history = _storageService.loadHistory();
+      _loadSavedSettings();
+      await _applyRestoredAudioParams();
       notifyListeners();
     }
     return result;
@@ -2522,6 +2546,8 @@ class PlayerProvider extends ChangeNotifier {
       _playlists = _storageService.loadPlaylists();
       _favorites = _storageService.loadFavorites();
       _history = _storageService.loadHistory();
+      _loadSavedSettings();
+      await _applyRestoredAudioParams();
       notifyListeners();
     }
     return result;

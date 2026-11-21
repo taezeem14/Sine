@@ -101,15 +101,14 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
+              // Single-pass bounded height eliminates IntrinsicHeight double-measure jank
+              final targetHeight = constraints.maxHeight > 540 ? constraints.maxHeight : 540.0;
               return SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                  ),
-                  child: IntrinsicHeight(
-                    child: Column(
-                      children: [
+                child: SizedBox(
+                  height: targetHeight,
+                  child: Column(
+                    children: [
                         // 1. Top Navigation Bar
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -269,7 +268,20 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                   : Center(
                                       key: const ValueKey('vinyl_mode'),
                                       child: GestureDetector(
-                                        onTap: () => setState(() => _showLyrics = true),
+                                        onTap: () {
+                                          HapticFeedback.selectionClick();
+                                          setState(() => _showLyrics = true);
+                                        },
+                                        onHorizontalDragEnd: (details) {
+                                          final v = details.primaryVelocity ?? 0;
+                                          if (v < -260) {
+                                            HapticFeedback.lightImpact();
+                                            context.read<PlayerProvider>().skipNext();
+                                          } else if (v > 260) {
+                                            HapticFeedback.lightImpact();
+                                            context.read<PlayerProvider>().skipPrevious();
+                                          }
+                                        },
                                         child: RepaintBoundary(
                                           child: AmbientGlow(
                                             isPlaying: isPlaying,
@@ -346,36 +358,59 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                         ),
                       ),
 
-                      // 4. Title, Artist & Spotify-style Bouncy Heart
+                      // 4. Title, Artist & Spotify-style Bouncy Heart (Animated Track Transition)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 6),
                         child: Row(
                           children: [
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    song.title,
-                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                          color: EmberColors.textPrimary,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: -0.4,
-                                        ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 280),
+                                switchInCurve: Curves.easeOutCubic,
+                                switchOutCurve: Curves.easeInCubic,
+                                layoutBuilder: (currentChild, previousChildren) => Stack(
+                                  alignment: Alignment.centerLeft,
+                                  children: [
+                                    ...previousChildren,
+                                    if (currentChild != null) currentChild,
+                                  ],
+                                ),
+                                transitionBuilder: (child, anim) => FadeTransition(
+                                  opacity: anim,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, 0.16),
+                                      end: Offset.zero,
+                                    ).animate(anim),
+                                    child: child,
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    song.artist,
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                          color: EmberColors.textSecondary,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                                ),
+                                child: Column(
+                                  key: ValueKey('np_title_${song.id}'),
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      song.title,
+                                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                            color: EmberColors.textPrimary,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: -0.4,
+                                          ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      song.artist,
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            color: EmberColors.textSecondary,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             _SpotifyHeartButton(song: song),
@@ -405,11 +440,10 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                     ],
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-      ),
       ),
     );
   }

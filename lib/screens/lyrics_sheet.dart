@@ -21,7 +21,7 @@ class LyricsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeSong = context.watch<PlayerProvider>().currentSong ?? song;
+    final activeSong = context.select<PlayerProvider, Song?>((p) => p.currentSong) ?? song;
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
       decoration: const BoxDecoration(

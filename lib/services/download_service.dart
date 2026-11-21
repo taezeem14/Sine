@@ -71,26 +71,32 @@ class DownloadService {
   static Future<bool> requestStoragePermission() async {
     if (!Platform.isAndroid) return true;
     try {
-      // 1. Android 11+ (API 30+): MANAGE_EXTERNAL_STORAGE is required to write directly to /storage/emulated/0/Sine-Music
-      final manageStatus = await Permission.manageExternalStorage.status;
-      if (!manageStatus.isGranted) {
+      // Fast-path: check if ANY sufficient storage permission is already granted
+      try {
+        if (await Permission.manageExternalStorage.isGranted) return true;
+      } catch (_) {}
+      try {
+        if (await Permission.storage.isGranted) return true;
+      } catch (_) {}
+
+      // 1. Android <= 10 (API <= 29, e.g. Redmi Note 5 Pro): legacy storage permission works directly
+      try {
+        final storageStatus = await Permission.storage.request();
+        if (storageStatus.isGranted) return true;
+      } catch (_) {}
+
+      // 2. Android 11+ (API 30+): MANAGE_EXTERNAL_STORAGE for direct /storage/emulated/0/Sine-Music access
+      try {
         final req = await Permission.manageExternalStorage.request();
         if (req.isGranted) return true;
-      } else {
-        return true;
-      }
-
-      // 2. Android <= 10 (API <= 29): WRITE_EXTERNAL_STORAGE legacy permission
-      var storageStatus = await Permission.storage.status;
-      if (!storageStatus.isGranted) {
-        storageStatus = await Permission.storage.request();
-      }
-      if (storageStatus.isGranted) return true;
+      } catch (_) {}
 
       // 3. Android 13+ (API 33+) granular media permissions
-      final audioStatus = await Permission.audio.request();
-      final videoStatus = await Permission.videos.request();
-      if (audioStatus.isGranted || videoStatus.isGranted) return true;
+      try {
+        final audioStatus = await Permission.audio.request();
+        final videoStatus = await Permission.videos.request();
+        if (audioStatus.isGranted || videoStatus.isGranted) return true;
+      } catch (_) {}
     } catch (e) {
       debugPrint('[DownloadService] Storage permission request error: $e');
     }

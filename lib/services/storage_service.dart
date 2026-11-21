@@ -658,6 +658,176 @@ class StorageService {
     await _prefs?.setBool(_flipToPauseKey, enabled);
   }
 
+  /// Collects ALL app settings into a strictly JSON-safe Map (all Map keys are String).
+  Map<String, dynamic> _collectSettingsMap() {
+    // CRITICAL FIX: Map<int, double> from loadBandGains() MUST have String keys for JSON encoding!
+    final stringBandGains = loadBandGains().map((k, v) => MapEntry(k.toString(), v));
+    return {
+      'speed': loadPlaybackSpeed(),
+      'crossfade': loadCrossfadeSeconds(),
+      'gapless': loadGaplessPlayback(),
+      'clippingProtection': loadClippingProtection(),
+      'loudnessNormalization': loadLoudnessNormalization(),
+      'skipSilence': loadSkipSilence(),
+      'autoplay': loadAutoplayEnabled(),
+      'repeatMode': loadRepeatMode(),
+      'shuffle': loadShuffle(),
+      'recoveryMode': loadPlaybackRecoveryMode(),
+      'stemEngine': loadStemEnginePreference(),
+      'eqPreset': loadEqualizerPreset(),
+      'eqEnabled': loadEqualizerEnabled(),
+      'eqBassBoost': loadBassBoost(),
+      'eqBandGains': stringBandGains,
+      'acousticPreset': loadAcousticPreset(),
+      'bassExciter': loadBassExciter(),
+      'spatializer': loadSpatializer(),
+      'themePreset': loadThemePreset(),
+      'customThemeColor': loadCustomThemeColor(),
+      'oledBlack': loadOledBlack(),
+      'flipToPause': loadFlipToPause(),
+      'shakeToSkip': loadShakeToSkip(),
+    };
+  }
+
+  /// Applies a decoded settings Map safely to SharedPreferences.
+  Future<void> _applySettingsMap(Map settings) async {
+    double? toDouble(dynamic v) => v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '');
+    int? toInt(dynamic v) => v is num ? v.toInt() : int.tryParse(v?.toString() ?? '');
+    bool? toBool(dynamic v) {
+      if (v is bool) return v;
+      if (v == 'true' || v == 1) return true;
+      if (v == 'false' || v == 0) return false;
+      return null;
+    }
+
+    final speed = toDouble(settings['speed']);
+    if (speed != null) await savePlaybackSpeed(speed.clamp(0.5, 2.0));
+    final crossfade = toInt(settings['crossfade']);
+    if (crossfade != null) await saveCrossfadeSeconds(crossfade.clamp(0, 12));
+    final gapless = toBool(settings['gapless']);
+    if (gapless != null) await saveGaplessPlayback(gapless);
+    final clipping = toBool(settings['clippingProtection']);
+    if (clipping != null) await saveClippingProtection(clipping);
+    final loudness = toBool(settings['loudnessNormalization']);
+    if (loudness != null) await saveLoudnessNormalization(loudness);
+    final skipSilence = toBool(settings['skipSilence']);
+    if (skipSilence != null) await saveSkipSilence(skipSilence);
+    final autoplay = toBool(settings['autoplay']);
+    if (autoplay != null) await saveAutoplayEnabled(autoplay);
+    if (settings['repeatMode'] != null) await saveRepeatMode(settings['repeatMode'].toString());
+    final shuffle = toBool(settings['shuffle']);
+    if (shuffle != null) await saveShuffle(shuffle);
+    if (settings['recoveryMode'] != null) await savePlaybackRecoveryMode(settings['recoveryMode'].toString());
+    if (settings['stemEngine'] != null) await saveStemEnginePreference(settings['stemEngine'].toString());
+    if (settings['eqPreset'] != null) await saveEqualizerPreset(settings['eqPreset'].toString());
+    final eqEnabled = toBool(settings['eqEnabled']);
+    if (eqEnabled != null) await saveEqualizerEnabled(eqEnabled);
+    final bassBoost = toDouble(settings['eqBassBoost']);
+    if (bassBoost != null) await saveBassBoost(bassBoost);
+    if (settings['eqBandGains'] is Map) {
+      final gains = <int, double>{};
+      for (final entry in (settings['eqBandGains'] as Map).entries) {
+        final k = int.tryParse(entry.key.toString());
+        final v = toDouble(entry.value);
+        if (k != null && v != null) gains[k] = v;
+      }
+      await saveBandGains(gains);
+    }
+    if (settings['acousticPreset'] != null) await saveAcousticPreset(settings['acousticPreset'].toString());
+    final bassExciter = toDouble(settings['bassExciter']);
+    if (bassExciter != null) await saveBassExciter(bassExciter);
+    final spatializer = toDouble(settings['spatializer']);
+    if (spatializer != null) await saveSpatializer(spatializer);
+    if (settings['themePreset'] != null) await saveThemePreset(settings['themePreset'].toString());
+    final customColor = toInt(settings['customThemeColor']);
+    if (customColor != null) await saveCustomThemeColor(customColor);
+    final oled = toBool(settings['oledBlack']);
+    if (oled != null) await saveOledBlack(oled);
+    final flip = toBool(settings['flipToPause']);
+    if (flip != null) await saveFlipToPause(flip);
+    final shake = toBool(settings['shakeToSkip']);
+    if (shake != null) await saveShakeToSkip(shake);
+  }
+
+  /// Writes a JSON payload using a resilient 4-tier storage strategy:
+  /// 1. Public vault: /storage/emulated/0/Sine-Music/<subFolder>
+  /// 2. Public Downloads: /storage/emulated/0/Download/Sine-<subFolder>
+  /// 3. App External Storage (visible in File Managers without special permissions)
+  /// 4. App Internal Documents (100% guaranteed writable fallback)
+  Future<File?> _writeJsonToResilientStorage(
+    String jsonStr,
+    String fileName, {
+    required String subFolder,
+    bool writeLatestAlias = false,
+  }) async {
+    Future<File?> tryWrite(Directory dir) async {
+      try {
+        if (!await dir.exists()) await dir.create(recursive: true);
+        final file = File('${dir.path}/$fileName');
+        await file.writeAsString(jsonStr, flush: true);
+        if (writeLatestAlias) {
+          try {
+            final latest = File('${dir.path}/sine_backup_latest.json');
+            await latest.writeAsString(jsonStr, flush: true);
+          } catch (_) {}
+        }
+        return file;
+      } catch (e) {
+        debugPrint('[StorageService] Write failed in ${dir.path}: $e');
+        return null;
+      }
+    }
+
+    // Tier 1: Primary media directory (/storage/emulated/0/Sine-Music/<subFolder>)
+    try {
+      final mediaDir = await DownloadService.getMediaDirectory(isVideo: false);
+      final written = await tryWrite(Directory('${mediaDir.path}/$subFolder'));
+      if (written != null) {
+        debugPrint('[StorageService] Exported JSON to Tier 1: ${written.path}');
+        return written;
+      }
+    } catch (e) {
+      debugPrint('[StorageService] Tier 1 dir lookup failed: $e');
+    }
+
+    // Tier 2: Public Downloads folder on Android (/storage/emulated/0/Download/Sine-<subFolder>)
+    if (Platform.isAndroid) {
+      final dlWritten = await tryWrite(Directory('/storage/emulated/0/Download/Sine-$subFolder'));
+      if (dlWritten != null) {
+        debugPrint('[StorageService] Exported JSON to Tier 2 (Download): ${dlWritten.path}');
+        return dlWritten;
+      }
+
+      // Tier 3: App External Storage (accessible via File Manager / USB without permissions)
+      try {
+        final ext = await getExternalStorageDirectory();
+        if (ext != null) {
+          final extWritten = await tryWrite(Directory('${ext.path}/$subFolder'));
+          if (extWritten != null) {
+            debugPrint('[StorageService] Exported JSON to Tier 3 (External): ${extWritten.path}');
+            return extWritten;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Tier 4: App Documents /<subFolder> (Always writable on every OS)
+    try {
+      final docs = await getApplicationDocumentsDirectory();
+      final docWritten = await tryWrite(Directory('${docs.path}/$subFolder'));
+      if (docWritten != null) {
+        debugPrint('[StorageService] Exported JSON to Tier 4 (Documents): ${docWritten.path}');
+        return docWritten;
+      }
+      final rootWritten = await tryWrite(docs);
+      if (rootWritten != null) return rootWritten;
+    } catch (e) {
+      debugPrint('[StorageService] Tier 4 Documents fallback failed: $e');
+    }
+
+    return null;
+  }
+
   /// Exports full database backup into portable JSON format (Audile & Metrolist architecture)
   String exportBackupJson() {
     final payload = {
@@ -668,25 +838,12 @@ class StorageService {
       'playlists': loadPlaylists().map((p) => p.toMap()).toList(),
       'favorites': loadFavorites().map((s) => s.toMap()).toList(),
       'history': loadHistory().map((s) => s.toMap()).toList(),
-      'settings': {
-        'speed': loadPlaybackSpeed(),
-        'crossfade': loadCrossfadeSeconds(),
-        'gapless': loadGaplessPlayback(),
-        'clippingProtection': loadClippingProtection(),
-        'recoveryMode': loadPlaybackRecoveryMode(),
-        'stemEngine': loadStemEnginePreference(),
-        'eqPreset': loadEqualizerPreset(),
-        'eqEnabled': loadEqualizerEnabled(),
-        'eqBassBoost': loadBassBoost(),
-        'eqBandGains': loadBandGains(),
-      },
+      'settings': _collectSettingsMap(),
     };
     return const JsonEncoder.withIndent('  ').convert(payload);
   }
 
-  /// Exports full database backup into a persistent JSON file in storage:
-  /// e.g. /storage/emulated/0/Sine-Music/Backups/sine_backup_YYYYMMDD_HHMMSS.json
-  /// Returns the written File with guaranteed fallback so it never fails.
+  /// Exports full database backup into a persistent JSON file in storage.
   Future<File?> exportBackupToFile({String? customFileName}) async {
     try {
       final jsonStr = exportBackupJson();
@@ -699,46 +856,12 @@ class StorageService {
           '${now.second.toString().padLeft(2, '0')}';
 
       final fileName = customFileName ?? 'sine_backup_$dateStr.json';
-
-      // Tier 1: Try public storage directory /Sine-Music/Backups/
-      try {
-        final mediaDir = await DownloadService.getMediaDirectory(isVideo: false);
-        final backupDir = Directory('${mediaDir.path}/Backups');
-        if (!await backupDir.exists()) await backupDir.create(recursive: true);
-        final file = File('${backupDir.path}/$fileName');
-        await file.writeAsString(jsonStr, flush: true);
-        try {
-          final latestFile = File('${backupDir.path}/sine_backup_latest.json');
-          await latestFile.writeAsString(jsonStr, flush: true);
-        } catch (_) {}
-        debugPrint('[StorageService] Backup exported successfully to ${file.path}');
-        return file;
-      } catch (e) {
-        debugPrint('[StorageService] Primary backup write failed: $e, trying documents fallback');
-      }
-
-      // Tier 2: Try app documents directory Documents/Backups/ (Always writable without permissions!)
-      try {
-        final docs = await getApplicationDocumentsDirectory();
-        final backupDir = Directory('${docs.path}/Backups');
-        if (!await backupDir.exists()) await backupDir.create(recursive: true);
-        final file = File('${backupDir.path}/$fileName');
-        await file.writeAsString(jsonStr, flush: true);
-        try {
-          final latestFile = File('${backupDir.path}/sine_backup_latest.json');
-          await latestFile.writeAsString(jsonStr, flush: true);
-        } catch (_) {}
-        debugPrint('[StorageService] Backup exported to documents fallback ${file.path}');
-        return file;
-      } catch (e) {
-        debugPrint('[StorageService] Documents backup write failed: $e');
-      }
-
-      // Tier 3: App documents root
-      final docs = await getApplicationDocumentsDirectory();
-      final file = File('${docs.path}/$fileName');
-      await file.writeAsString(jsonStr, flush: true);
-      return file;
+      return await _writeJsonToResilientStorage(
+        jsonStr,
+        fileName,
+        subFolder: 'Backups',
+        writeLatestAlias: true,
+      );
     } catch (e) {
       debugPrint('[StorageService] exportBackupToFile error: $e');
       return null;
@@ -751,22 +874,7 @@ class StorageService {
       'format': 'SINE_SETTINGS',
       'version': AppConstants.version,
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
-      'settings': {
-        'speed': loadPlaybackSpeed(),
-        'crossfade': loadCrossfadeSeconds(),
-        'gapless': loadGaplessPlayback(),
-        'clippingProtection': loadClippingProtection(),
-        'recoveryMode': loadPlaybackRecoveryMode(),
-        'stemEngine': loadStemEnginePreference(),
-        'eqPreset': loadEqualizerPreset(),
-        'eqEnabled': loadEqualizerEnabled(),
-        'eqBassBoost': loadBassBoost(),
-        'eqBandGains': loadBandGains(),
-        'themePreset': loadThemePreset(),
-        'customThemeColor': loadCustomThemeColor(),
-        'oledBlack': loadOledBlack(),
-        'flipToPause': loadFlipToPause(),
-      },
+      'settings': _collectSettingsMap(),
     };
     return const JsonEncoder.withIndent('  ').convert(payload);
   }
@@ -778,33 +886,11 @@ class StorageService {
       final now = DateTime.now();
       final stamp = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
       final fileName = customFileName ?? 'Sine_Settings_$stamp.json';
-
-      // 1. Try public storage /Sine-Music/Backups
-      try {
-        final backupDir = await getBackupDirectory();
-        final file = File('${backupDir.path}/$fileName');
-        await file.writeAsString(jsonStr, flush: true);
-        debugPrint('[StorageService] Settings exported to ${file.path}');
-        return file;
-      } catch (e) {
-        debugPrint('[StorageService] Public storage export error: $e. Trying fallback.');
-      }
-
-      // 2. Try App Documents /Backups
-      try {
-        final docs = await getApplicationDocumentsDirectory();
-        final backupDir = Directory('${docs.path}/Backups');
-        if (!await backupDir.exists()) await backupDir.create(recursive: true);
-        final file = File('${backupDir.path}/$fileName');
-        await file.writeAsString(jsonStr, flush: true);
-        return file;
-      } catch (_) {}
-
-      // 3. Fallback to Documents root
-      final docs = await getApplicationDocumentsDirectory();
-      final file = File('${docs.path}/$fileName');
-      await file.writeAsString(jsonStr, flush: true);
-      return file;
+      return await _writeJsonToResilientStorage(
+        jsonStr,
+        fileName,
+        subFolder: 'Backups',
+      );
     } catch (e) {
       debugPrint('[StorageService] exportSettingsToFile error: $e');
       return null;
@@ -818,29 +904,7 @@ class StorageService {
       if (decoded is! Map) return false;
       final map = Map<String, dynamic>.from(decoded);
       final settings = (map['settings'] is Map ? map['settings'] : map) as Map;
-
-      if (settings['speed'] != null) await savePlaybackSpeed((settings['speed'] as num).toDouble());
-      if (settings['crossfade'] != null) await saveCrossfadeSeconds((settings['crossfade'] as num).toInt());
-      if (settings['gapless'] != null) await saveGaplessPlayback(settings['gapless'] == true);
-      if (settings['clippingProtection'] != null) await saveClippingProtection(settings['clippingProtection'] == true);
-      if (settings['recoveryMode'] != null) await savePlaybackRecoveryMode(settings['recoveryMode'].toString());
-      if (settings['stemEngine'] != null) await saveStemEnginePreference(settings['stemEngine'].toString());
-      if (settings['eqPreset'] != null) await saveEqualizerPreset(settings['eqPreset'].toString());
-      if (settings['eqEnabled'] != null) await saveEqualizerEnabled(settings['eqEnabled'] == true);
-      if (settings['eqBassBoost'] != null) await saveBassBoost((settings['eqBassBoost'] as num).toDouble());
-      if (settings['eqBandGains'] is Map) {
-        final gains = <int, double>{};
-        for (final entry in (settings['eqBandGains'] as Map).entries) {
-          final k = int.tryParse(entry.key.toString());
-          final v = (entry.value as num?)?.toDouble();
-          if (k != null && v != null) gains[k] = v;
-        }
-        await saveBandGains(gains);
-      }
-      if (settings['themePreset'] != null) await saveThemePreset(settings['themePreset'].toString());
-      if (settings['customThemeColor'] != null) await saveCustomThemeColor((settings['customThemeColor'] as num).toInt());
-      if (settings['oledBlack'] != null) await saveOledBlack(settings['oledBlack'] == true);
-      if (settings['flipToPause'] != null) await saveFlipToPause(settings['flipToPause'] == true);
+      await _applySettingsMap(settings);
       return true;
     } catch (e) {
       debugPrint('[StorageService] Settings import error: $e');
@@ -902,53 +966,77 @@ class StorageService {
       final jsonStr = exportPlaylistJson(playlist);
       final sanitizedTitle = playlist.title.replaceAll(RegExp(r'[\/:*?"<>|]'), '_').trim();
       final fileName = customFileName ?? 'playlist_${sanitizedTitle.isNotEmpty ? sanitizedTitle : "export"}.json';
-
-      // 1. Try public storage /Sine-Music/Playlists/
-      try {
-        final mediaDir = await DownloadService.getMediaDirectory(isVideo: false);
-        final plDir = Directory('${mediaDir.path}/Playlists');
-        if (!await plDir.exists()) await plDir.create(recursive: true);
-        final file = File('${plDir.path}/$fileName');
-        await file.writeAsString(jsonStr, flush: true);
-        debugPrint('[StorageService] Playlist exported to ${file.path}');
-        return file;
-      } catch (_) {}
-
-      // 2. Fallback to Documents/Playlists/
-      try {
-        final docs = await getApplicationDocumentsDirectory();
-        final plDir = Directory('${docs.path}/Playlists');
-        if (!await plDir.exists()) await plDir.create(recursive: true);
-        final file = File('${plDir.path}/$fileName');
-        await file.writeAsString(jsonStr, flush: true);
-        debugPrint('[StorageService] Playlist exported to fallback ${file.path}');
-        return file;
-      } catch (_) {}
-
-      // 3. Fallback to Documents root
-      final docs = await getApplicationDocumentsDirectory();
-      final file = File('${docs.path}/$fileName');
-      await file.writeAsString(jsonStr, flush: true);
-      return file;
+      return await _writeJsonToResilientStorage(
+        jsonStr,
+        fileName,
+        subFolder: 'Playlists',
+      );
     } catch (e) {
       debugPrint('[StorageService] exportPlaylistToFile error: $e');
       return null;
     }
   }
 
-  /// Discovers existing backup files in public storage and documents directory
+  /// Lightweight format classifier for UI display badges (BACKUP / SETTINGS / PLAYLIST / JSON)
+  static String detectJsonFormat(String content) {
+    try {
+      final decoded = jsonDecode(content);
+      if (decoded is Map) {
+        final fmt = decoded['format']?.toString();
+        if (fmt == 'SINE_BACKUP') return 'SINE_BACKUP';
+        if (fmt == 'SINE_SETTINGS') return 'SINE_SETTINGS';
+        if (fmt == 'SINE_PLAYLIST') return 'SINE_PLAYLIST';
+        if (decoded.containsKey('playlists') || decoded.containsKey('favorites')) return 'SINE_BACKUP';
+        if (decoded.containsKey('settings')) return 'SINE_SETTINGS';
+        if (decoded.containsKey('playlist') || (decoded.containsKey('title') && decoded.containsKey('songs'))) {
+          return 'SINE_PLAYLIST';
+        }
+      }
+    } catch (_) {}
+    return 'UNKNOWN';
+  }
+
+  /// Lightweight classifier for a backup/export file based on filename & header peek
+  static String classifyBackupFile(File file) {
+    final name = file.path.split(Platform.pathSeparator).last.toLowerCase();
+    if (name.contains('settings')) return 'SETTINGS';
+    if (name.contains('playlist')) return 'PLAYLIST';
+    if (name.contains('backup')) return 'BACKUP';
+    try {
+      final raf = file.openSync();
+      final bytes = raf.readSync(256);
+      raf.closeSync();
+      final head = utf8.decode(bytes, allowMalformed: true);
+      if (head.contains('SINE_SETTINGS')) return 'SETTINGS';
+      if (head.contains('SINE_PLAYLIST')) return 'PLAYLIST';
+      if (head.contains('SINE_BACKUP')) return 'BACKUP';
+    } catch (_) {}
+    return 'JSON';
+  }
+
+  /// Discovers existing backup, settings, and playlist JSON files across ALL storage tiers
+  /// WITHOUT popping runtime permission dialogs!
   Future<List<File>> listAvailableBackupFiles() async {
     final results = <File>[];
     final seenPaths = <String>{};
 
-    void scanDir(Directory dir) {
+    void scanDir(Directory dir, {bool filterSineOnly = false}) {
       try {
         if (!dir.existsSync()) return;
         final entities = dir.listSync();
         for (final entity in entities) {
           if (entity is File && entity.path.toLowerCase().endsWith('.json')) {
-            if (!seenPaths.contains(entity.path)) {
-              seenPaths.add(entity.path);
+            final baseName = entity.path.split(Platform.pathSeparator).last.toLowerCase();
+            if (filterSineOnly &&
+                !baseName.contains('sine') &&
+                !baseName.contains('backup') &&
+                !baseName.contains('playlist') &&
+                !baseName.contains('settings')) {
+              continue;
+            }
+            final canonical = entity.path;
+            if (!seenPaths.contains(canonical)) {
+              seenPaths.add(canonical);
               results.add(entity);
             }
           }
@@ -959,18 +1047,33 @@ class StorageService {
     }
 
     try {
-      final backupDir = await getBackupDirectory();
-      scanDir(backupDir);
+      if (Platform.isAndroid) {
+        // Scan public storage paths directly (silent fail if permission not granted)
+        scanDir(Directory('/storage/emulated/0/Sine-Music/Backups'));
+        scanDir(Directory('/storage/emulated/0/Sine-Music/Playlists'));
+        scanDir(Directory('/storage/emulated/0/Sine-Music'), filterSineOnly: true);
+        scanDir(Directory('/storage/emulated/0/Download/Sine-Backups'));
+        scanDir(Directory('/storage/emulated/0/Download/Sine-Playlists'));
+        scanDir(Directory('/storage/emulated/0/Download'), filterSineOnly: true);
+        try {
+          final ext = await getExternalStorageDirectory();
+          if (ext != null) {
+            scanDir(Directory('${ext.path}/Backups'));
+            scanDir(Directory('${ext.path}/Playlists'));
+            scanDir(Directory('${ext.path}/Sine-Music/Backups'));
+            scanDir(Directory('${ext.path}/Sine-Music/Playlists'));
+          }
+        } catch (_) {}
+      }
 
-      // Also check the parent Sine-Music directory in case a user dropped a backup there
-      final mediaDir = await DownloadService.getMediaDirectory(isVideo: false);
-      scanDir(mediaDir);
-
-      // Also check standard documents directory
+      // Always scan App Documents directory (works on all OSes without permissions)
       try {
         final docs = await getApplicationDocumentsDirectory();
         scanDir(Directory('${docs.path}/Backups'));
-        scanDir(docs);
+        scanDir(Directory('${docs.path}/Playlists'));
+        scanDir(Directory('${docs.path}/Sine-Music/Backups'));
+        scanDir(Directory('${docs.path}/Sine-Music/Playlists'));
+        scanDir(docs, filterSineOnly: true);
       } catch (_) {}
 
       // Sort newest modified first
@@ -1032,7 +1135,8 @@ class StorageService {
       final map = Map<String, dynamic>.from(decoded);
 
       // 1. Smart handling for SINE_SETTINGS format
-      if (map['format'] == 'SINE_SETTINGS' || (map.containsKey('settings') && !map.containsKey('playlists') && !map.containsKey('favorites'))) {
+      if (map['format'] == 'SINE_SETTINGS' ||
+          (map.containsKey('settings') && !map.containsKey('playlists') && !map.containsKey('favorites') && !map.containsKey('history'))) {
         final ok = await importSettingsJson(jsonString);
         if (ok) {
           return (playlistsCount: 0, favoritesCount: 0, historyCount: 0);
@@ -1041,7 +1145,9 @@ class StorageService {
       }
 
       // 2. Smart handling for SINE_PLAYLIST format
-      if (map['format'] == 'SINE_PLAYLIST' || (map.containsKey('songs') && map.containsKey('title') && !map.containsKey('playlists'))) {
+      if (map['format'] == 'SINE_PLAYLIST' ||
+          map['playlist'] is Map ||
+          (map.containsKey('songs') && map.containsKey('title') && !map.containsKey('playlists'))) {
         final pl = await importPlaylistJson(jsonString);
         if (pl != null) {
           return (playlistsCount: 1, favoritesCount: 0, historyCount: 0);
@@ -1050,7 +1156,7 @@ class StorageService {
       }
 
       if (map['format'] != 'SINE_BACKUP') {
-        if (!map.containsKey('playlists') && !map.containsKey('favorites')) {
+        if (!map.containsKey('playlists') && !map.containsKey('favorites') && !map.containsKey('history')) {
           return null;
         }
       }
@@ -1066,17 +1172,30 @@ class StorageService {
             } catch (_) {}
           }
         }
-        if (importedPlaylists.isNotEmpty) {
-          final existing = merge ? loadPlaylists() : <Playlist>[];
-          final existingIds = existing.map((p) => p.id).toSet();
+        if (merge) {
+          final existing = loadPlaylists();
           for (final p in importedPlaylists) {
-            if (!existingIds.contains(p.id)) {
+            final idx = existing.indexWhere((e) => e.id == p.id);
+            if (idx == -1) {
               existing.add(p);
+            } else {
+              // Smart merge: combine tracks inside matching playlists without duplicates
+              final mergedSongs = List<Song>.from(existing[idx].songs);
+              final songIds = mergedSongs.map((s) => s.id).toSet();
+              for (final s in p.songs) {
+                if (!songIds.contains(s.id)) {
+                  mergedSongs.add(s);
+                  songIds.add(s.id);
+                }
+              }
+              existing[idx] = existing[idx].copyWith(songs: mergedSongs);
             }
           }
           await savePlaylists(existing);
-          pCount = importedPlaylists.length;
+        } else {
+          await savePlaylists(importedPlaylists);
         }
+        pCount = importedPlaylists.length;
       }
 
       int fCount = 0;
@@ -1091,17 +1210,20 @@ class StorageService {
             } catch (_) {}
           }
         }
-        if (importedFavs.isNotEmpty) {
-          final existing = merge ? loadFavorites() : <Song>[];
+        if (merge) {
+          final existing = loadFavorites();
           final existingIds = existing.map((s) => s.id).toSet();
           for (final s in importedFavs) {
             if (!existingIds.contains(s.id)) {
               existing.add(s);
+              existingIds.add(s.id);
             }
           }
           await saveFavorites(existing);
-          fCount = importedFavs.length;
+        } else {
+          await saveFavorites(importedFavs);
         }
+        fCount = importedFavs.length;
       }
 
       int hCount = 0;
@@ -1116,41 +1238,25 @@ class StorageService {
             } catch (_) {}
           }
         }
-        if (importedHistory.isNotEmpty) {
-          final existing = merge ? loadHistory() : <Song>[];
+        if (merge) {
+          final existing = loadHistory();
           final existingIds = existing.map((s) => s.id).toSet();
           for (final s in importedHistory) {
             if (!existingIds.contains(s.id)) {
               existing.add(s);
+              existingIds.add(s.id);
             }
           }
           await saveHistory(existing);
-          hCount = importedHistory.length;
+        } else {
+          await saveHistory(importedHistory);
         }
+        hCount = importedHistory.length;
       }
 
       final settings = map['settings'] as Map?;
       if (settings != null) {
-        if (settings['speed'] != null) await savePlaybackSpeed((settings['speed'] as num).toDouble());
-        if (settings['crossfade'] != null) await saveCrossfadeSeconds((settings['crossfade'] as num).toInt());
-        if (settings['gapless'] != null) await saveGaplessPlayback(settings['gapless'] == true);
-        if (settings['clippingProtection'] != null) await saveClippingProtection(settings['clippingProtection'] == true);
-        if (settings['recoveryMode'] != null) await savePlaybackRecoveryMode(settings['recoveryMode'].toString());
-        if (settings['stemEngine'] != null) await saveStemEnginePreference(settings['stemEngine'].toString());
-        if (settings['eqPreset'] != null) await saveEqualizerPreset(settings['eqPreset'].toString());
-        if (settings['eqEnabled'] != null) await saveEqualizerEnabled(settings['eqEnabled'] == true);
-        if (settings['eqBassBoost'] != null) await saveBassBoost((settings['eqBassBoost'] as num).toDouble());
-        if (settings['eqBandGains'] is Map) {
-          final gains = <int, double>{};
-          for (final entry in (settings['eqBandGains'] as Map).entries) {
-            final k = int.tryParse(entry.key.toString());
-            final v = (entry.value as num?)?.toDouble();
-            if (k != null && v != null) {
-              gains[k] = v;
-            }
-          }
-          await saveBandGains(gains);
-        }
+        await _applySettingsMap(settings);
       }
 
       return (playlistsCount: pCount, favoritesCount: fCount, historyCount: hCount);
