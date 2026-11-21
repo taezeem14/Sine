@@ -28,19 +28,46 @@ class NowPlayingScreen extends StatefulWidget {
 class _NowPlayingScreenState extends State<NowPlayingScreen> {
   bool _showLyrics = false;
   CoverPalette? _coverPalette;
-  String? _lastArtworkUrl;
+  String? _lastPaletteKey;
+
+  @override
+  void initState() {
+    super.initState();
+    CoverColorService.instance.paletteRevision.addListener(_onPaletteRevision);
+  }
+
+  @override
+  void dispose() {
+    CoverColorService.instance.paletteRevision.removeListener(_onPaletteRevision);
+    super.dispose();
+  }
+
+  void _onPaletteRevision() {
+    if (!mounted) return;
+    final song = context.read<PlayerProvider>().currentSong;
+    if (song == null) return;
+    final latest = CoverColorService.instance.getPaletteSync(song);
+    if (latest != _coverPalette) {
+      setState(() {
+        _coverPalette = latest;
+      });
+    }
+  }
 
   void _updatePalette(Song song) {
-    if (_lastArtworkUrl == song.artworkUrl && _coverPalette != null) return;
-    _lastArtworkUrl = song.artworkUrl;
+    final key = '${song.id}_${song.artworkUrl}';
+    if (_lastPaletteKey == key && _coverPalette != null) return;
+    _lastPaletteKey = key;
     _coverPalette = CoverColorService.instance.getPaletteSync(song);
-    CoverColorService.instance.getPalette(song).then((palette) {
-      if (mounted && _lastArtworkUrl == song.artworkUrl) {
-        setState(() {
-          _coverPalette = palette;
-        });
-      }
-    });
+    if (!_coverPalette!.isExtracted && song.artworkUrl.trim().isNotEmpty) {
+      CoverColorService.instance.getPalette(song).then((palette) {
+        if (mounted && _lastPaletteKey == key && palette != _coverPalette) {
+          setState(() {
+            _coverPalette = palette;
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -97,6 +124,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
       backgroundColor: EmberColors.obsidianBase,
       body: FluidMeshGradientBackground(
         song: song,
+        palette: palette,
         isPlaying: isPlaying,
         child: SafeArea(
           child: LayoutBuilder(

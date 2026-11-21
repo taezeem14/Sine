@@ -138,9 +138,9 @@ class _AmbientGlowState extends State<AmbientGlow>
               final pulse = _pulseController.value; // 0.0 to 1.0
               final rotAngle = _rotationController.value * 2 * math.pi;
 
-              final intensity = widget.isPlaying ? (0.28 + 0.16 * pulse) : 0.12;
-              final outerSpread = widget.isPlaying ? (22.0 + 8.0 * pulse) : 12.0;
-              final outerBlur = widget.isPlaying ? (64.0 + 20.0 * pulse) : 40.0;
+              final intensity = widget.isPlaying ? (0.24 + 0.10 * pulse) : 0.10;
+              final outerSpread = widget.isPlaying ? (16.0 + 6.0 * pulse) : 8.0;
+              final outerBlur = widget.isPlaying ? (58.0 + 14.0 * pulse) : 34.0;
 
               return Transform.rotate(
                 angle: rotAngle,

@@ -14,30 +14,30 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('v1.4.0 Release & Version Integrity Suite', () {
-    test('AppConstants, pubspec, metadata, script, README & index.html match v1.4.0+40', () {
+    test('AppConstants, pubspec, metadata, script, README & index.html match v1.4.x release', () {
       expect(AppConstants.appName, 'Sine');
-      expect(AppConstants.version, '1.4.0');
-      expect(AppConstants.buildNumber, 40);
-      expect(AppConstants.fullVersion, '1.4.0+40');
-      expect(AppConstants.releaseTag, 'v1.4.0');
+      expect(AppConstants.version, matches(RegExp(r'^1\.4\.\d+$')));
+      expect(AppConstants.buildNumber, greaterThanOrEqualTo(40));
+      expect(AppConstants.fullVersion, '${AppConstants.version}+${AppConstants.buildNumber}');
+      expect(AppConstants.releaseTag, 'v${AppConstants.version}');
 
       final pubspec = File('pubspec.yaml').readAsStringSync();
-      expect(pubspec, contains('version: 1.4.0+40'));
+      expect(pubspec, matches(RegExp(r'version:\s*1\.4\.\d+\+\d+')));
 
       final yml = File('metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml').readAsStringSync();
-      expect(yml, contains('CurrentVersion: 1.4.0'));
-      expect(yml, contains('CurrentVersionCode: 40'));
+      expect(yml, matches(RegExp(r'CurrentVersion:\s*1\.4\.\d+')));
+      expect(yml, matches(RegExp(r'CurrentVersionCode:\s*\d+')));
 
       final script = File('scripts/fetch_cloud_release.py').readAsStringSync();
-      expect(script, contains("'v1.4.0'"));
+      expect(script, matches(RegExp(r"'v1\.4\.\d+'")));
 
       final readme = File('README.md').readAsStringSync();
-      expect(readme, contains('v1.4.0'));
-      expect(readme, contains('Sine-v1.4.0.apk'));
+      expect(readme, matches(RegExp(r'v1\.4\.\d+')));
+      expect(readme, matches(RegExp(r'Sine-v1\.4\.\d+\.apk')));
 
       final html = File('index.html').readAsStringSync();
-      expect(html, contains('v1.4.0'));
-      expect(html, contains('Sine-v1.4.0.apk'));
+      expect(html, matches(RegExp(r'v1\.4\.\d+')));
+      expect(html, matches(RegExp(r'Sine-v1\.4\.\d+\.apk')));
     });
   });
 

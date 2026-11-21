@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.4.0%20(Build%2040)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.4.1%20(Build%2041)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.4.0)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.0.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.4.1)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.1.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy studio-grade ad-free music instantly.*
 
@@ -36,6 +36,7 @@
 
 ## 📖 Table of Contents
 - [What Is Sine?](#-what-is-sine)
+- [What's New in v1.4.1](#-whats-new-in-v141)
 - [What's New in v1.4.0](#-whats-new-in-v140)
 - [What's New in v1.3.9](#-whats-new-in-v139)
 - [What's New in v1.3.8](#-whats-new-in-v138)
@@ -67,6 +68,20 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 - **Pure Local Data**: Playlists, listening history, and cached media remain 100% on your device.
 - **Sub-1.2s Cold-Start Playback**: Progressive hardware decoding starting audio almost instantaneously.
 - **Direct Public Storage Vault**: Music downloads save directly to `/storage/emulated/0/Sine-Music` with standard ID3 tags and HD artwork.
+
+---
+
+## 🌟 What's New in v1.4.1
+
+1. **True Perceptual Album Artwork Color Engine (`CoverColorService`)**:
+   - Replaced title-hash rainbow approximations and single-pixel outlier picks with a **36-bucket circular hue quantizer** running on center-cropped `32×32` bitmaps directly from `CachedNetworkImageProvider` (zero redundant HTTP downloads, proper `ui.Image.dispose()` GPU memory cleanup).
+   - Center-crop automatically ignores YouTube's `hqdefault.jpg` 16:9 black letterbox bars and corner watermarks.
+   - Authentic monochrome/B&W cover handling (renders sophisticated graphite/silver instead of artificial neon colors) and real-time shared `paletteRevision` broadcast.
+
+2. **True Cover-Matched Fluid Ambient Canvas & Executive MiniPlayer**:
+   - **`FluidMeshGradientBackground`**: Now strictly driven by the real extracted artwork `CoverPalette` (zero title hashing), with unhurried 26-second cinematic drift and 1100ms smooth color cross-fade.
+   - **Tactile Swipe-Down MiniPlayer Dismissal**: Swipe **down** on the MiniPlayer to smoothly fade, scale, and stop playback; swipe **up** to expand Now Playing; swipe **left/right** to skip tracks.
+   - **Clean, Non-Gimmicky Professional Design**: Crisp 44×44 rounded-square cover art with Hero transition continuity, real cover-matched surface gradient, refined bottom progress hairline, and understated Material 3 navigation bar without toy-like icon bounce.
 
 ---
 

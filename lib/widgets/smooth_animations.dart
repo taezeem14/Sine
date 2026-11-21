@@ -12,7 +12,7 @@ class AnimatedIndexedStack extends StatefulWidget {
     super.key,
     required this.index,
     required this.children,
-    this.duration = const Duration(milliseconds: 220),
+    this.duration = const Duration(milliseconds: 180),
     this.curve = Curves.easeOutCubic,
   });
 
@@ -35,7 +35,7 @@ class _AnimatedIndexedStackState extends State<AnimatedIndexedStack>
       value: 1.0,
     );
     _fade = CurvedAnimation(parent: _controller, curve: widget.curve);
-    _scale = Tween<double>(begin: 0.985, end: 1.0).animate(
+    _scale = Tween<double>(begin: 0.992, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: widget.curve),
     );
   }

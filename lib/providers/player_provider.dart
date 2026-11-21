@@ -24,6 +24,7 @@ import '../services/metadata_correction_service.dart';
 import '../services/gesture_service.dart';
 import '../services/local_music_service.dart';
 import '../services/playlist_import_service.dart';
+import '../services/cover_color_service.dart';
 import '../widgets/spotify_graph_equalizer.dart';
 
 
@@ -758,6 +759,8 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> playSong(Song song, {List<Song>? contextQueue, bool isAutoAdvance = false, String? playingFrom, Duration? initialPosition}) async {
+    // Pre-extract real album cover palette immediately in parallel with stream startup
+    CoverColorService.instance.prefetchPalette(song);
     if (!isAutoAdvance) {
       // User-initiated tap or explicit playlist selection: reset failure counter
       _consecutiveStreamFailures = 0;
@@ -1110,25 +1113,32 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Completely halt playback, dismiss active song, and return to no song playing state
+  /// Completely halt playback, dismiss active song, and return to no song playing state.
+  /// Clears UI state synchronously first so swipe-down dismissal never bounces back while
+  /// native audio stops, and bumps [_playSessionId] so in-flight stream fetches cannot resurrect.
   Future<void> stopPlayback() async {
+    _playSessionId++;
+    _queue.clear();
+    _currentIndex = -1;
+    _isPlaying = false;
+    _isLoadingStream = false;
+    _position = Duration.zero;
+    _duration = Duration.zero;
+    positionNotifier.value = Duration.zero;
+    activeLyricIndexNotifier.value = -1;
+    _lyrics = LyricsResult.empty;
+    _isLoadingLyrics = false;
+    _consecutiveStreamFailures = 0;
+    notifyListeners();
+
     try {
       await _audioHandler.stop();
     } catch (_) {}
-    _queue.clear();
-    _currentIndex = 0;
-    _isPlaying = false;
     SineWidgetService.updateWidget(
       title: 'No Song Playing',
       artist: 'Tap to open Sine',
       isPlaying: false,
     );
-    _position = Duration.zero;
-    _duration = Duration.zero;
-    _lyrics = LyricsResult.empty;
-    _isLoadingLyrics = false;
-    _consecutiveStreamFailures = 0;
-    notifyListeners();
   }
 
   Future<void> skipNext({bool isAuto = false}) async {

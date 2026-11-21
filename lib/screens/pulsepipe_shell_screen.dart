@@ -256,44 +256,35 @@ class _BottomNavItem extends StatelessWidget {
         },
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
-        child: AnimatedScale(
-          scale: isSelected ? 1.05 : 1.0,
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutBack,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 240),
-                curve: Curves.easeOutCubic,
-                padding: EdgeInsets.symmetric(horizontal: isSelected ? 16 : 6, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isSelected ? accentColor.withValues(alpha: 0.16) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isSelected ? accentColor.withValues(alpha: 0.35) : Colors.transparent,
-                    width: 0.8,
-                  ),
-                ),
-                child: FaIcon(
-                  isSelected ? activeIcon : icon,
-                  size: isSelected ? 19 : 18,
-                  color: color,
-                ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.symmetric(horizontal: isSelected ? 16 : 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: isSelected ? accentColor.withValues(alpha: 0.12) : Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
               ),
-              const SizedBox(height: 3),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  color: color,
-                  fontSize: 10.5,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  letterSpacing: -0.2,
-                ),
-                child: Text(label),
+              child: FaIcon(
+                isSelected ? activeIcon : icon,
+                size: 18,
+                color: color,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 3),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 180),
+              style: TextStyle(
+                color: color,
+                fontSize: 10.5,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                letterSpacing: -0.1,
+              ),
+              child: Text(label),
+            ),
+          ],
         ),
       ),
     );

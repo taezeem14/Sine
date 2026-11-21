@@ -1,17 +1,25 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/song.dart';
+import '../services/cover_color_service.dart';
 import '../theme/ember_theme.dart';
 
+/// Atmospheric ambient background driven strictly by the real extracted
+/// album artwork palette from [CoverColorService].
+///
+/// Features continuous, unhurried GPU-composited orbital drift and smooth
+/// cross-fades between real cover palettes without ever flashing random hash hues.
 class FluidMeshGradientBackground extends StatefulWidget {
   final Widget child;
   final Song? song;
+  final CoverPalette? palette;
   final bool isPlaying;
 
   const FluidMeshGradientBackground({
     super.key,
     required this.child,
     this.song,
+    this.palette,
     this.isPlaying = true,
   });
 
@@ -21,108 +29,145 @@ class FluidMeshGradientBackground extends StatefulWidget {
 
 class _FluidMeshGradientBackgroundState extends State<FluidMeshGradientBackground>
     with TickerProviderStateMixin {
-  late AnimationController _motionController;
-  late AnimationController _colorTransitionController;
+  late final AnimationController _motionController;
+  late final AnimationController _colorTransitionController;
 
-  late List<Color> _previousPalette;
-  late List<Color> _currentPalette;
+  late List<Color> _previousColors;
+  late List<Color> _targetColors;
+  String? _requestedArtworkKey;
 
   @override
   void initState() {
     super.initState();
-    // Continuous 16-second orbital loop that never resets or jerks
+    // Unhurried, cinematic 26-second continuous orbital drift (never resets)
     _motionController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 16),
+      duration: const Duration(seconds: 26),
     )..repeat();
-
-    _currentPalette = _derivePalette(widget.song);
-    _previousPalette = List.from(_currentPalette);
 
     _colorTransitionController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 1100),
       value: 1.0,
     );
+
+    final initialPalette = _resolveImmediatePalette();
+    _targetColors = _paletteToColors(initialPalette);
+    _previousColors = List<Color>.from(_targetColors);
+
+    CoverColorService.instance.paletteRevision.addListener(_onPaletteRevisionChanged);
+    _ensureArtworkExtracted();
   }
 
   @override
   void didUpdateWidget(covariant FluidMeshGradientBackground oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Keep motion continuous without ever restarting from zero
     if (!_motionController.isAnimating) {
       _motionController.repeat();
     }
 
-    if (oldWidget.song?.id != widget.song?.id) {
-      _previousPalette = _computeActivePalette();
-      _currentPalette = _derivePalette(widget.song);
-      _colorTransitionController.forward(from: 0.0);
+    final songChanged = oldWidget.song?.id != widget.song?.id ||
+        oldWidget.song?.artworkUrl != widget.song?.artworkUrl;
+    final paletteChanged = oldWidget.palette != widget.palette;
+
+    if (songChanged || paletteChanged) {
+      _transitionToPalette(_resolveImmediatePalette());
+      if (songChanged) {
+        _ensureArtworkExtracted();
+      }
     }
   }
 
   @override
   void dispose() {
+    CoverColorService.instance.paletteRevision.removeListener(_onPaletteRevisionChanged);
     _motionController.dispose();
     _colorTransitionController.dispose();
     super.dispose();
   }
 
-  List<Color> _derivePalette(Song? song) {
-    if (song == null) {
-      return const [
-        Color(0xFF0072FF),
-        Color(0xFF00F0FF),
-        Color(0xFF7928CA),
-      ];
-    }
-    // Seed harmonic hues from track title & artist
-    final hash = (song.title.hashCode ^ song.artist.hashCode).abs();
-    final baseHue = (hash % 360).toDouble();
-
-    final c1 = HSLColor.fromAHSL(1.0, baseHue, 0.75, 0.55).toColor();
-    final c2 = HSLColor.fromAHSL(1.0, (baseHue + 45) % 360, 0.85, 0.45).toColor();
-    final c3 = HSLColor.fromAHSL(1.0, (baseHue + 120) % 360, 0.80, 0.35).toColor();
-
-    return [c1, c2, c3];
+  CoverPalette _resolveImmediatePalette() {
+    if (widget.palette != null) return widget.palette!;
+    return CoverColorService.instance.getPaletteSync(widget.song);
   }
 
-  List<Color> _computeActivePalette() {
-    final t = _colorTransitionController.value;
-    if (t >= 1.0) return _currentPalette;
+  void _onPaletteRevisionChanged() {
+    if (!mounted || widget.palette != null || widget.song == null) return;
+    final latest = CoverColorService.instance.getPaletteSync(widget.song);
+    if (latest.isExtracted) {
+      _transitionToPalette(latest);
+    }
+  }
+
+  void _ensureArtworkExtracted() {
+    if (widget.palette != null) return;
+    final song = widget.song;
+    if (song == null || song.artworkUrl.trim().isEmpty) return;
+
+    final key = '${song.id}_${song.artworkUrl}';
+    if (_requestedArtworkKey == key) return;
+    _requestedArtworkKey = key;
+
+    CoverColorService.instance.getPalette(song).then((extracted) {
+      if (!mounted) return;
+      if (widget.song?.artworkUrl == song.artworkUrl && extracted.isExtracted) {
+        _transitionToPalette(extracted);
+      }
+    });
+  }
+
+  List<Color> _paletteToColors(CoverPalette p) => [p.dominant, p.secondary, p.accent];
+
+  void _transitionToPalette(CoverPalette next) {
+    final nextColors = _paletteToColors(next);
+    if (_targetColors[0] == nextColors[0] &&
+        _targetColors[1] == nextColors[1] &&
+        _targetColors[2] == nextColors[2]) {
+      return;
+    }
+    _previousColors = _computeActiveColors();
+    _targetColors = nextColors;
+    _colorTransitionController.forward(from: 0.0);
+  }
+
+  List<Color> _computeActiveColors() {
+    final t = Curves.easeInOutCubic.transform(_colorTransitionController.value);
+    if (t >= 1.0) return _targetColors;
     return [
-      Color.lerp(_previousPalette[0], _currentPalette[0], t) ?? _currentPalette[0],
-      Color.lerp(_previousPalette[1], _currentPalette[1], t) ?? _currentPalette[1],
-      Color.lerp(_previousPalette[2], _currentPalette[2], t) ?? _currentPalette[2],
+      Color.lerp(_previousColors[0], _targetColors[0], t) ?? _targetColors[0],
+      Color.lerp(_previousColors[1], _targetColors[1], t) ?? _targetColors[1],
+      Color.lerp(_previousColors[2], _targetColors[2], t) ?? _targetColors[2],
     ];
   }
 
   @override
   Widget build(BuildContext context) {
+    final baseBg = Theme.of(context).scaffoldBackgroundColor;
+
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Base Dark Background
-        Container(color: EmberColors.obsidianBase),
+        // Deep Obsidian / OLED Base
+        ColoredBox(color: baseBg),
 
-        // Isolated GPU-composited continuous fluid mesh paint
+        // Isolated GPU-composited continuous cover-matched ambient mesh
         RepaintBoundary(
           child: AnimatedBuilder(
             animation: Listenable.merge([_motionController, _colorTransitionController]),
             builder: (context, _) {
-              final activeColors = _computeActivePalette();
+              final activeColors = _computeActiveColors();
               final t = _motionController.value * 2 * math.pi;
 
-              // Smooth continuous orbital drift equations (non-intersecting phase shifted paths)
-              final x1 = 0.30 + 0.22 * math.sin(t);
-              final y1 = 0.32 + 0.18 * math.cos(t);
+              // Subtle, organic wide-radius drift (upper-center focal glow around artwork + soft base wash)
+              final x1 = 0.36 + 0.16 * math.sin(t);
+              final y1 = 0.28 + 0.12 * math.cos(t);
 
-              final x2 = 0.68 + 0.18 * math.cos(t * 0.75 + 0.5);
-              final y2 = 0.62 + 0.22 * math.sin(t * 0.75 + 0.5);
+              final x2 = 0.68 + 0.15 * math.cos(t * 0.75 + 0.8);
+              final y2 = 0.56 + 0.16 * math.sin(t * 0.75 + 0.8);
 
-              final x3 = 0.48 + 0.18 * math.sin(t * 1.15 + 1.2);
-              final y3 = 0.42 + 0.18 * math.cos(t * 1.15 + 1.2);
+              final x3 = 0.44 + 0.14 * math.sin(t * 0.6 + 2.1);
+              final y3 = 0.42 + 0.12 * math.cos(t * 0.6 + 2.1);
 
               return CustomPaint(
                 painter: _MeshGradientPainter(
@@ -138,25 +183,26 @@ class _FluidMeshGradientBackgroundState extends State<FluidMeshGradientBackgroun
           ),
         ),
 
-        // Dark Vignette Overlay to maintain contrast and readable controls
+        // Precision Readability Vignette (keeps controls, timecodes, and lyrics effortlessly legible)
         RepaintBoundary(
-          child: Container(
+          child: DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  EmberColors.obsidianBase.withValues(alpha: 0.65),
-                  Colors.transparent,
-                  EmberColors.obsidianBase.withValues(alpha: 0.85),
+                  EmberColors.obsidianBase.withValues(alpha: 0.50),
+                  Colors.black.withValues(alpha: 0.12),
+                  EmberColors.obsidianBase.withValues(alpha: 0.78),
+                  EmberColors.obsidianBase.withValues(alpha: 0.94),
                 ],
-                stops: const [0.0, 0.45, 1.0],
+                stops: const [0.0, 0.36, 0.76, 1.0],
               ),
             ),
           ),
         ),
 
-        // Main Foreground Content (Untouched by background repaint ticks)
+        // Foreground Content
         widget.child,
       ],
     );
@@ -184,25 +230,28 @@ class _MeshGradientPainter extends CustomPainter {
     final c2 = Offset(p2.dx * size.width, p2.dy * size.height);
     final c3 = Offset(p3.dx * size.width, p3.dy * size.height);
 
-    final r1 = size.shortestSide * 0.55;
-    final r2 = size.shortestSide * 0.60;
-    final r3 = size.shortestSide * 0.50;
+    // Broad, soft-edged atmospheric washes (no hard circular blob edges)
+    final r1 = size.shortestSide * 0.85;
+    final r2 = size.shortestSide * 0.82;
+    final r3 = size.shortestSide * 0.68;
+
+    final intensityScale = isPlaying ? 1.0 : 0.72;
 
     final paint1 = Paint()
       ..shader = RadialGradient(
         colors: [
-          colors[0].withValues(alpha: 0.40),
-          colors[0].withValues(alpha: 0.12),
+          colors[0].withValues(alpha: 0.54 * intensityScale),
+          colors[0].withValues(alpha: 0.22 * intensityScale),
           Colors.transparent,
         ],
-        stops: const [0.0, 0.55, 1.0],
+        stops: const [0.0, 0.52, 1.0],
       ).createShader(Rect.fromCircle(center: c1, radius: r1));
 
     final paint2 = Paint()
       ..shader = RadialGradient(
         colors: [
-          colors[1].withValues(alpha: 0.35),
-          colors[1].withValues(alpha: 0.10),
+          colors[1].withValues(alpha: 0.44 * intensityScale),
+          colors[1].withValues(alpha: 0.16 * intensityScale),
           Colors.transparent,
         ],
         stops: const [0.0, 0.55, 1.0],
@@ -211,8 +260,8 @@ class _MeshGradientPainter extends CustomPainter {
     final paint3 = Paint()
       ..shader = RadialGradient(
         colors: [
-          colors[2].withValues(alpha: 0.30),
-          colors[2].withValues(alpha: 0.08),
+          colors[2].withValues(alpha: 0.28 * intensityScale),
+          colors[2].withValues(alpha: 0.09 * intensityScale),
           Colors.transparent,
         ],
         stops: const [0.0, 0.55, 1.0],
@@ -228,6 +277,9 @@ class _MeshGradientPainter extends CustomPainter {
     return oldDelegate.p1 != p1 ||
         oldDelegate.p2 != p2 ||
         oldDelegate.p3 != p3 ||
-        oldDelegate.colors != colors;
+        oldDelegate.isPlaying != isPlaying ||
+        oldDelegate.colors[0] != colors[0] ||
+        oldDelegate.colors[1] != colors[1] ||
+        oldDelegate.colors[2] != colors[2];
   }
 }
