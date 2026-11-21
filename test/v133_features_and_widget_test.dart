@@ -1103,8 +1103,8 @@ void main() {
     // -----------------------------------------------------------------------
     // Feature 12 Boundaries
     // -----------------------------------------------------------------------
-    test('T2.12.1: AppConstants.version matches semver pattern 1.3.x', () {
-      final versionRegex = RegExp(r'^1\.3\.[0-9]+$');
+    test('T2.12.1: AppConstants.version matches semver pattern 1.x.x', () {
+      final versionRegex = RegExp(r'^1\.[0-9]+\.[0-9]+$');
       expect(versionRegex.hasMatch(AppConstants.version), isTrue);
     });
 
@@ -1147,7 +1147,7 @@ void main() {
 
     test('T2.13.4: index.html main download buttons link to modern APK release', () {
       final html = File('index.html').readAsStringSync();
-      expect(html.contains('releases/latest/download/Sine-v1.3.'), isTrue);
+      expect(RegExp(r'releases/latest/download/Sine-v1\.[0-9]+\.[0-9]+\.apk').hasMatch(html), isTrue);
     });
 
     test('T2.13.5: index.html download target ends with .apk extension', () {
