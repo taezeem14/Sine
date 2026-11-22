@@ -1,1081 +1,829 @@
 <!DOCTYPE html>
-<html lang="en" class="dark scroll-smooth">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sine — High-Fidelity YouTube Music Client for Android</title>
-  <meta name="description" content="Streaming hits different without ads. Sine is an open-source, high-fidelity music client powered by NewPipe's YouTube extraction engine, hardware DSP equalizer, and zero telemetry." />
-  <meta name="keywords" content="Sine, music player, android music app, youtube music client, newpipe music, zero ads, open source, dsp equalizer, sponsorblock, spotify alternative" />
+  <title>Sine — Open-Source Hi-Fi Music Client for Android</title>
+  <meta name="description" content="Sine is an open-source, telemetry-free Android music client powered by NewPipe YouTube audio extraction, native 6-band hardware DSP equalization, BetterLyrics word-sync karaoke, and local JSON backups." />
   <meta name="author" content="Muhammad Taezeem Tariq" />
+  <meta name="theme-color" content="#06070a" />
 
-  <!-- Open Graph / Meta -->
+  <!-- Open Graph / Social -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Sine — High-Fidelity YouTube Music Client for Android" />
-  <meta property="og:description" content="Pure acoustics. Zero ads. Sub-1.2s playback powered by NewPipe extraction and hardware DSP decoding." />
-  <meta property="og:image" content="https://raw.githubusercontent.com/taezeem14/Sine/main/web/icons/Icon-512.png" />
-  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="og:url" content="https://taezeem14.github.io/Sine/" />
+  <meta property="og:title" content="Sine — Pure Audio for Android" />
+  <meta property="og:description" content="Zero ads. Zero telemetry. 160 kbps Opus extraction, true 6-band Android hardware EQ, synchronized karaoke lyrics, and local-first backups. Free under GPL-3.0." />
+  <meta property="og:image" content="https://raw.githubusercontent.com/taezeem14/Sine/main/assets/icon/sine_logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Sine — Pure Audio for Android" />
+  <meta name="twitter:description" content="Open-source Android music client with hardware 6-band DSP EQ, BetterLyrics karaoke, and zero ads." />
 
-  <!-- Favicon SVG -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2300D2FF'/%3E%3Cstop offset='100%25' stop-color='%232563EB'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%2306080F'/%3E%3Cpath d='M12 32 C 18 16, 26 16, 32 32 C 38 48, 46 48, 52 32' fill='none' stroke='url(%23g)' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%2300D2FF'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/png" href="assets/icon/sine_logo.png" />
+  <link rel="apple-touch-icon" href="assets/icon/sine_logo.png" />
 
-  <!-- Google Fonts: Inter & Plus Jakarta Sans & JetBrains Mono -->
+  <!-- Typography: Sora (Display), Inter (Body), JetBrains Mono (Specs) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet" />
 
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              cyan: '#00D2FF',
-              blue: '#3B82F6',
-              deep: '#1D4ED8',
-              glow: 'rgba(0, 210, 255, 0.35)',
-            },
-            dark: {
-              base: '#05070E',
-              surface: '#0B0F19',
-              card: '#111827',
-              border: '#1F2937',
-              elevated: '#1A2234',
-            }
-          },
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'monospace'],
-          },
-          animation: {
-            'spin-slow': 'spin 12s linear infinite',
-            'pulse-glow': 'pulseGlow 3s ease-in-out infinite',
-            'wave-float': 'waveFloat 6s ease-in-out infinite',
-          },
-          keyframes: {
-            pulseGlow: {
-              '0%, 100%': { opacity: '0.4', transform: 'scale(1)' },
-              '50%': { opacity: '0.8', transform: 'scale(1.05)' },
-            },
-            waveFloat: {
-              '0%, 100%': { transform: 'translateY(0px)' },
-              '50%': { transform: 'translateY(-8px)' },
-            }
-          }
-        }
-      }
-    }
-  </script>
-
-  <style>
-    /* Custom Smooth Utilities */
-    body {
-      background-color: #05070E;
-      color: #E2E8F0;
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      overflow-x: hidden;
-    }
-
-    /* Ambient Background Glow */
-    .hero-glow {
-      position: absolute;
-      top: -120px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 800px;
-      height: 500px;
-      background: radial-gradient(circle at center, rgba(0, 210, 255, 0.18) 0%, rgba(37, 99, 235, 0.08) 45%, transparent 70%);
-      filter: blur(80px);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .card-glow {
-      position: relative;
-    }
-    .card-glow::before {
-      content: '';
-      position: absolute;
-      inset: -1px;
-      border-radius: inherit;
-      padding: 1px;
-      background: linear-gradient(135deg, rgba(0, 210, 255, 0.3), rgba(37, 99, 235, 0.1), transparent 60%);
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      pointer-events: none;
-    }
-
-    /* Dot Grid Texture */
-    .bg-grid-pattern {
-      background-size: 32px 32px;
-      background-image: 
-        radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-    }
-
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #05070E;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #1F2937;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #00D2FF;
-    }
-
-    /* Vinyl Grooves */
-    .vinyl-grooves {
-      background: repeating-radial-gradient(
-        circle at 50% 50%,
-        #111827 0,
-        #111827 3px,
-        #182235 4px,
-        #111827 5px
-      );
-    }
-
-    /* Range slider custom styling */
-    input[type=range] {
-      -webkit-appearance: none;
-      background: #1F2937;
-      border-radius: 9999px;
-      height: 6px;
-    }
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      height: 18px;
-      width: 18px;
-      border-radius: 50%;
-      background: #00D2FF;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(0, 210, 255, 0.6);
-      transition: transform 0.15s ease;
-    }
-    input[type=range]::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-    }
-  </style>
+  <link rel="stylesheet" href="site/styles.css" />
 </head>
+<body>
 
-<body class="min-h-screen relative selection:bg-brand-cyan/20 selection:text-brand-cyan">
-
-  <!-- Ambient Glow Blob -->
-  <div class="hero-glow"></div>
-
-  <!-- ========================================================================= -->
-  <!-- 1. STICKY NAVBAR                                                          -->
-  <!-- ========================================================================= -->
-  <header class="sticky top-0 z-50 w-full backdrop-blur-xl bg-dark-base/80 border-b border-white/5 transition-all duration-300">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-      
-      <!-- Brand Logo -->
-      <a href="#" class="flex items-center gap-3.5 group">
-        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-cyan to-brand-deep p-0.5 shadow-lg shadow-brand-cyan/20 group-hover:shadow-brand-cyan/40 transition-all duration-300">
-          <div class="w-full h-full bg-dark-base rounded-[14px] flex items-center justify-center">
-            <svg class="w-6 h-6 text-brand-cyan" viewBox="0 0 64 64" fill="none" stroke="currentColor">
-              <path d="M10 32 C 18 12, 26 12, 32 32 C 38 52, 46 52, 54 32" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
-              <circle cx="32" cy="32" r="4.5" fill="#00D2FF" />
-            </svg>
-          </div>
-        </div>
-        <div class="flex flex-col">
-          <div class="flex items-center gap-2">
-            <span class="text-xl font-bold tracking-tight text-white font-sans">SINE</span>
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20 font-semibold">v1.4.2</span>
-          </div>
-          <span class="text-[11px] text-gray-400 font-mono tracking-wide">ZERO-AD ARCHITECTURE</span>
-        </div>
+  <!-- ======================================================================= -->
+  <!-- 1. PRECISION NAVIGATION BAR                                             -->
+  <!-- ======================================================================= -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="#" class="brand" aria-label="Sine Home">
+        <img src="assets/icon/sine_logo.png" alt="Sine logo" class="brand-icon" width="34" height="34" />
+        <span class="brand-name">Sine</span>
+        <span class="version-pill">v1.4.2</span>
       </a>
 
-      <!-- Desktop Nav Links -->
-      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300">
-        <a href="#features" class="hover:text-brand-cyan transition-colors">Features</a>
-        <a href="#dsp-engine" class="hover:text-brand-cyan transition-colors">DSP Sound Shaper</a>
-        <a href="#benchmarks" class="hover:text-brand-cyan transition-colors">Benchmarks</a>
-        <a href="#donate" class="hover:text-brand-cyan transition-colors flex items-center gap-1.5 text-pink-400">
-          <span>Donate</span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-300 font-mono">UPI</span>
-        </a>
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="#capabilities" class="nav-link">Capabilities</a>
+        <a href="#sound-engine" class="nav-link">Sound Engine</a>
+        <a href="#architecture" class="nav-link">Architecture</a>
+        <a href="#changelog" class="nav-link">Changelog</a>
+        <a href="#install" class="nav-link">Install</a>
       </nav>
 
-      <!-- Action Buttons -->
-      <div class="flex items-center gap-3.5">
-        <a href="https://github.com/taezeem14/Sine" target="_blank" rel="noopener noreferrer" 
-           class="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-dark-card/80 hover:bg-dark-card border border-white/10 text-xs font-mono text-gray-300 hover:text-white transition-all">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+      <div class="nav-actions">
+        <a href="https://github.com/taezeem14/Sine" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
           </svg>
-          <span>Star on GitHub</span>
+          <span>GitHub</span>
+          <span id="ghStars" class="github-stars" hidden></span>
         </a>
 
-        <a href="https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.2.apk" 
-           class="relative group overflow-hidden px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-cyan to-brand-blue text-dark-base font-semibold text-xs tracking-wide uppercase flex items-center gap-2 shadow-lg shadow-brand-cyan/25 hover:shadow-brand-cyan/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
-          <svg class="w-4 h-4 text-dark-base" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        <a href="https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.2.apk" class="btn btn-primary btn-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
           <span>Download APK</span>
         </a>
 
-        <!-- Mobile Menu Toggle Button -->
-        <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg bg-dark-card text-gray-400 hover:text-white border border-white/10" aria-label="Toggle Navigation Menu">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        <button id="menuToggle" class="menu-toggle" aria-label="Toggle Menu" aria-expanded="false" aria-controls="mobileDrawer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="4" y1="7" x2="20" y2="7" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="17" x2="20" y2="17" />
           </svg>
         </button>
-      </div>
-
-    </div>
-
-    <!-- Mobile Dropdown Nav -->
-    <div id="mobileMenu" class="hidden md:hidden border-t border-white/5 bg-dark-surface/95 backdrop-blur-2xl px-6 py-6 space-y-4">
-      <a href="#features" class="block text-gray-300 hover:text-brand-cyan py-1 text-sm">Features</a>
-      <a href="#dsp-engine" class="block text-gray-300 hover:text-brand-cyan py-1 text-sm">Hardware DSP Equalizer</a>
-      <a href="#benchmarks" class="block text-gray-300 hover:text-brand-cyan py-1 text-sm">Laboratory Benchmarks</a>
-      <a href="#donate" class="block text-pink-400 font-medium py-1 text-sm flex items-center justify-between">
-        <span>Donate via UPI</span>
-        <span class="text-xs px-2 py-0.5 rounded bg-pink-500/20">7006616470@fam</span>
-      </a>
-      <div class="pt-4 border-t border-white/10 flex flex-col gap-3">
-        <a href="https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.2.apk" 
-           class="w-full py-3 text-center rounded-xl bg-gradient-to-r from-brand-cyan to-brand-blue text-dark-base font-bold text-sm tracking-wide uppercase shadow-lg shadow-brand-cyan/20">
-          Download APK v1.4.2 (83.8 MB)
-        </a>
       </div>
     </div>
   </header>
 
-  <!-- ========================================================================= -->
-  <!-- 2. HERO SECTION                                                           -->
-  <!-- ========================================================================= -->
-  <section class="relative pt-12 pb-24 md:pt-20 md:pb-32 overflow-hidden bg-grid-pattern">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-      
-      <!-- Announcement Tag -->
-      <div class="flex justify-center mb-8">
-        <div class="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-dark-elevated/80 border border-brand-cyan/30 backdrop-blur-md shadow-inner shadow-brand-cyan/10">
-          <span class="flex h-2 w-2 relative">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-cyan opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-cyan"></span>
-          </span>
-          <span class="text-xs font-mono font-medium text-brand-cyan tracking-wide">
-            Sine v1.4.2 Released • Instant Playback, Settings & Playlist JSON Extraction, Zero Glitch
-          </span>
+  <!-- Mobile Navigation Drawer -->
+  <div id="mobileDrawer" class="mobile-drawer" role="dialog" aria-label="Mobile Navigation">
+    <nav>
+      <a href="#capabilities" class="nav-link">Capabilities</a>
+      <a href="#sound-engine" class="nav-link">Sound Engine</a>
+      <a href="#architecture" class="nav-link">Architecture</a>
+      <a href="#changelog" class="nav-link">Changelog</a>
+      <a href="#install" class="nav-link">Install &amp; Support</a>
+    </nav>
+    <div class="mobile-drawer-actions">
+      <a href="https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.2.apk" class="btn btn-primary">
+        Download Sine-v1.4.2.apk (81.18 MB)
+      </a>
+      <a href="https://github.com/taezeem14/Sine" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+        View Source on GitHub
+      </a>
+    </div>
+  </div>
+
+  <main>
+    <!-- ===================================================================== -->
+    <!-- 2. EDITORIAL HERO + INTERACTIVE ANDROID DEVICE SHOWCASE               -->
+    <!-- ===================================================================== -->
+    <section class="hero">
+      <canvas id="heroWaveCanvas" class="hero-wave-canvas" aria-hidden="true"></canvas>
+
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <div class="hero-badge">
+            <span class="hero-badge-dot" aria-hidden="true"></span>
+            <span><strong>Sine v1.4.2</strong> · Build 42 · GNU GPL-3.0</span>
+          </div>
+
+          <h1 class="hero-title">
+            Pure audio for Android.<br />
+            <span class="hero-title-muted">Zero ads. Zero telemetry.</span>
+          </h1>
+
+          <p class="hero-subtitle">
+            An open-source music streaming client engineered for low-latency playback and acoustic fidelity. Direct YouTube Opus &amp; AAC stream extraction, a true 6-band Android hardware equalizer, synchronized word-by-word karaoke lyrics, and local JSON backups — with no account required.
+          </p>
+
+          <div class="hero-cta">
+            <a href="https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.2.apk" class="btn btn-accent btn-lg">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span>Download v1.4.2</span>
+              <span class="btn-meta">81.18 MB</span>
+            </a>
+
+            <a href="https://github.com/taezeem14/Sine" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-lg">
+              <span>Inspect Source</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="7" y1="17" x2="17" y2="7" />
+                <polyline points="7 7 17 7 17 17" />
+              </svg>
+            </a>
+          </div>
+
+          <div class="hero-footnote">
+            <span>Android 8.0+ (ARM64 / ARMv7)</span>
+            <span>·</span>
+            <span>Signed via GitHub Actions CI/CD</span>
+            <span>·</span>
+            <a href="#install" style="color: var(--ink-secondary); text-decoration: underline; text-underline-offset: 3px;">Install via ADB</a>
+          </div>
+
+          <div class="spec-strip" aria-label="Technical Specifications">
+            <div>
+              <div class="spec-item-val">160 kbps</div>
+              <div class="spec-item-label">Opus / AAC direct ExoPlayer decode</div>
+            </div>
+            <div>
+              <div class="spec-item-val">6-Band</div>
+              <div class="spec-item-label">Log-frequency Android hardware DSP</div>
+            </div>
+            <div>
+              <div class="spec-item-val">120 FPS</div>
+              <div class="spec-item-label">Zero-blur shaders &amp; surgical rebuilds</div>
+            </div>
+            <div>
+              <div class="spec-item-val">0 Bytes</div>
+              <div class="spec-item-label">Analytics, ads, or account tracking</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Live Android Device Showcase -->
+        <div class="showcase-wrap">
+          <div class="phone-frame" aria-label="Interactive Sine v1.4.2 Android preview">
+            <div id="phoneScreen" class="phone-screen">
+              <div class="phone-aurora" aria-hidden="true">
+                <div class="aurora-orb aurora-orb-1"></div>
+                <div class="aurora-orb aurora-orb-2"></div>
+                <div class="aurora-orb aurora-orb-3"></div>
+              </div>
+              <div class="phone-scrim" aria-hidden="true"></div>
+
+              <div class="phone-statusbar">
+                <span>9:41</span>
+                <span class="phone-camera" aria-hidden="true"></span>
+                <span>5G · 98%</span>
+              </div>
+
+              <!-- VIEW 1: NOW PLAYING (Cover-Color Fluid Aurora + Peeking Vinyl) -->
+              <div id="view-player" class="phone-view is-active">
+                <div class="np-topbar">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2.2" stroke-linecap="round"><polyline points="6 9 12 15 18 9" /></svg>
+                  <div class="np-source">
+                    <div class="np-source-kicker">PLAYING FROM</div>
+                    <div class="np-source-name">SINE DISCOVERY</div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(255,255,255,0.75)"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>
+                </div>
+
+                <div class="np-stage">
+                  <div id="npVinyl" class="np-vinyl" aria-hidden="true"></div>
+                  <div id="npCover" class="np-cover">
+                    <span class="np-cover-tag">OPUS · 48 kHz</span>
+                    <svg class="np-cover-art-graphic" viewBox="0 0 64 64" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="3.2" stroke-linecap="round">
+                      <path d="M8 32 C 16 12, 24 12, 32 32 C 40 52, 48 52, 56 32" />
+                      <circle cx="32" cy="32" r="4" fill="#ffffff" stroke="none" />
+                    </svg>
+                    <span id="npCoverCaption" class="np-cover-caption">BLUE + CYAN · QUANTIZED</span>
+                  </div>
+                </div>
+
+                <!-- Sample Cover Palette Switcher -->
+                <div class="palette-switcher" role="group" aria-label="Sample album cover palettes">
+                  <button type="button" class="palette-chip is-selected" data-palette="cobalt">
+                    <span class="palette-dot" style="background: #2979ff;"></span>Blue
+                  </button>
+                  <button type="button" class="palette-chip" data-palette="crimson">
+                    <span class="palette-dot" style="background: #dc2626;"></span>Crimson
+                  </button>
+                  <button type="button" class="palette-chip" data-palette="noir">
+                    <span class="palette-dot" style="background: #9ca3af;"></span>B&amp;W
+                  </button>
+                </div>
+
+                <div class="np-meta-row" style="margin-top: 14px;">
+                  <div>
+                    <div id="npTrackTitle" class="np-track-title">Midnight Telemetry</div>
+                    <div id="npTrackArtist" class="np-track-artist">Daft Signal · Opus 160 kbps</div>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#569dff"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+                </div>
+
+                <div class="np-scrubber-track">
+                  <div id="npScrubFill" class="np-scrubber-fill"></div>
+                </div>
+                <div class="np-times">
+                  <span id="npElapsed">1:22</span>
+                  <span>3:38</span>
+                </div>
+
+                <div class="np-controls">
+                  <span class="np-icon-btn" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /></svg>
+                  </span>
+                  <span class="np-icon-btn" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="5" width="2.5" height="14" rx="1" /><polygon points="19,5 8,12 19,19" /></svg>
+                  </span>
+                  <button id="npPlayBtn" type="button" class="np-play-btn" aria-label="Pause preview">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+                  </button>
+                  <span class="np-icon-btn" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,5 16,12 5,19" /><rect x="17.5" y="5" width="2.5" height="14" rx="1" /></svg>
+                  </span>
+                  <span class="np-icon-btn" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>
+                  </span>
+                </div>
+
+                <div class="np-pills">
+                  <span class="np-pill">Lyrics</span>
+                  <span class="np-pill is-lit">EQ · Active</span>
+                  <span class="np-pill">1.0x</span>
+                  <span class="np-pill">Queue</span>
+                </div>
+              </div>
+
+              <!-- VIEW 2: SYNCHRONIZED BETTERLYRICS KARAOKE -->
+              <div id="view-lyrics" class="phone-view">
+                <div class="np-topbar">
+                  <span style="font-family: var(--font-mono); font-size: 0.68rem; color: rgba(255,255,255,0.65);">BETTERLYRICS SYNC</span>
+                  <span class="np-pill is-lit">Word-Sync</span>
+                </div>
+                <div class="lyrics-card">
+                  <div class="lyrics-toolbar">
+                    <span class="lyrics-chip is-active">Karaoke</span>
+                    <span class="lyrics-chip">Translate</span>
+                    <span class="lyrics-chip">Romaji</span>
+                    <span class="lyrics-chip">Story Card (4)</span>
+                  </div>
+                  <div class="lyrics-lines">
+                    <div class="lyric-line">Signal climbing through the quiet dark</div>
+                    <div class="lyric-line is-active">
+                      <span id="karaokeWord" class="lyric-karaoke-word">Every harmonic crystal clear in air</span>
+                      <span class="lyric-sub">Word-level millisecond sweep · Tap any line to seek</span>
+                    </div>
+                    <div class="lyric-line">Zero noise between the kick and snare</div>
+                    <div class="lyric-line">Holding steady on the midnight arc</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- VIEW 3: CLASSIC MINIPLAYER & SWIPE-DOWN DISMISSAL -->
+              <div id="view-miniplayer" class="phone-view">
+                <div class="mini-demo-list">
+                  <div class="mini-demo-heading">Your Library</div>
+                  <div class="mini-demo-row">
+                    <div class="mini-demo-thumb" style="background: linear-gradient(135deg, #2979ff, #1e3a8a);"></div>
+                    <div class="mini-demo-meta">
+                      <strong>Liked Songs</strong>
+                      <span>148 tracks · Stored locally</span>
+                    </div>
+                  </div>
+                  <div class="mini-demo-row">
+                    <div class="mini-demo-thumb" style="background: linear-gradient(135deg, #0ea5e9, #0f172a);"></div>
+                    <div class="mini-demo-meta">
+                      <strong>Offline Downloads</strong>
+                      <span>/Sine-Music/ · Embedded ID3</span>
+                    </div>
+                  </div>
+                  <div class="mini-demo-row">
+                    <div class="mini-demo-thumb" style="background: linear-gradient(135deg, #475569, #111827);"></div>
+                    <div class="mini-demo-meta">
+                      <strong>Late Night Drive</strong>
+                      <span>32 tracks · JSON export ready</span>
+                    </div>
+                  </div>
+                  <button id="miniDismissTestBtn" type="button" class="btn btn-secondary btn-sm" style="margin-top: 8px; width: 100%; font-size: 0.72rem;">
+                    Simulate Swipe-Down Dismiss
+                  </button>
+                </div>
+
+                <div id="phoneMiniPlayer" class="phone-miniplayer">
+                  <div class="mini-pill-bar"></div>
+                  <div class="mini-body">
+                    <div class="mini-demo-thumb" style="width: 34px; height: 34px; background: linear-gradient(135deg, #1d4ed8, #0284c7);"></div>
+                    <div class="mini-demo-meta">
+                      <strong>Midnight Telemetry</strong>
+                      <span>Daft Signal</span>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#ffffff"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+                  </div>
+                  <div class="mini-progress"><div class="mini-progress-bar"></div></div>
+                </div>
+
+                <div class="phone-nav-bar">
+                  <span>Home</span>
+                  <span>Search</span>
+                  <span class="is-current">Your Library</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="showcase-tabs" role="tablist" aria-label="Device preview screens">
+            <button type="button" class="showcase-tab is-active" role="tab" aria-selected="true" data-view="player">Now Playing</button>
+            <button type="button" class="showcase-tab" role="tab" aria-selected="false" data-view="lyrics">Karaoke Lyrics</button>
+            <button type="button" class="showcase-tab" role="tab" aria-selected="false" data-view="miniplayer">MiniPlayer</button>
+          </div>
         </div>
       </div>
+    </section>
 
-      <!-- Main Catchy Title -->
-      <div class="text-center max-w-4xl mx-auto space-y-6">
-        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-[1.1]">
-          Streaming Hits Different <br class="hidden sm:inline" />
-          <span class="bg-gradient-to-r from-brand-cyan via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-            Without 30-Second Ads.
-          </span>
-        </h1>
-        
-        <p class="text-base sm:text-xl text-gray-400 max-w-2xl mx-auto font-normal leading-relaxed">
-          The open-source Android music client engineered for pure acoustic fidelity. Powered by NewPipe's YouTube stream extraction, native DSP sound shaping, and zero telemetry.
-        </p>
+    <!-- ===================================================================== -->
+    <!-- 3. CORE ENGINEERING CAPABILITIES                                      -->
+    <!-- ===================================================================== -->
+    <section id="capabilities" class="section">
+      <div class="container">
+        <div class="section-header reveal">
+          <div class="section-eyebrow">Engine Capabilities</div>
+          <h2 class="section-title">Engineered for listeners who care about latency, fidelity, and control.</h2>
+          <p class="section-lead">
+            Every subsystem in Sine is built from first principles around native Android media pipelines — never wrapped webviews, never bloated ad SDKs.
+          </p>
+        </div>
 
-        <!-- CTA Action Cluster -->
-        <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a href="https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.2.apk"
-             class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-brand-cyan to-brand-blue text-dark-base font-bold text-sm tracking-wide uppercase shadow-xl shadow-brand-cyan/30 hover:shadow-brand-cyan/50 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
-            <svg class="w-5 h-5 text-dark-base" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            <span>Download APK (v1.4.2)</span>
-            <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-dark-base/20 font-semibold">83.8 MB</span>
+        <div class="features-grid reveal">
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+            </div>
+            <h3 class="feature-title">Instant InnerTube Extraction</h3>
+            <p class="feature-desc">
+              Resolves direct YouTube Opus (160 kbps) and AAC (128 kbps) streams via NewPipe-inspired InnerTube clients with automatic zemer-cipher n-sig unthrottling and Piped proxy failover.
+            </p>
+            <div class="feature-spec">ANDROID_VR · IOS · PIPED FAILOVER</div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
+            </div>
+            <h3 class="feature-title">True 6-Band Hardware DSP</h3>
+            <p class="feature-desc">
+              Touch-draggable Bezier equalizer mapped via log-frequency interpolation to Android's native AudioEffect Equalizer (priority 1000), persisting seamlessly across Bluetooth &amp; route switches.
+            </p>
+            <div class="feature-spec">25 OG PRESETS · LOG-FREQ MAPPING · ANTI-CLIP</div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /></svg>
+            </div>
+            <h3 class="feature-title">Perceptual Cover Aurora &amp; 120 FPS</h3>
+            <p class="feature-desc">
+              A 36-bucket circular hue quantizer reads center-cropped album pixels (honoring monochrome artwork faithfully) to drive C&infin; seamless fluid shaders and zero-blur GPU ambient halos.
+            </p>
+            <div class="feature-spec">36-BUCKET QUANTIZER · SWIPE-DOWN SHEET</div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+            </div>
+            <h3 class="feature-title">BetterLyrics Karaoke &amp; Story Cards</h3>
+            <p class="feature-desc">
+              Millisecond-accurate word-sync karaoke, instant translation &amp; romaji toggle, tap-to-seek lines, and exportable 4-line Lyric Story Cards saved straight to your Android Gallery.
+            </p>
+            <div class="feature-spec">LRCLIB · BETTERLYRICS · 4-LINE STORY EXPORT</div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+            </div>
+            <h3 class="feature-title">SponsorBlock, Stems &amp; Car Mode</h3>
+            <p class="feature-desc">
+              Skip non-music intros, sponsors, and outros automatically. Isolate Vocals or Karaoke backing tracks, control playback from a 4&times;2 home widget, or switch to high-contrast Driving Mode.
+            </p>
+            <div class="feature-spec">SPONSORBLOCK · AI STEMS · 4×2 WIDGET</div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+            </div>
+            <h3 class="feature-title">Sovereign Offline &amp; JSON Backups</h3>
+            <p class="feature-desc">
+              Download tracks with embedded ID3 tags and cover art to /Sine-Music/. Export or restore your entire library, individual playlists, and all 23 app settings as portable JSON files.
+            </p>
+            <div class="feature-spec">LOCAL STORAGE · UNIFIED JSON · PIN LOCK</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 4. INTERACTIVE 6-BAND HARDWARE EQUALIZER LAB                          -->
+    <!-- ===================================================================== -->
+    <section id="sound-engine" class="section">
+      <div class="container">
+        <div class="section-header reveal">
+          <div class="section-eyebrow">Interactive Hardware DSP Preview</div>
+          <h2 class="section-title">Drag the curve. Watch the hardware bands respond.</h2>
+          <p class="section-lead">
+            In v1.4.2, Sine maps its 6-band interactive spline directly onto your Android device's real hardware center frequencies using log-frequency interpolation — so every band, including 400 Hz, actively shapes your audio.
+          </p>
+        </div>
+
+        <div class="eq-lab reveal">
+          <div class="panel">
+            <div class="eq-top-bar">
+              <div class="eq-title-group">
+                <h3>6-Band Bezier Graphic Equalizer</h3>
+                <p>Drag any node vertically (-12 to +12 dB) · Double-click any node to zero</p>
+              </div>
+              <div class="eq-toggle-row">
+                <span id="eqStateLabel">Hardware DSP Active</span>
+                <button id="eqPowerSwitch" type="button" class="switch" role="switch" aria-checked="true" aria-label="Toggle Hardware Equalizer"></button>
+              </div>
+            </div>
+
+            <div class="eq-canvas-shell">
+              <canvas id="eqCanvas" class="eq-canvas" aria-label="Interactive 6-band equalizer graph"></canvas>
+              <div class="eq-freq-labels" aria-hidden="true">
+                <span>60 Hz</span>
+                <span>150 Hz</span>
+                <span>400 Hz</span>
+                <span>1 kHz</span>
+                <span>2.4 kHz</span>
+                <span>15 kHz</span>
+              </div>
+            </div>
+
+            <div class="eq-hw-readout">
+              <div class="eq-hw-header">
+                <span>Live 5-Band Android Hardware Output (Log-Freq Interpolated)</span>
+                <span>Priority 1000</span>
+              </div>
+              <div class="eq-hw-grid">
+                <div class="eq-hw-cell">
+                  <span class="eq-hw-freq">60 Hz</span>
+                  <span id="hwBand0" class="eq-hw-val">+8.3 dB</span>
+                </div>
+                <div class="eq-hw-cell">
+                  <span class="eq-hw-freq">230 Hz</span>
+                  <span id="hwBand1" class="eq-hw-val">+4.3 dB</span>
+                </div>
+                <div class="eq-hw-cell">
+                  <span class="eq-hw-freq">910 Hz</span>
+                  <span id="hwBand2" class="eq-hw-val">+0.2 dB</span>
+                </div>
+                <div class="eq-hw-cell">
+                  <span class="eq-hw-freq">3.6 kHz</span>
+                  <span id="hwBand3" class="eq-hw-val">+0.6 dB</span>
+                </div>
+                <div class="eq-hw-cell">
+                  <span class="eq-hw-freq">14 kHz</span>
+                  <span id="hwBand4" class="eq-hw-val">+1.0 dB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel eq-sidebar">
+            <div>
+              <div class="section-eyebrow" style="margin-bottom: 12px;">OG Studio Presets (25 Built-In)</div>
+              <div class="preset-grid" role="group" aria-label="Equalizer Presets">
+                <button type="button" class="preset-btn" data-preset="Flat">Flat</button>
+                <button type="button" class="preset-btn is-active" data-preset="Bass Boost">Bass Boost</button>
+                <button type="button" class="preset-btn" data-preset="Vocal Booster">Vocal Booster</button>
+                <button type="button" class="preset-btn" data-preset="Electronic">Electronic</button>
+                <button type="button" class="preset-btn" data-preset="Rock">Rock</button>
+                <button type="button" class="preset-btn" data-preset="Acoustic">Acoustic</button>
+                <button type="button" class="preset-btn" data-preset="Jazz">Jazz</button>
+                <button type="button" class="preset-btn" data-preset="Late Night">Late Night</button>
+              </div>
+            </div>
+
+            <div class="slider-block">
+              <div class="slider-meta">
+                <span>Hearth Bass Boost</span>
+                <output id="bassBoostOutput" for="bassBoostSlider">25%</output>
+              </div>
+              <input id="bassBoostSlider" class="range-input" type="range" min="0" max="100" value="25" aria-label="Hearth Bass Boost percentage" />
+            </div>
+
+            <div class="telemetry-box">
+              <div class="telemetry-row">
+                <span>Active Profile</span>
+                <strong id="activePresetReadout">Bass Boost</strong>
+              </div>
+              <div class="telemetry-row">
+                <span>Preamp Headroom</span>
+                <strong id="headroomReadout">-1.46 dB (Anti-Clip)</strong>
+              </div>
+              <div class="telemetry-row">
+                <span>Audio Offload</span>
+                <strong>Disabled (DSP Safe)</strong>
+              </div>
+              <div class="telemetry-row">
+                <span>Session Retention</span>
+                <strong>Bluetooth &amp; Route Safe</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 5. ARCHITECTURE PIPELINE & FACTUAL COMPARISON                         -->
+    <!-- ===================================================================== -->
+    <section id="architecture" class="section">
+      <div class="container">
+        <div class="section-header reveal">
+          <div class="section-eyebrow">System Architecture</div>
+          <h2 class="section-title">Transparent end-to-end audio pipeline.</h2>
+          <p class="section-lead">
+            Every track flows directly from stream resolution to Media3 ExoPlayer and Android's hardware audio mixer — zero cloud middlemen, zero tracking beacons.
+          </p>
+        </div>
+
+        <div class="pipeline-track reveal">
+          <div class="pipeline-step">
+            <div class="pipeline-index">01 / RESOLVE</div>
+            <h4>InnerTube + Cipher</h4>
+            <p>Queries direct audio manifests with remote zemer-cipher n-sig unthrottling and instant Piped fallback.</p>
+          </div>
+          <div class="pipeline-step">
+            <div class="pipeline-index">02 / DECODE</div>
+            <h4>Media3 ExoPlayer</h4>
+            <p>Hardware Opus/AAC decoding with AudioOffload disabled so native Android DSP filters stay active.</p>
+          </div>
+          <div class="pipeline-step">
+            <div class="pipeline-index">03 / SHAPE</div>
+            <h4>Hardware Equalizer</h4>
+            <p>Log-frequency 6-band curve bound at priority 1000 with transparent logarithmic headroom protection.</p>
+          </div>
+          <div class="pipeline-step">
+            <div class="pipeline-index">04 / RENDER</div>
+            <h4>120 FPS Flutter UI</h4>
+            <p>Surgical Provider selectors, isolated RepaintBoundaries, and zero-blur radial aurora shaders.</p>
+          </div>
+        </div>
+
+        <div class="compare-wrap reveal">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Capability</th>
+                <th>Sine v1.4.2 (Open Source)</th>
+                <th>Typical Freemium Streaming Apps</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Ad Interruptions &amp; Sponsor Reads</td>
+                <td><span class="check-mark">&check;</span>None · Automatic SponsorBlock skip</td>
+                <td>Pre-roll &amp; mid-roll audio/video ads</td>
+              </tr>
+              <tr>
+                <td>Account &amp; Telemetry</td>
+                <td><span class="check-mark">&check;</span>Zero sign-in · Zero analytics SDKs</td>
+                <td>Mandatory account · Behavioral profiling</td>
+              </tr>
+              <tr>
+                <td>Background &amp; Lock-Screen Play</td>
+                <td><span class="check-mark">&check;</span>Included natively + 4&times;2 home widget</td>
+                <td>Locked behind monthly subscription</td>
+              </tr>
+              <tr>
+                <td>Hardware Equalizer &amp; Sound Shaping</td>
+                <td><span class="check-mark">&check;</span>6-band log-freq DSP + pitch &amp; speed</td>
+                <td>Basic presets or omitted on mobile</td>
+              </tr>
+              <tr>
+                <td>Offline Downloads &amp; Data Portability</td>
+                <td><span class="check-mark">&check;</span>Local /Sine-Music/ + full JSON export</td>
+                <td>Encrypted DRM cache · No export</td>
+              </tr>
+              <tr>
+                <td>License &amp; Auditability</td>
+                <td><span class="check-mark">&check;</span>GNU GPL-3.0 · Public CI/CD builds</td>
+                <td>Closed-source proprietary binaries</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 6. RELEASE CHANGELOG                                                  -->
+    <!-- ===================================================================== -->
+    <section id="changelog" class="section">
+      <div class="container">
+        <div class="section-header reveal">
+          <div class="section-eyebrow">Release History</div>
+          <h2 class="section-title">Shipped openly via GitHub Actions CI/CD.</h2>
+          <p class="section-lead">
+            Every release runs automated unit &amp; widget test suites before compiling and signing the Android APK directly in the cloud.
+          </p>
+        </div>
+
+        <div class="changelog-list reveal">
+          <article class="changelog-item is-latest">
+            <div>
+              <div class="changelog-ver">v1.4.2</div>
+              <span class="changelog-tag">Latest Release</span>
+              <span class="changelog-build">Build 42 · 81.18 MB</span>
+            </div>
+            <div class="changelog-content">
+              <h4>Hardware Equalizer Overhaul, Vivid Fluid Aurora &amp; Zero-Lag UI</h4>
+              <ul>
+                <li>Fixed 7 deep Equalizer pipeline issues: isolated pointerDown double-tap from drag, replaced blocking play() awaits, added log-frequency 6&rarr;5 hardware interpolation (restoring 400 Hz), and hardened native AudioPlayer.java with priority 1000 &amp; live session state retention.</li>
+                <li>Restored clearly visible 4-wave cover-color fluid aurora with C&infin; seamless integer-harmonic loops and replaced per-frame Gaussian BoxShadows in AmbientGlow with zero-blur GPU RadialGradient shaders.</li>
+                <li>Added buttery bottom-up player expansion with interactive swipe-down-to-minimize on NowPlayingScreen while preserving Sine's clean signature MiniPlayer surface.</li>
+                <li>Eliminated Settings jank via cached GoogleFonts TextThemes, lazy ListView.builder, surgical selectors, and app-wide bug fixes across Track Options, Queue, Lyrics, Library, and Car Mode.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="changelog-item">
+            <div>
+              <div class="changelog-ver">v1.4.1</div>
+              <span class="changelog-build">Build 41</span>
+            </div>
+            <div class="changelog-content">
+              <h4>Perceptual Album Cover Quantizer &amp; Swipe-Down MiniPlayer</h4>
+              <ul>
+                <li>Introduced 36-bucket circular hue quantization on center-cropped 32&times;32 bitmaps with YouTube letterbox rejection and authentic monochrome B&amp;W detection.</li>
+                <li>Added tactile vertical swipe-down MiniPlayer dismissal with zero snap-back bounce and synchronous playback teardown.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="changelog-item">
+            <div>
+              <div class="changelog-ver">v1.4.0</div>
+              <span class="changelog-build">Build 40</span>
+            </div>
+            <div class="changelog-content">
+              <h4>Unified 23-Setting JSON Backup &amp; 4-Tier Storage Engine</h4>
+              <ul>
+                <li>Fixed EQ map JSON serialization and built unified library, playlist, and 23-setting JSON backup &amp; live restore across resilient Android storage paths.</li>
+                <li>Introduced surgical context.select rebuild boundaries across core playback tabs and controls.</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <a href="https://github.com/taezeem14/Sine/releases" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm">
+            <span>Browse all releases on GitHub</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" /></svg>
           </a>
-
-          <a href="#features"
-             class="w-full sm:w-auto px-7 py-4 rounded-2xl bg-dark-card hover:bg-dark-elevated border border-white/10 hover:border-brand-cyan/40 text-gray-200 font-semibold text-sm transition-all flex items-center justify-center gap-2.5">
-            <svg class="w-5 h-5 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <span>Explore Features</span>
-          </a>
-        </div>
-
-        <!-- Telemetry & Credibility Metrics -->
-        <div class="pt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          <div class="p-4 rounded-2xl bg-dark-surface/60 border border-white/5 backdrop-blur-sm text-center">
-            <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono">1.2s</div>
-            <div class="text-xs font-mono text-brand-cyan mt-1">Cold-Start Playback</div>
-          </div>
-          <div class="p-4 rounded-2xl bg-dark-surface/60 border border-white/5 backdrop-blur-sm text-center">
-            <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono">0 Ads</div>
-            <div class="text-xs font-mono text-green-400 mt-1">SponsorBlock Auto-Skip</div>
-          </div>
-          <div class="p-4 rounded-2xl bg-dark-surface/60 border border-white/5 backdrop-blur-sm text-center">
-            <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono">100%</div>
-            <div class="text-xs font-mono text-blue-400 mt-1">Zero Telemetry &amp; Free</div>
-          </div>
-          <div class="p-4 rounded-2xl bg-dark-surface/60 border border-white/5 backdrop-blur-sm text-center">
-            <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono">48 MB</div>
-            <div class="text-xs font-mono text-purple-400 mt-1">Lightweight Footprint</div>
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ========================================================================= -->
-  <!-- 3. CORE FEATURES BENTO GRID                                               -->
-  <!-- ========================================================================= -->
-  <section id="features" class="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center max-w-3xl mx-auto mb-16">
-      <span class="text-xs font-mono uppercase tracking-widest text-brand-cyan font-semibold">ENGINE CAPABILITIES</span>
-      <h2 class="text-3xl sm:text-5xl font-extrabold text-white mt-2">Built Without Compromise</h2>
-      <p class="text-gray-400 mt-4 text-base sm:text-lg">
-        Every line of Sine's architecture is crafted to eliminate buffering, ad interruptions, and battery-hogging software decoding.
-      </p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      
-      <!-- Card 1: Sub-1.2s Instant Playback (Span 2) -->
-      <div class="md:col-span-2 rounded-3xl bg-dark-card border border-white/10 p-8 sm:p-10 card-glow relative overflow-hidden flex flex-col justify-between">
-        <div class="space-y-4">
-          <div class="w-12 h-12 rounded-2xl bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center text-brand-cyan">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          </div>
-          <span class="text-xs font-mono text-brand-cyan tracking-wider uppercase font-semibold">STREAM EXTRACTION ENGINE</span>
-          <h3 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Sub-1.2s Cold-Start Playback</h3>
-          <p class="text-gray-400 leading-relaxed text-sm sm:text-base max-w-xl">
-            Sine automatically prioritizes progressive standalone AAC (<code class="text-brand-cyan bg-white/5 px-1.5 py-0.5 rounded font-mono text-xs">itag 140</code>) and muxed MP4 streams with pre-warmed connection pools. Your tracks launch on attempt 1 without waiting for DASH cipher decryption.
-          </p>
-        </div>
-        <div class="mt-8 pt-6 border-t border-white/5 flex flex-wrap items-center gap-6 text-xs font-mono text-gray-400">
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-brand-cyan"></span> 400ms Pre-Buffer Window</div>
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Persistent TLS 1.3 Keep-Alive</div>
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-indigo-500"></span> Zero Runaway Queue Skips</div>
         </div>
       </div>
+    </section>
 
-      <!-- Card 2: 100% Zero Commercial Ads -->
-      <div class="rounded-3xl bg-dark-card border border-white/10 p-8 sm:p-10 card-glow flex flex-col justify-between">
-        <div class="space-y-4">
-          <div class="w-12 h-12 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-          </div>
-          <span class="text-xs font-mono text-green-400 tracking-wider uppercase font-semibold">AD-FREE ARCHITECTURE</span>
-          <h3 class="text-2xl font-bold text-white tracking-tight">Zero Ads + SponsorBlock</h3>
-          <p class="text-gray-400 leading-relaxed text-sm">
-            Enjoy non-stop listening with no audio interruptions, commercial breaks, or promotional podcasts. Integrated SponsorBlock skips in-video host plugs automatically.
-          </p>
-        </div>
-        <div class="mt-8 pt-6 border-t border-white/5 text-xs font-mono text-green-400 flex items-center gap-2">
-          <span>✓ Clean Audio Streams</span>
-        </div>
-      </div>
-
-      <!-- Card 3: Studio 6-Band Hardware Graph Equalizer -->
-      <div class="rounded-3xl bg-dark-card border border-white/10 p-8 sm:p-10 card-glow flex flex-col justify-between">
-        <div class="space-y-4">
-          <div class="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
-          </div>
-          <span class="text-xs font-mono text-purple-400 tracking-wider uppercase font-semibold">STUDIO ACOUSTICS</span>
-          <h3 class="text-2xl font-bold text-white tracking-tight">6-Band Hardware EQ</h3>
-          <p class="text-gray-400 leading-relaxed text-sm">
-            Interactive 6-band graphic equalizer with touch-draggable Bezier splines, 25 studio presets across Bass &amp; Beats, Vocal &amp; Clarity, and Acoustic &amp; Mood, and zero DSP latency.
-          </p>
-        </div>
-        <div class="mt-8 pt-6 border-t border-white/5 text-xs font-mono text-purple-400">
-          60Hz • 150Hz • 400Hz • 1kHz • 2.4kHz • 15kHz
-        </div>
-      </div>
-
-      <!-- Card 4: Curated Genre Deep Explorer -->
-      <div class="rounded-3xl bg-dark-card border border-white/10 p-8 sm:p-10 card-glow flex flex-col justify-between">
-        <div class="space-y-4">
-          <div class="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          </div>
-          <span class="text-xs font-mono text-blue-400 tracking-wider uppercase font-semibold">CURATED DISCOVERY</span>
-          <h3 class="text-2xl font-bold text-white tracking-tight">Curated Genre Explorer</h3>
-          <p class="text-gray-400 leading-relaxed text-sm">
-            Real, high-precision song tracks for Classical, Rock, Pop, Hip-Hop, Bollywood, Dance, and more. Powered by iTunes Search API with seamless YouTube stream extraction and in-memory caching.
-          </p>
-        </div>
-        <div class="mt-8 pt-6 border-t border-white/5 text-xs font-mono text-blue-400">
-          iTunes Search API + YouTube Fallback
-        </div>
-      </div>
-
-      <!-- Card 5: Public Storage Downloads (Sine-Music) -->
-      <div class="rounded-3xl bg-dark-card border border-white/10 p-8 sm:p-10 card-glow flex flex-col justify-between">
-        <div class="space-y-4">
-          <div class="w-12 h-12 rounded-2xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-          </div>
-          <span class="text-xs font-mono text-pink-400 tracking-wider uppercase font-semibold">PUBLIC VAULT</span>
-          <h3 class="text-2xl font-bold text-white tracking-tight">Direct /Sine-Music Storage</h3>
-          <p class="text-gray-400 leading-relaxed text-sm">
-            No weird encrypted formats or inaccessible hidden folders. Sine saves downloaded M4A and MP4 files directly to <code class="text-pink-400 bg-white/5 px-1 py-0.5 rounded font-mono text-xs">/storage/emulated/0/Sine-Music</code> right alongside DCIM.
-          </p>
-        </div>
-        <div class="mt-8 pt-6 border-t border-white/5 text-xs font-mono text-pink-400">
-          Fully Offline Capable
-        </div>
-      </div>
-
-      <!-- Card 6: Centered Synced Lyrics (Span 2) -->
-      <div class="md:col-span-2 rounded-3xl bg-dark-card border border-white/10 p-8 sm:p-10 card-glow flex flex-col justify-between">
-        <div class="space-y-4">
-          <div class="w-12 h-12 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
-          </div>
-          <span class="text-xs font-mono text-yellow-400 tracking-wider uppercase font-semibold">LYRICS ENGINE</span>
-          <h3 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Centered Real-Time Karaoke Lyrics</h3>
-          <p class="text-gray-400 leading-relaxed text-sm sm:text-base max-w-xl">
-            Live scrolling lyrics that automatically center on the exact singing line. Integrated with smart title and artist normalization to fetch lyrics even for unofficial re-uploads and lyric video versions.
-          </p>
-        </div>
-        <div class="mt-8 pt-6 border-t border-white/5 flex flex-wrap items-center gap-6 text-xs font-mono text-gray-400">
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-yellow-400"></span> LRCLib Precision Synced</div>
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-brand-cyan"></span> Tap-to-Seek Synchronization</div>
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-400"></span> Offline Cached Verses</div>
-        </div>
-      </div>
-
-      <!-- Card 7: 100% Private, Zero Tracking -->
-      <div class="rounded-3xl bg-dark-card border border-white/10 p-8 sm:p-10 card-glow flex flex-col justify-between">
-        <div class="space-y-4">
-          <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-          </div>
-          <span class="text-xs font-mono text-cyan-400 tracking-wider uppercase font-semibold">PRIVACY FIRST</span>
-          <h3 class="text-2xl font-bold text-white tracking-tight">Zero Telemetry</h3>
-          <p class="text-gray-400 leading-relaxed text-sm">
-            No accounts required. No listening habit trackers, fingerprinting, or marketing analytics. Your playlists and history remain entirely on your local device.
-          </p>
-        </div>
-        <div class="mt-8 pt-6 border-t border-white/5 text-xs font-mono text-cyan-400">
-          GPL-3.0 Open Source
-        </div>
-      </div>
-
-      <!-- Card 8: Dynamic Theming & Custom Color Studio (Span 2) -->
-      <div class="md:col-span-2 rounded-3xl bg-dark-card border border-white/10 p-8 sm:p-10 card-glow flex flex-col justify-between">
-        <div class="space-y-4">
-          <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4 4 4 0 014-4h1a4 4 0 014 4 4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
-          </div>
-          <span class="text-xs font-mono text-emerald-400 tracking-wider uppercase font-semibold">THEMING &amp; PERSONALIZATION</span>
-          <h3 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Dynamic Themes &amp; Custom Color Studio</h3>
-          <p class="text-gray-400 leading-relaxed text-sm sm:text-base max-w-xl">
-            Choose from 8 hand-crafted color presets (Electric Blue, Emerald Green, Sunset Orange, Crimson Red, Electric Yellow, Neon Purple, Monochromatic) or open the Custom Color Studio with precision RGB sliders and hex input for real-time app-wide accent repainting.
-          </p>
-        </div>
-        <div class="mt-8 pt-6 border-t border-white/5 flex flex-wrap items-center gap-6 text-xs font-mono text-gray-400">
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> 8 Dynamic Presets</div>
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-orange-400"></span> Precision RGB Sliders</div>
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-purple-400"></span> Reactive Theme Repaint</div>
-        </div>
-      </div>
-
-      <!-- Card 9: Lossless Pitch & Speed + Home Widget -->
-      <div class="rounded-3xl bg-dark-card border border-white/10 p-8 sm:p-10 card-glow flex flex-col justify-between">
-        <div class="space-y-4">
-          <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <span class="text-xs font-mono text-amber-400 tracking-wider uppercase font-semibold">ACOUSTIC INTEGRITY</span>
-          <h3 class="text-2xl font-bold text-white tracking-tight">Lossless Pitch &amp; Speed</h3>
-          <p class="text-gray-400 leading-relaxed text-sm">
-            Dynamic -2.5 dB headroom limiter absorbs Sonic SOLA constructive interference spikes, preventing digital clipping or audio scratchiness during tempo shifts. Plus, instant-hydration Android home screen widget with direct transport controls.
-          </p>
-        </div>
-        <div class="mt-8 pt-6 border-t border-white/5 text-xs font-mono text-amber-400">
-          Zero-Clipping Headroom Guard
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ========================================================================= -->
-  <!-- 5. HARDWARE DSP EQUALIZER DEEP DIVE                                       -->
-  <!-- ========================================================================= -->
-  <section id="dsp-engine" class="py-24 bg-dark-surface/40 border-t border-b border-white/5 relative">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        
-        <!-- Left: Audio Engineering Story (Col 5) -->
-        <div class="lg:col-span-5 space-y-6">
-          <span class="text-xs font-mono uppercase tracking-widest text-brand-cyan font-semibold">ACOUSTIC PURITY</span>
-          <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Studio-Calibrated Hardware DSP Equalization
-          </h2>
-          <p class="text-gray-400 text-sm sm:text-base leading-relaxed">
-            Most streaming players simulate equalizers through inefficient CPU software buffers that introduce clipping distortion and drain battery. 
-          </p>
-          <p class="text-gray-400 text-sm sm:text-base leading-relaxed">
-            Sine taps directly into Android's low-level <code class="text-brand-cyan font-mono text-xs bg-white/5 px-1.5 py-0.5 rounded">MediaCodec</code> hardware equalizer pipeline, delivering zero-latency frequency adjustments without digital clipping.
-          </p>
-
-          <div class="space-y-3 pt-2">
-            <div class="flex items-start gap-3">
-              <div class="w-6 h-6 rounded-full bg-brand-cyan/10 text-brand-cyan flex items-center justify-center text-xs mt-0.5">✓</div>
-              <div>
-                <h4 class="text-sm font-bold text-white">5-Band Studio Parametric Curve</h4>
-                <p class="text-xs text-gray-400">Fine-tune 60 Hz Sub-Bass up to 14 kHz High Air with ±12 dB headroom.</p>
-              </div>
-            </div>
-            <div class="flex items-start gap-3">
-              <div class="w-6 h-6 rounded-full bg-brand-cyan/10 text-brand-cyan flex items-center justify-center text-xs mt-0.5">✓</div>
-              <div>
-                <h4 class="text-sm font-bold text-white">Dedicated Isolation Modes</h4>
-                <p class="text-xs text-gray-400">Acapella mode isolates voice; Karaoke mode attenuates center-channel vocals.</p>
-              </div>
-            </div>
-            <div class="flex items-start gap-3">
-              <div class="w-6 h-6 rounded-full bg-brand-cyan/10 text-brand-cyan flex items-center justify-center text-xs mt-0.5">✓</div>
-              <div>
-                <h4 class="text-sm font-bold text-white">Zero Gain Distortion</h4>
-                <p class="text-xs text-gray-400">Auto-gain normalization protects your headphones and smartphone speakers.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: Interactive Frequency Curve Widget (Col 7) -->
-        <div class="lg:col-span-7 rounded-3xl bg-dark-card border border-white/10 p-6 sm:p-8 card-glow">
-          
-          <div class="flex items-center justify-between pb-4 border-b border-white/5 mb-6">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-brand-cyan animate-pulse"></span>
-              <span class="text-xs font-mono font-bold text-white uppercase tracking-wider">HARDWARE EQUALIZER SPLINE</span>
-            </div>
-            <button id="resetEqDemoBtn" class="text-xs font-mono text-brand-cyan hover:underline">RESET TO FLAT</button>
-          </div>
-
-          <!-- SVG Spline Visualizer -->
-          <div class="w-full h-48 bg-dark-base rounded-2xl border border-white/5 p-3 relative flex flex-col justify-between overflow-hidden">
-            <!-- Grid lines & dB labels -->
-            <div class="absolute inset-0 flex flex-col justify-between p-3 pointer-events-none text-[9px] font-mono text-gray-400/40">
-              <div class="flex justify-between border-b border-white/5 pb-0.5"><span>+12 dB</span><span>AIR PEAK</span></div>
-              <div class="flex justify-between border-b border-white/5 pb-0.5"><span>+6 dB</span><span>HEADROOM</span></div>
-              <div class="flex justify-between border-b border-brand-cyan/20 pb-0.5 text-brand-cyan"><span>0 dB</span><span>UNITY LINE</span></div>
-              <div class="flex justify-between border-b border-white/5 pb-0.5"><span>-6 dB</span><span>CUT</span></div>
-              <div class="flex justify-between"><span>-12 dB</span><span>FLOOR</span></div>
-            </div>
-
-            <!-- SVG Frequency Curve -->
-            <svg id="eqSvg" class="w-full h-full relative z-10" fill="none" viewBox="0 0 500 160" preserveAspectRatio="none">
-              <path id="eqSvgArea" d="M 0,80 Q 60,65 125,50 T 250,80 T 375,45 T 500,70 L 500,160 L 0,160 Z" fill="rgba(0, 210, 255, 0.08)"></path>
-              <path id="eqSvgPath" d="M 0,80 Q 60,65 125,50 T 250,80 T 375,45 T 500,70" stroke="#00D2FF" stroke-width="2.5" stroke-linecap="round"></path>
-              <!-- Draggable Node Dots -->
-              <circle cx="60" cy="65" r="5" fill="#00D2FF" stroke="#05070E" stroke-width="2" class="cursor-pointer hover:scale-125 transition-transform"></circle>
-              <circle cx="125" cy="50" r="5" fill="#00D2FF" stroke="#05070E" stroke-width="2" class="cursor-pointer hover:scale-125 transition-transform"></circle>
-              <circle cx="250" cy="80" r="5" fill="#00D2FF" stroke="#05070E" stroke-width="2" class="cursor-pointer hover:scale-125 transition-transform"></circle>
-              <circle cx="375" cy="45" r="5" fill="#00D2FF" stroke="#05070E" stroke-width="2" class="cursor-pointer hover:scale-125 transition-transform"></circle>
-              <circle cx="460" cy="70" r="5" fill="#00D2FF" stroke="#05070E" stroke-width="2" class="cursor-pointer hover:scale-125 transition-transform"></circle>
-            </svg>
-
-            <!-- Bottom Hz Labels -->
-            <div class="flex justify-between text-[10px] font-mono text-gray-400 pt-1 border-t border-white/5 relative z-10">
-              <span>60 Hz</span>
-              <span>230 Hz</span>
-              <span>910 Hz</span>
-              <span>3.6 kHz</span>
-              <span>14 kHz</span>
-            </div>
-          </div>
-
-          <!-- Interactive EQ Preset Chips -->
-          <div class="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-            <button class="eq-preset-card p-2.5 rounded-xl bg-dark-base border border-brand-cyan/40 text-left transition-all group" data-preset="bass">
-              <span class="text-[9px] font-mono text-brand-cyan uppercase block">BASS &amp; BEATS</span>
-              <span class="text-xs font-bold text-white group-hover:text-brand-cyan">Bass Boost</span>
-            </button>
-            <button class="eq-preset-card p-2.5 rounded-xl bg-dark-base border border-white/5 hover:border-brand-cyan/40 text-left transition-all group" data-preset="hiphop">
-              <span class="text-[9px] font-mono text-purple-400 uppercase block">BASS &amp; BEATS</span>
-              <span class="text-xs font-bold text-white group-hover:text-brand-cyan">Hip-Hop</span>
-            </button>
-            <button class="eq-preset-card p-2.5 rounded-xl bg-dark-base border border-white/5 hover:border-brand-cyan/40 text-left transition-all group" data-preset="vocal">
-              <span class="text-[9px] font-mono text-blue-400 uppercase block">VOCAL &amp; CLARITY</span>
-              <span class="text-xs font-bold text-white group-hover:text-brand-cyan">Vocal Booster</span>
-            </button>
-            <button class="eq-preset-card p-2.5 rounded-xl bg-dark-base border border-white/5 hover:border-brand-cyan/40 text-left transition-all group" data-preset="acoustic">
-              <span class="text-[9px] font-mono text-green-400 uppercase block">ACOUSTIC &amp; MOOD</span>
-              <span class="text-xs font-bold text-white group-hover:text-brand-cyan">Acoustic</span>
-            </button>
-            <button class="eq-preset-card p-2.5 rounded-xl bg-dark-base border border-white/5 hover:border-brand-cyan/40 text-left transition-all group" data-preset="electronic">
-              <span class="text-[9px] font-mono text-amber-400 uppercase block">BASS &amp; BEATS</span>
-              <span class="text-xs font-bold text-white group-hover:text-brand-cyan">Electronic</span>
-            </button>
-            <button class="eq-preset-card p-2.5 rounded-xl bg-dark-base border border-white/5 hover:border-brand-cyan/40 text-left transition-all group" data-preset="flat">
-              <span class="text-[9px] font-mono text-gray-400 uppercase block">STUDIO</span>
-              <span class="text-xs font-bold text-white group-hover:text-brand-cyan">Flat Unity</span>
-            </button>
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ========================================================================= -->
-  <!-- 6. BENCHMARK & COMPARISON TABLE                                          -->
-  <!-- ========================================================================= -->
-  <section id="benchmarks" class="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    
-    <div class="text-center max-w-3xl mx-auto mb-16">
-      <span class="text-xs font-mono uppercase tracking-widest text-brand-cyan font-semibold">OBJECTIVE TESTING</span>
-      <h2 class="text-3xl sm:text-5xl font-extrabold text-white mt-2">Sine vs. The Giants</h2>
-      <p class="text-gray-400 mt-4 text-base sm:text-lg">
-        Benchmarks verified across real Android 9 and Android 14 test devices running native hardware decoding.
-      </p>
-    </div>
-
-    <!-- Responsive Comparison Table -->
-    <div class="rounded-3xl bg-dark-card border border-white/10 overflow-hidden shadow-2xl card-glow">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-[700px]">
-          <thead>
-            <tr class="border-b border-white/10 bg-dark-base/70 text-xs font-mono text-gray-400 uppercase">
-              <th class="p-5 font-semibold">Core Capability</th>
-              <th class="p-5 font-bold text-brand-cyan bg-brand-cyan/5 border-l border-r border-brand-cyan/20">
-                ⚡ Sine v1.4.2
-              </th>
-              <th class="p-5 font-semibold">Spotify Free</th>
-              <th class="p-5 font-semibold">YouTube Music</th>
-              <th class="p-5 font-semibold">Team NewPipe</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-white/5 text-sm">
-            
-            <tr class="hover:bg-white/[0.02] transition-colors">
-              <td class="p-5 font-medium text-white">Monthly Subscription</td>
-              <td class="p-5 font-bold text-brand-cyan bg-brand-cyan/5 border-l border-r border-brand-cyan/20 font-mono">
-                $0.00 (Free Forever)
-              </td>
-              <td class="p-5 text-gray-400 font-mono">$11.99 / mo</td>
-              <td class="p-5 text-gray-400 font-mono">$13.99 / mo</td>
-              <td class="p-5 text-gray-300 font-mono">$0.00 (Free)</td>
-            </tr>
-
-            <tr class="hover:bg-white/[0.02] transition-colors">
-              <td class="p-5 font-medium text-white">Commercial Audio Ads</td>
-              <td class="p-5 font-bold text-green-400 bg-brand-cyan/5 border-l border-r border-brand-cyan/20 font-mono">
-                🚫 Zero Ads Ever
-              </td>
-              <td class="p-5 text-red-400">3-4 Unskippable / 15m</td>
-              <td class="p-5 text-red-400">Frequent Video Ads</td>
-              <td class="p-5 text-green-400">🚫 Zero Ads</td>
-            </tr>
-
-            <tr class="hover:bg-white/[0.02] transition-colors">
-              <td class="p-5 font-medium text-white">Cold-Start Startup Time</td>
-              <td class="p-5 font-bold text-brand-cyan bg-brand-cyan/5 border-l border-r border-brand-cyan/20 font-mono">
-                ⚡ 1.2 Seconds
-              </td>
-              <td class="p-5 text-gray-400 font-mono">6.5 - 9.0s</td>
-              <td class="p-5 text-gray-400 font-mono">5.0 - 7.5s</td>
-              <td class="p-5 text-gray-300 font-mono">1.8 - 3.2s</td>
-            </tr>
-
-            <tr class="hover:bg-white/[0.02] transition-colors">
-              <td class="p-5 font-medium text-white">Hardware DSP Equalizer</td>
-              <td class="p-5 font-bold text-brand-cyan bg-brand-cyan/5 border-l border-r border-brand-cyan/20">
-                Multi-Band + Vocal/Inst Isolation
-              </td>
-              <td class="p-5 text-gray-400">Basic 5-Band Software</td>
-              <td class="p-5 text-gray-400">System Equalizer</td>
-              <td class="p-5 text-gray-400">None</td>
-            </tr>
-
-            <tr class="hover:bg-white/[0.02] transition-colors">
-              <td class="p-5 font-medium text-white">SponsorBlock Integration</td>
-              <td class="p-5 font-bold text-brand-cyan bg-brand-cyan/5 border-l border-r border-brand-cyan/20">
-                Auto-Skips Promos &amp; Outros
-              </td>
-              <td class="p-5 text-gray-400">None</td>
-              <td class="p-5 text-gray-400">None</td>
-              <td class="p-5 text-green-400">Optional</td>
-            </tr>
-
-            <tr class="hover:bg-white/[0.02] transition-colors">
-              <td class="p-5 font-medium text-white">Offline Downloads Location</td>
-              <td class="p-5 font-bold text-brand-cyan bg-brand-cyan/5 border-l border-r border-brand-cyan/20 font-mono text-xs">
-                /Sine-Music (Public Root)
-              </td>
-              <td class="p-5 text-gray-400">DRM Encrypted (Paywalled)</td>
-              <td class="p-5 text-gray-400">DRM Encrypted (Paywalled)</td>
-              <td class="p-5 text-gray-300 font-mono text-xs">Standard Downloads</td>
-            </tr>
-
-            <tr class="hover:bg-white/[0.02] transition-colors">
-              <td class="p-5 font-medium text-white">Privacy &amp; Telemetry</td>
-              <td class="p-5 font-bold text-green-400 bg-brand-cyan/5 border-l border-r border-brand-cyan/20">
-                100% Private (No Account)
-              </td>
-              <td class="p-5 text-red-400">Aggressive Tracking</td>
-              <td class="p-5 text-red-400">Full Google Profile Tracking</td>
-              <td class="p-5 text-green-400">Private (No Account)</td>
-            </tr>
-
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </section>
-
-  <!-- ========================================================================= -->
-  <!-- 7. CREATOR & UPI DONATION SECTION                                        -->
-  <!-- ========================================================================= -->
-  <section id="donate" class="py-24 bg-dark-surface/50 border-t border-b border-white/5 relative">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-      
-      <div class="rounded-3xl bg-gradient-to-b from-dark-card to-dark-base border border-pink-500/20 p-8 sm:p-12 shadow-2xl relative overflow-hidden">
-        
-        <!-- Ambient Pink/Cyan Glow -->
-        <div class="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-pink-500/10 blur-3xl pointer-events-none"></div>
-        <div class="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-brand-cyan/10 blur-3xl pointer-events-none"></div>
-
-        <div class="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-          
-          <!-- Developer Info & Message (Col 7) -->
-          <div class="md:col-span-7 space-y-5">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-400 text-xs font-mono">
-              <span>💖 SUPPORT THE INDIE DEVELOPER</span>
-            </div>
-            
-            <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Crafted with Passion by Muhammad Taezeem Tariq
-            </h2>
-            
-            <p class="text-gray-300 text-sm sm:text-base leading-relaxed">
-              Sine is built and maintained entirely for free as an open-source project. No venture capital, no subscriptions, no paywalls. If Sine saves you from monthly Spotify fees and annoying ads, consider dropping a small tip!
+    <!-- ===================================================================== -->
+    <!-- 7. INSTALLATION & INDEPENDENT SUPPORT                                 -->
+    <!-- ===================================================================== -->
+    <section id="install" class="section">
+      <div class="container">
+        <div class="install-grid reveal">
+          <div class="panel">
+            <div class="section-eyebrow">Install on Android</div>
+            <h3 class="section-title" style="font-size: 1.55rem;">Ready in under 30 seconds.</h3>
+            <p class="section-lead" style="margin-top: 8px; font-size: 0.92rem;">
+              Sine is distributed directly as a signed universal Android APK from GitHub Releases — no Play Store account required.
             </p>
 
-            <!-- UPI Quick-Action Card -->
-            <div class="p-4 rounded-2xl bg-dark-base border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <span class="text-[10px] font-mono text-gray-400 block uppercase">DIRECT UPI ID</span>
-                <span class="text-base font-mono font-bold text-white tracking-wider">7006616470@fam</span>
-                <span class="text-xs text-gray-400 block mt-0.5">Muhammad Taezeem Tariq</span>
+            <div class="steps-list">
+              <div class="step-row">
+                <span class="step-num">1</span>
+                <div>
+                  <strong>Download the signed release APK</strong>
+                  <p>Grab <code>Sine-v1.4.2.apk</code> (81.18 MB) directly from the latest verified GitHub Release.</p>
+                </div>
               </div>
-              <button id="copyUpiWebBtn" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/30 text-xs font-mono font-semibold transition-all flex items-center justify-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-                <span id="copyUpiWebText">Copy UPI ID</span>
-              </button>
-            </div>
-
-            <!-- Pre-set Donation Amount Chips -->
-            <div class="flex flex-wrap items-center gap-2 pt-1">
-              <span class="text-xs font-mono text-gray-400">Quick App Launch:</span>
-              <a href="upi://pay?pa=7006616470@fam&pn=Muhammad%20Taezeem%20Tariq&am=50&cu=INR" class="px-3 py-1 rounded-lg bg-white/5 hover:bg-pink-500/20 text-xs font-mono text-pink-300 border border-white/10 transition-colors">₹50</a>
-              <a href="upi://pay?pa=7006616470@fam&pn=Muhammad%20Taezeem%20Tariq&am=100&cu=INR" class="px-3 py-1 rounded-lg bg-white/5 hover:bg-pink-500/20 text-xs font-mono text-pink-300 border border-white/10 transition-colors">₹100</a>
-              <a href="upi://pay?pa=7006616470@fam&pn=Muhammad%20Taezeem%20Tariq&am=250&cu=INR" class="px-3 py-1 rounded-lg bg-white/5 hover:bg-pink-500/20 text-xs font-mono text-pink-300 border border-white/10 transition-colors">₹250</a>
-              <a href="upi://pay?pa=7006616470@fam&pn=Muhammad%20Taezeem%20Tariq&am=500&cu=INR" class="px-3 py-1 rounded-lg bg-white/5 hover:bg-pink-500/20 text-xs font-mono text-pink-300 border border-white/10 transition-colors">₹500</a>
-            </div>
-
-          </div>
-
-          <!-- Dynamic QR Code Card (Col 5) -->
-          <div class="md:col-span-5 flex flex-col items-center justify-center p-6 rounded-2xl bg-dark-base border border-white/10 text-center">
-            <div class="w-48 h-48 rounded-xl bg-white p-3 shadow-xl flex items-center justify-center">
-              <!-- High-Resolution UPI QR Code SVG -->
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi%3A%2F%2Fpay%3Fpa%3D7006616470%40fam%26pn%3DMuhammad%2520Taezeem%2520Tariq%26cu%3DINR" 
-                   alt="UPI Donation QR Code" 
-                   class="w-full h-full object-contain" />
-            </div>
-            <span class="text-xs font-mono text-gray-300 font-semibold mt-3">Scan with GPay, PhonePe, Paytm</span>
-            <span class="text-[11px] text-gray-400 mt-0.5">Supports all Indian UPI Apps</span>
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ========================================================================= -->
-  <!-- 8. DOWNLOAD & DEPLOYMENT SECTION                                          -->
-  <!-- ========================================================================= -->
-  <section id="download" class="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center max-w-3xl mx-auto mb-14">
-      <span class="text-xs font-mono uppercase tracking-widest text-brand-cyan font-semibold">GET STARTED IN SECONDS</span>
-      <h2 class="text-3xl sm:text-5xl font-extrabold text-white mt-2">Ready to Elevate Your Listening?</h2>
-      <p class="text-gray-400 mt-4 text-base sm:text-lg">
-        Download Sine directly to your Android device or deploy via ADB command stream.
-      </p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-      
-      <!-- Option 1: Direct APK Download -->
-      <div class="rounded-3xl bg-dark-card border border-white/10 p-8 card-glow flex flex-col justify-between">
-        <div class="space-y-4">
-          <div class="w-12 h-12 rounded-2xl bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center text-brand-cyan">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-          </div>
-          <h3 class="text-xl font-bold text-white">Direct Android Installation</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            Download the official standalone APK directly from GitHub Releases. Works smoothly on Android 8.0 Oreo through Android 15.
-          </p>
-          <ul class="text-xs text-gray-400 space-y-2 pt-2">
-            <li class="flex items-center gap-2"><span class="text-brand-cyan">✓</span> Zero root permissions required</li>
-            <li class="flex items-center gap-2"><span class="text-brand-cyan">✓</span> Automatic offline vault integration</li>
-            <li class="flex items-center gap-2"><span class="text-brand-cyan">✓</span> Tested clean against virus &amp; malware</li>
-          </ul>
-        </div>
-
-        <div class="mt-8 pt-6 border-t border-white/5">
-          <a href="https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.2.apk"
-             class="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-cyan to-brand-blue text-dark-base font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-brand-cyan/25 hover:shadow-brand-cyan/40 transition-all">
-            <svg class="w-4 h-4 text-dark-base" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            <span>Download Sine-v1.4.2.apk</span>
-          </a>
-        </div>
-      </div>
-
-      <!-- Option 2: ADB Command Installation -->
-      <div class="rounded-3xl bg-dark-card border border-white/10 p-8 card-glow flex flex-col justify-between">
-        <div class="space-y-4">
-          <div class="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          </div>
-          <h3 class="text-xl font-bold text-white">ADB Command Deployment</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            Power user or developer? Sideload the release directly to your connected device in one terminal command.
-          </p>
-          
-          <div class="rounded-xl bg-dark-base p-3.5 border border-white/5 font-mono text-xs text-gray-300 relative group">
-            <code>adb install -r Sine-v1.4.2.apk</code>
-          </div>
-        </div>
-
-        <div class="mt-8 pt-6 border-t border-white/5 flex gap-3">
-          <button id="copyAdbBtn" class="flex-1 py-3.5 rounded-xl bg-dark-base hover:bg-dark-elevated border border-white/10 text-white font-mono text-xs font-semibold transition-all flex items-center justify-center gap-2">
-            <svg class="w-4 h-4 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-            <span id="copyAdbText">Copy ADB Command</span>
-          </button>
-          
-          <a href="https://github.com/taezeem14/Sine" target="_blank" rel="noopener noreferrer"
-             class="px-4 py-3.5 rounded-xl bg-dark-base hover:bg-dark-elevated border border-white/10 text-gray-300 hover:text-white transition-all flex items-center justify-center">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
-          </a>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ========================================================================= -->
-  <!-- 9. FREQUENTLY ASKED QUESTIONS (FAQ)                                       -->
-  <!-- ========================================================================= -->
-  <section class="py-20 bg-dark-surface/30 border-t border-white/5">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-      
-      <div class="text-center mb-12">
-        <span class="text-xs font-mono uppercase tracking-widest text-brand-cyan font-semibold">GOT QUESTIONS?</span>
-        <h2 class="text-3xl font-extrabold text-white mt-2">Frequently Asked Questions</h2>
-      </div>
-
-      <div class="space-y-4">
-        
-        <details class="group p-5 rounded-2xl bg-dark-card border border-white/5 [&_summary::-webkit-details-marker]:hidden">
-          <summary class="flex items-center justify-between cursor-pointer font-bold text-white text-base">
-            <span>Is Sine really 100% free with no ads?</span>
-            <span class="transition-transform group-open:rotate-180 text-brand-cyan">▾</span>
-          </summary>
-          <p class="mt-3 text-sm text-gray-400 leading-relaxed">
-            Yes, absolutely. Sine is an open-source project released under the GPL-3.0 license. There are no subscriptions, no locked tiers, no pop-ups, and no banner ads. SponsorBlock is built-in to skip sponsored intros and podcast promos.
-          </p>
-        </details>
-
-        <details class="group p-5 rounded-2xl bg-dark-card border border-white/5 [&_summary::-webkit-details-marker]:hidden">
-          <summary class="flex items-center justify-between cursor-pointer font-bold text-white text-base">
-            <span>How does Sine achieve 1.2s cold start without buffering?</span>
-            <span class="transition-transform group-open:rotate-180 text-brand-cyan">▾</span>
-          </summary>
-          <p class="mt-3 text-sm text-gray-400 leading-relaxed">
-            Standard scrapers wait for YouTube's full DASH video/audio manifest and decipher encrypted cipher signatures. Sine prioritizes standalone AAC audio (<code class="text-brand-cyan font-mono text-xs">itag 140</code>) and mobile client manifests, connecting via persistent HTTP/2 pools straight to Android's hardware audio decoder.
-          </p>
-        </details>
-
-        <details class="group p-5 rounded-2xl bg-dark-card border border-white/5 [&_summary::-webkit-details-marker]:hidden">
-          <summary class="flex items-center justify-between cursor-pointer font-bold text-white text-base">
-            <span>Where are downloaded songs stored on my phone?</span>
-            <span class="transition-transform group-open:rotate-180 text-brand-cyan">▾</span>
-          </summary>
-          <p class="mt-3 text-sm text-gray-400 leading-relaxed">
-            In v1.4.2, downloaded tracks, videos, and full library backups are saved directly to <code class="text-brand-cyan font-mono text-xs">/storage/emulated/0/Sine-Music</code> in your device's root internal storage, right next to your <code class="font-mono text-xs">DCIM</code> and <code class="font-mono text-xs">Download</code> folders. Your library backups persist safely even across app uninstalls.
-          </p>
-        </details>
-
-        <details class="group p-5 rounded-2xl bg-dark-card border border-white/5 [&_summary::-webkit-details-marker]:hidden">
-          <summary class="flex items-center justify-between cursor-pointer font-bold text-white text-base">
-            <span>How do the Vocals Only and Instruments Only filters work?</span>
-            <span class="transition-transform group-open:rotate-180 text-brand-cyan">▾</span>
-          </summary>
-          <p class="mt-3 text-sm text-gray-400 leading-relaxed">
-            The Sound Shaper applies hardware DSP notch and shelf equalization to the audio output in real time. <strong>Vocals Only</strong> boosts the 1 kHz – 4 kHz vocal frequency bands while attenuating low bass and high cymbals. <strong>Instruments Only</strong> suppresses mid-band voice harmonics to create a karaoke backing track.
-          </p>
-        </details>
-
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ========================================================================= -->
-  <!-- 10. MODERN FOOTER                                                         -->
-  <!-- ========================================================================= -->
-  <footer class="border-t border-white/10 bg-dark-base py-16 text-gray-400">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-12">
-        <!-- Brand Info -->
-        <div class="space-y-3">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-cyan to-brand-deep flex items-center justify-center p-0.5">
-              <div class="w-full h-full bg-dark-base rounded-[10px] flex items-center justify-center">
-                <svg class="w-4 h-4 text-brand-cyan" viewBox="0 0 64 64" fill="none" stroke="currentColor">
-                  <path d="M10 32 C 18 12, 26 12, 32 32 C 38 52, 46 52, 54 32" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
+              <div class="step-row">
+                <span class="step-num">2</span>
+                <div>
+                  <strong>Install on Android 8.0 or newer</strong>
+                  <p>Open the APK in your file manager and allow "Install unknown apps" for your browser if prompted.</p>
+                </div>
+              </div>
+              <div class="step-row">
+                <span class="step-num">3</span>
+                <div>
+                  <strong>Or deploy directly via ADB</strong>
+                  <p>Updating an existing Sine install preserves your playlists, favorites, downloads, and EQ settings.</p>
+                </div>
               </div>
             </div>
-            <span class="text-xl font-bold tracking-tight text-white font-sans">SINE</span>
+
+            <div class="code-bar">
+              <div><span class="code-prompt">$</span><code>adb install -r Sine-v1.4.2.apk</code></div>
+              <button type="button" class="btn btn-secondary btn-sm" data-copy="adb install -r Sine-v1.4.2.apk" data-copy-label="ADB command copied">Copy</button>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px;">
+              <a href="https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.2.apk" class="btn btn-primary">
+                Download Sine-v1.4.2.apk
+              </a>
+              <a href="https://github.com/taezeem14/Sine/issues" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
+                Report an Issue
+              </a>
+            </div>
           </div>
-          <p class="text-xs text-gray-400 max-w-sm">
-            High-fidelity YouTube music extraction client for Android. Built with Flutter, ExoPlayer, and NewPipe architecture.
-          </p>
+
+          <div id="support" class="panel support-card">
+            <div>
+              <div class="section-eyebrow">Independent Development</div>
+              <h3 class="section-title" style="font-size: 1.55rem;">Free forever. Built independently.</h3>
+              <p class="section-lead" style="margin-top: 10px; font-size: 0.92rem;">
+                Sine is architected and maintained independently by <strong style="color: var(--ink-primary);">Muhammad Taezeem Tariq</strong> (<a href="https://github.com/taezeem14" target="_blank" rel="noopener noreferrer" style="color: var(--accent-hi);">@taezeem14</a>) with zero ads, zero venture investors, and zero paywalls.
+              </p>
+              <p class="section-lead" style="margin-top: 10px; font-size: 0.9rem;">
+                If Sine has replaced a paid subscription for you, starring the repository or contributing via UPI helps keep builds and stream extractors maintained.
+              </p>
+            </div>
+
+            <div style="display: grid; gap: 12px;">
+              <div class="upi-box">
+                <div>
+                  <div class="upi-label">Direct UPI Support (India)</div>
+                  <div class="upi-id">7006616470@fam</div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" data-copy="7006616470@fam" data-copy-label="UPI ID copied: 7006616470@fam">Copy UPI</button>
+              </div>
+
+              <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <a href="upi://pay?pa=7006616470@fam&pn=Muhammad%20Taezeem%20Tariq&cu=INR&tn=Support%20Sine%20Music%20App" class="btn btn-accent btn-sm" style="flex: 1;">
+                  Open UPI App
+                </a>
+                <a href="https://github.com/taezeem14/Sine" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="flex: 1;">
+                  Star on GitHub
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- External Quick Links -->
-        <div class="flex flex-wrap items-center gap-6 text-xs font-mono">
-          <a href="https://github.com/taezeem14/Sine" target="_blank" rel="noopener noreferrer" class="hover:text-brand-cyan transition-colors">GitHub Repository</a>
-          <a href="https://github.com/taezeem14/Sine/releases" target="_blank" rel="noopener noreferrer" class="hover:text-brand-cyan transition-colors">Releases &amp; Changelogs</a>
-          <a href="https://github.com/AudileTeam/Audile" target="_blank" rel="noopener noreferrer" class="hover:text-brand-cyan transition-colors">Audile (GPL)</a>
-          <a href="https://github.com/better-lyrics/better-lyrics" target="_blank" rel="noopener noreferrer" class="hover:text-brand-cyan transition-colors">BetterLyrics (GPL)</a>
-          <a href="https://github.com/MetrolistGroup/Metrolist" target="_blank" rel="noopener noreferrer" class="hover:text-brand-cyan transition-colors">Metrolist (GPL)</a>
-          <a href="https://github.com/TeamNewPipe/NewPipe" target="_blank" rel="noopener noreferrer" class="hover:text-brand-cyan transition-colors">Team NewPipe</a>
-          <a href="https://github.com/taezeem14/Sine/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="hover:text-brand-cyan transition-colors">GNU GPL-3.0 License</a>
+        <!-- Open-Source GPL-3.0 Attribution Strip -->
+        <div class="attributions reveal">
+          <span>Open-source GPL-3.0 credits &amp; upstream ecosystems:</span>
+          <div class="attribution-links">
+            <a href="https://github.com/AudileTeam/Audile" target="_blank" rel="noopener noreferrer">Audile</a>
+            <a href="https://github.com/ZemerTeam/zemer-cipher" target="_blank" rel="noopener noreferrer">zemer-cipher</a>
+            <a href="https://github.com/boidushya/better-lyrics" target="_blank" rel="noopener noreferrer">BetterLyrics</a>
+            <a href="https://github.com/mostafaalagamy/Metrolist" target="_blank" rel="noopener noreferrer">Metrolist</a>
+            <a href="https://github.com/TeamNewPipe/NewPipe" target="_blank" rel="noopener noreferrer">NewPipe</a>
+          </div>
         </div>
       </div>
+    </section>
+  </main>
 
-      <div class="pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-mono text-gray-400">
-        <div>
-          Engineered by <span class="text-white font-semibold">Muhammad Taezeem Tariq</span> (<a href="https://github.com/taezeem14" target="_blank" class="text-brand-cyan hover:underline">@taezeem14</a>)
+  <!-- ======================================================================= -->
+  <!-- 8. ARCHITECTURAL FOOTER                                                 -->
+  <!-- ======================================================================= -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div>
+        <div class="brand">
+          <img src="assets/icon/sine_logo.png" alt="Sine logo" class="brand-icon" width="28" height="28" />
+          <span class="brand-name">Sine</span>
+          <span class="version-pill">v1.4.2 · Build 42</span>
         </div>
-        <div class="flex items-center gap-2">
-          <span class="w-1.5 h-1.5 rounded-full bg-brand-cyan"></span>
-          <span>Sine v1.4.2 Release Build</span>
-        </div>
+        <p class="footer-meta">
+          Crafted by Muhammad Taezeem Tariq (@taezeem14) · Released under the GNU General Public License v3.0.
+        </p>
       </div>
 
+      <div class="footer-links">
+        <a href="https://github.com/taezeem14/Sine" target="_blank" rel="noopener noreferrer">Source Code</a>
+        <a href="https://github.com/taezeem14/Sine/releases" target="_blank" rel="noopener noreferrer">Releases</a>
+        <a href="https://github.com/taezeem14/Sine/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">GPL-3.0 License</a>
+        <a href="https://github.com/taezeem14/Sine/issues" target="_blank" rel="noopener noreferrer">Issues</a>
+      </div>
     </div>
   </footer>
 
-  <!-- Toast Notification Notification -->
-  <div id="toast" class="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl bg-dark-card border border-brand-cyan/40 text-brand-cyan font-mono text-xs shadow-2xl backdrop-blur-xl translate-y-24 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-2">
-    <span>✓</span>
-    <span id="toastMsg">Copied to clipboard!</span>
-  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- ========================================================================= -->
-  <!-- JAVASCRIPT: INTERACTIVE PLAYER & AUDIO VISUALIZER ENGINE                 -->
-  <!-- ========================================================================= -->
-  <script>
-    // --- 1. Toast Notification Helper ---
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      const toastMsg = document.getElementById('toastMsg');
-      toastMsg.textContent = msg;
-      toast.classList.remove('translate-y-24', 'opacity-0');
-      toast.classList.add('translate-y-0', 'opacity-100');
-      setTimeout(() => {
-        toast.classList.add('translate-y-24', 'opacity-0');
-        toast.classList.remove('translate-y-0', 'opacity-100');
-      }, 2600);
-    }
-
-    // --- 2. Mobile Menu Toggle ---
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const mobileMenu = document.getElementById('mobileMenu');
-    if (mobileMenuBtn && mobileMenu) {
-      mobileMenuBtn.addEventListener('click', () => {
-        mobileMenu.classList.toggle('hidden');
-      });
-    }
-
-    // --- 3. Clipboard Actions ---
-    const copyUpiBtn = document.getElementById('copyUpiWebBtn');
-    if (copyUpiBtn) {
-      copyUpiBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText('7006616470@fam').then(() => {
-          showToast('Copied UPI ID: 7006616470@fam');
-        }).catch(() => {
-          showToast('UPI ID: 7006616470@fam');
-        });
-      });
-    }
-
-    const copyAdbBtn = document.getElementById('copyAdbBtn');
-    if (copyAdbBtn) {
-      copyAdbBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText('adb install -r Sine-v1.4.2.apk').then(() => {
-          showToast('Copied ADB install command!');
-        });
-      });
-    }
-
-    // --- 7. Interactive Equalizer Spline Curve Presets ---
-    const eqSvgPath = document.getElementById('eqSvgPath');
-    const eqSvgArea = document.getElementById('eqSvgArea');
-    const eqPresetCards = document.querySelectorAll('.eq-preset-card');
-    const resetEqDemoBtn = document.getElementById('resetEqDemoBtn');
-
-    const curves = {
-      flat: "M 0,80 Q 60,80 125,80 T 250,80 T 375,80 T 500,80",
-      bass: "M 0,35 Q 60,40 125,60 T 250,80 T 375,80 T 500,80",
-      hiphop: "M 0,40 Q 60,50 125,70 T 250,75 T 375,55 T 500,45",
-      vocal: "M 0,85 Q 60,85 125,75 T 250,50 T 375,38 T 500,50",
-      acoustic: "M 0,55 Q 60,65 125,75 T 250,70 T 375,55 T 500,45",
-      electronic: "M 0,40 Q 60,48 125,75 T 250,72 T 375,50 T 500,40"
-    };
-
-    function applyEqCurve(curveKey) {
-      const d = curves[curveKey] || curves.flat;
-      if (eqSvgPath) eqSvgPath.setAttribute('d', d);
-      if (eqSvgArea) eqSvgArea.setAttribute('d', `${d} L 500,160 L 0,160 Z`);
-    }
-
-    eqPresetCards.forEach(card => {
-      card.addEventListener('click', () => {
-        const preset = card.dataset.preset;
-        applyEqCurve(preset);
-        showToast(`Loaded DSP Curve: ${card.querySelector('span:last-child').textContent}`);
-      });
-    });
-
-    if (resetEqDemoBtn) {
-      resetEqDemoBtn.addEventListener('click', () => {
-        applyEqCurve('flat');
-        showToast('Equalizer reset to Flat (0 dB Unity)');
-      });
-    }
-  </script>
-
+  <script src="site/app.js" defer></script>
 </body>
 </html>
