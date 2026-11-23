@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:provider/provider.dart';
+import '../providers/player_provider.dart';
 import '../services/app_lock_service.dart';
 import '../theme/ember_theme.dart';
 
@@ -147,10 +149,16 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    bool isOled = false;
+    try {
+      isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
+    } catch (_) {}
+
     return PopScope(
       canPop: widget.mode != AppLockMode.unlock,
       child: Scaffold(
-        backgroundColor: EmberColors.obsidianBase,
+        backgroundColor: isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase,
         body: SafeArea(
           child: Column(
             children: [
@@ -162,11 +170,11 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                 height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: EmberColors.primaryBlue.withValues(alpha: 0.15),
-                  border: Border.all(color: EmberColors.primaryBlue.withValues(alpha: 0.4), width: 1.5),
+                  color: accent.withValues(alpha: 0.15),
+                  border: Border.all(color: accent.withValues(alpha: 0.4), width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: EmberColors.primaryBlue.withValues(alpha: 0.25),
+                      color: accent.withValues(alpha: 0.25),
                       blurRadius: 20,
                     ),
                   ],
@@ -174,7 +182,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                 child: Center(
                   child: FaIcon(
                     FontAwesomeIcons.lock,
-                    color: EmberColors.primaryBlue,
+                    color: accent,
                     size: 26,
                   ),
                 ),
@@ -226,17 +234,17 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                       height: 16,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isFilled ? EmberColors.primaryBlue : Colors.transparent,
+                        color: isFilled ? accent : Colors.transparent,
                         border: Border.all(
                           color: isFilled
-                              ? EmberColors.primaryBlue
+                              ? accent
                               : EmberColors.textMuted.withValues(alpha: 0.4),
                           width: 2,
                         ),
                         boxShadow: isFilled
                             ? [
                                 BoxShadow(
-                                  color: EmberColors.primaryBlue.withValues(alpha: 0.6),
+                                  color: accent.withValues(alpha: 0.6),
                                   blurRadius: 10,
                                 ),
                               ]
@@ -270,11 +278,11 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                 padding: const EdgeInsets.symmetric(horizontal: 44),
                 child: Column(
                   children: [
-                    _buildKeypadRow(['1', '2', '3']),
+                    _buildKeypadRow(['1', '2', '3'], accent),
                     const SizedBox(height: 16),
-                    _buildKeypadRow(['4', '5', '6']),
+                    _buildKeypadRow(['4', '5', '6'], accent),
                     const SizedBox(height: 16),
-                    _buildKeypadRow(['7', '8', '9']),
+                    _buildKeypadRow(['7', '8', '9'], accent),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -292,7 +300,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                             : const SizedBox(width: 72, height: 72),
 
                         // Zero Key
-                        _buildNumberKey('0'),
+                        _buildNumberKey('0', accent),
 
                         // Backspace Key
                         SizedBox(
@@ -320,14 +328,14 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildKeypadRow(List<String> digits) {
+  Widget _buildKeypadRow(List<String> digits, Color accent) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: digits.map((d) => _buildNumberKey(d)).toList(),
+      children: digits.map((d) => _buildNumberKey(d, accent)).toList(),
     );
   }
 
-  Widget _buildNumberKey(String digit) {
+  Widget _buildNumberKey(String digit, Color accent) {
     return Container(
       width: 72,
       height: 72,
@@ -340,7 +348,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(36),
-          splashColor: EmberColors.primaryBlue.withValues(alpha: 0.2),
+          splashColor: accent.withValues(alpha: 0.2),
           onTap: () => _onKeyPress(digit),
           child: Center(
             child: Text(

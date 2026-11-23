@@ -147,10 +147,14 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
 
   @override
   Widget build(BuildContext context) {
+    final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
+    final accent = Theme.of(context).colorScheme.primary;
+    final bgColor = isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase;
+
     return Scaffold(
-      backgroundColor: EmberColors.obsidianBase,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: EmberColors.obsidianBase,
+        backgroundColor: bgColor,
         elevation: 0,
         leading: IconButton(
           icon: FaIcon(FontAwesomeIcons.chevronLeft, size: 18, color: EmberColors.textPrimary),
@@ -179,7 +183,7 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
         actions: [
           IconButton(
             tooltip: 'Copy Markdown Report',
-            icon: FaIcon(FontAwesomeIcons.copy, size: 16, color: EmberColors.primaryAmber),
+            icon: FaIcon(FontAwesomeIcons.copy, size: 16, color: accent),
             onPressed: _copyReport,
           ),
           IconButton(
@@ -200,8 +204,8 @@ class _DiagnosticsLogScreenState extends State<DiagnosticsLogScreen> with Single
           controller: _tabController,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          indicatorColor: EmberColors.primaryAmber,
-          labelColor: EmberColors.primaryAmber,
+          indicatorColor: accent,
+          labelColor: accent,
           unselectedLabelColor: EmberColors.textMuted,
           tabs: const [
             Tab(icon: FaIcon(FontAwesomeIcons.terminal, size: 13), text: 'Logs'),

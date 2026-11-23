@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.4.2%20(Build%2042)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.4.3%20(Build%2043)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.4.2)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.2.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.4.3)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.3.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy studio-grade ad-free music instantly.*
 
@@ -36,6 +36,7 @@
 
 ## 📖 Table of Contents
 - [What Is Sine?](#-what-is-sine)
+- [What's New in v1.4.3](#-whats-new-in-v143)
 - [What's New in v1.4.2](#-whats-new-in-v142)
 - [What's New in v1.4.1](#-whats-new-in-v141)
 - [What's New in v1.4.0](#-whats-new-in-v140)
@@ -69,6 +70,19 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 - **Pure Local Data**: Playlists, listening history, and cached media remain 100% on your device.
 - **Sub-1.2s Cold-Start Playback**: Progressive hardware decoding starting audio almost instantaneously.
 - **Direct Public Storage Vault**: Music downloads save directly to `/storage/emulated/0/Sine-Music` with standard ID3 tags and HD artwork.
+
+---
+
+## 🌟 What's New in v1.4.3
+- **Restoration of the Classic MiniPlayer**: Faithfully brought back Sine's signature mini player layout featuring the iconic rotating `VinylDisc` artwork peek, top 2.5px hairline progress indicator, classic animated heart favorite, circular glowing play/pause, and skip controls. Preserved buttery 120 FPS horizontal skipping and vertical swipe dismissal without unnecessary rebuilds.
+- **Legacy Screen & System-Wide UI Polish**:
+  - **PulsePipe Home Tab**: Extracted `_HomeTrackTile` with per-tile surgical selectors (`isCurrent`, `isPlaying`, `isFav`), eliminating full-page rebuilds during playback updates and clearing all unused variable warnings.
+  - **PulsePipe Library Tab**: Cleaned up unreferenced functions and redundant imports; hardened all modal dismissals with `mounted` context checks.
+  - **Category Detail Sheet**: Modernized with dynamic primary theme accent colors (`Theme.of(context).colorScheme.primary`) and native OLED Black mode support (`EmberColors.pitchBlack`).
+  - **AppLock Screen**: Upgraded PIN keypad and glowing lock icon with dynamic active theme accents and true OLED pitch-black background.
+  - **Track Metadata Sheet**: Migrated artwork rendering to `CachedNetworkImage` for instantaneous offline caching, dynamic theme accent styling, and OLED Black support.
+  - **Diagnostics & Telemetry**: Added dynamic theme indicator colors and OLED Black mode styling.
+- **General Health & Bug Sweep**: Verified stream resolution, database backup/restore workflows, 100% clean `dart analyze` (0 errors, 0 warnings), and all 310+ automated tests passing.
 
 ---
 

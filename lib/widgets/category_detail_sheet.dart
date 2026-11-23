@@ -77,13 +77,15 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
   Widget build(BuildContext context) {
     final player = context.read<PlayerProvider>();
     context.select<PlayerProvider, (String?, bool)>((p) => (p.currentSong?.id, p.isPlaying));
+    final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
+    final accent = Theme.of(context).colorScheme.primary;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.88,
-      decoration: const BoxDecoration(
-        color: EmberColors.obsidianBase,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
+      decoration: BoxDecoration(
+        color: isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: const Border(
           top: BorderSide(color: EmberColors.outlineVariant, width: 1),
         ),
       ),
@@ -169,7 +171,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                   children: [
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: EmberColors.primaryBlue,
+                        backgroundColor: accent,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -200,7 +202,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
           Expanded(
             child: _isLoading
                 ? Center(
-                    child: CircularProgressIndicator(color: EmberColors.primaryBlue),
+                    child: CircularProgressIndicator(color: accent),
                   )
                 : _tracks.isEmpty
                     ? const Center(
@@ -220,7 +222,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                             key: ValueKey(song.id),
                             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                             decoration: BoxDecoration(
-                              color: isCurrent ? EmberColors.primaryBlue.withValues(alpha: 0.12) : Colors.transparent,
+                              color: isCurrent ? accent.withValues(alpha: 0.12) : Colors.transparent,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: ListTile(
@@ -248,7 +250,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: isCurrent ? EmberColors.primaryBlue : EmberColors.textPrimary,
+                                  color: isCurrent ? accent : EmberColors.textPrimary,
                                   fontSize: 13,
                                   fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
                                 ),
@@ -266,7 +268,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                                     icon: FaIcon(
                                       player.isFavorite(song.id) ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
                                       size: 14,
-                                      color: player.isFavorite(song.id) ? EmberColors.primaryBlue : EmberColors.textMuted,
+                                      color: player.isFavorite(song.id) ? accent : EmberColors.textMuted,
                                     ),
                                     onPressed: () => player.toggleFavorite(song),
                                   ),

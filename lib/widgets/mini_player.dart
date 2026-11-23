@@ -7,11 +7,11 @@ import '../models/song.dart';
 import '../providers/player_provider.dart';
 import '../screens/now_playing_screen.dart';
 import '../theme/ember_theme.dart';
+import 'vinyl_disc.dart';
 
-/// Docked floating MiniPlayer featuring Sine's clean signature theme surface,
-/// zero-rebuild ValueNotifier swipe physics (swipe down to dismiss & stop playback,
-/// swipe up to expand NowPlaying, swipe left/right to skip), and locked 60/120 FPS
-/// full-sheet bottom-up player expansion.
+/// Restored Classic Floating MiniPlayer featuring Sine's signature obsidian surface,
+/// rotating vinyl disc artwork peek, surgical zero-rebuild selectors, responsive controls,
+/// and smooth 120 FPS bottom-up NowPlaying sheet expansion.
 class MiniPlayer extends StatefulWidget {
   const MiniPlayer({super.key});
 
@@ -135,27 +135,27 @@ class _MiniPlayerState extends State<MiniPlayer> {
     required bool isOled,
     required Color accentColor,
   }) {
-    // Signature classic Sine surface palette (clean, refined dark obsidian + theme accent hairline)
+    // Classic Obsidian surface palette with subtle accent border
     final Color surfaceStart = isOled ? const Color(0xFF0D0F14) : const Color(0xFF151822);
     final Color surfaceEnd = isOled ? const Color(0xFF080A0E) : const Color(0xFF10131B);
-    final Color borderTint = accentColor.withValues(alpha: 0.24);
+    final Color borderTint = accentColor.withValues(alpha: 0.28);
     final Color progressColor = accentColor;
 
-    // Pre-build static bar content ONCE so 120 FPS drag gesture updates never rebuild children
+    // Pre-build classic bar content ONCE so 120 FPS drag gesture updates never rebuild children
     final barContent = Container(
-      margin: const EdgeInsets.fromLTRB(10, 4, 10, 8),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
           colors: [surfaceStart, surfaceEnd],
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderTint, width: 0.9),
         boxShadow: const [
           BoxShadow(
             color: Color(0x73000000),
-            blurRadius: 14,
+            blurRadius: 15,
             offset: Offset(0, 5),
           ),
         ],
@@ -164,55 +164,71 @@ class _MiniPlayerState extends State<MiniPlayer> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Subtle top drag pill indicator (physical cue for swipe down to dismiss / up to expand)
-          Padding(
-            padding: const EdgeInsets.only(top: 5),
-            child: Container(
-              width: 26,
-              height: 2.5,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.20),
-                borderRadius: BorderRadius.circular(2),
-              ),
+          // 2.5px top progress bar (Isolated RepaintBoundary for 120 FPS rendering)
+          RepaintBoundary(
+            child: ValueListenableBuilder<Duration>(
+              valueListenable: player.positionNotifier,
+              builder: (context, pos, _) {
+                final totalMs = duration.inMilliseconds;
+                final double progress =
+                    totalMs > 0 ? (pos.inMilliseconds / totalMs).clamp(0.0, 1.0) : 0.0;
+                return LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 2.5,
+                  backgroundColor: Colors.white.withValues(alpha: 0.08),
+                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                );
+              },
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 5, 6, 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: [
-                // Crisp rounded-square album artwork
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(9),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    color: EmberColors.surfaceContainerHigh,
-                    child: song.artworkUrl.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: song.artworkUrl,
-                            width: 44,
-                            height: 44,
-                            memCacheWidth: 160,
-                            memCacheHeight: 160,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, _, _) => Center(
-                              child: FaIcon(
-                                FontAwesomeIcons.music,
-                                size: 16,
-                                color: accentColor,
-                              ),
-                            ),
-                          )
-                        : Center(
-                            child: FaIcon(
-                              FontAwesomeIcons.music,
-                              size: 16,
-                              color: accentColor,
-                            ),
-                          ),
+                // Classic Rotating Vinyl Disc with centered artwork peek
+                RepaintBoundary(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      VinylDisc(
+                        size: 42,
+                        isPlaying: isPlaying,
+                        labelColor: accentColor.withValues(alpha: 0.65),
+                        accentColor: accentColor,
+                      ),
+                      Hero(
+                        tag: 'player_art_${song.id.isNotEmpty ? song.id : "default"}',
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(21),
+                          child: song.artworkUrl.isNotEmpty
+                              ? CachedNetworkImage(
+                                  imageUrl: song.artworkUrl,
+                                  width: 26,
+                                  height: 26,
+                                  memCacheWidth: 80,
+                                  memCacheHeight: 80,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, _, _) => Center(
+                                    child: FaIcon(
+                                      FontAwesomeIcons.music,
+                                      size: 13,
+                                      color: accentColor,
+                                    ),
+                                  ),
+                                )
+                              : Center(
+                                  child: FaIcon(
+                                    FontAwesomeIcons.music,
+                                    size: 13,
+                                    color: accentColor,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 11),
+                const SizedBox(width: 12),
 
                 // Clean Track Title & Artist with restrained cross-fade
                 Expanded(
@@ -285,13 +301,17 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   ),
                 ),
 
-                // Clean Favorite Button
+                // Animated Favorite Heart
                 IconButton(
-                  visualDensity: VisualDensity.compact,
-                  icon: FaIcon(
-                    isFav ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
-                    size: 16,
-                    color: isFav ? accentColor : Colors.white.withValues(alpha: 0.62),
+                  icon: AnimatedScale(
+                    scale: isFav ? 1.15 : 1.0,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutBack,
+                    child: FaIcon(
+                      isFav ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
+                      size: 17,
+                      color: isFav ? accentColor : EmberColors.textMuted,
+                    ),
                   ),
                   onPressed: () {
                     HapticFeedback.lightImpact();
@@ -300,51 +320,61 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   splashRadius: 20,
                 ),
 
-                // Clean Play / Pause Button
-                SizedBox(
+                // Circular Play/Pause button with subtle glow
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
                   width: 38,
                   height: 38,
-                  child: Material(
-                    color: accentColor.withValues(alpha: 0.18),
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        player.togglePlay();
-                      },
-                      child: Center(
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 160),
-                          child: isLoading
-                              ? SizedBox(
-                                  key: const ValueKey('mini_loading'),
-                                  width: 15,
-                                  height: 15,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(accentColor),
-                                  ),
-                                )
-                              : FaIcon(
-                                  isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
-                                  key: ValueKey(isPlaying ? 'mini_pause' : 'mini_play'),
-                                  color: Colors.white,
-                                  size: 14,
-                                ),
-                        ),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: accentColor,
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withValues(alpha: isPlaying ? 0.4 : 0.2),
+                        blurRadius: isPlaying ? 12 : 6,
+                        offset: const Offset(0, 2),
                       ),
+                    ],
+                  ),
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      transitionBuilder: (child, anim) => ScaleTransition(
+                        scale: anim,
+                        child: FadeTransition(opacity: anim, child: child),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              key: ValueKey('mini_loading'),
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : FaIcon(
+                              isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
+                              key: ValueKey(isPlaying ? 'mini_pause' : 'mini_play'),
+                              color: Colors.white,
+                              size: 15,
+                            ),
                     ),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      player.togglePlay();
+                    },
                   ),
                 ),
+                const SizedBox(width: 2),
 
-                // Skip Next Button
+                // Skip Next
                 IconButton(
-                  visualDensity: VisualDensity.compact,
-                  icon: FaIcon(
+                  icon: const FaIcon(
                     FontAwesomeIcons.forwardStep,
-                    size: 15,
-                    color: Colors.white.withValues(alpha: 0.80),
+                    size: 17,
+                    color: EmberColors.textSecondary,
                   ),
                   onPressed: () {
                     HapticFeedback.lightImpact();
@@ -355,24 +385,6 @@ class _MiniPlayerState extends State<MiniPlayer> {
               ],
             ),
           ),
-
-          // Precision 2px bottom progress hairline in Sine's signature theme accent
-          RepaintBoundary(
-            child: ValueListenableBuilder<Duration>(
-              valueListenable: player.positionNotifier,
-              builder: (context, pos, _) {
-                final totalMs = duration.inMilliseconds;
-                final double progress =
-                    totalMs > 0 ? (pos.inMilliseconds / totalMs).clamp(0.0, 1.0) : 0.0;
-                return LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 2.0,
-                  backgroundColor: Colors.white.withValues(alpha: 0.08),
-                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                );
-              },
-            ),
-          ),
         ],
       ),
     );
@@ -381,6 +393,10 @@ class _MiniPlayerState extends State<MiniPlayer> {
       key: const ValueKey('mini_active'),
       behavior: HitTestBehavior.opaque,
       onTap: () => _openNowPlaying(context),
+      onLongPress: () {
+        HapticFeedback.mediumImpact();
+        player.stopPlayback();
+      },
 
       // Vertical drag: Swipe DOWN to dismiss & stop playback; Swipe UP to expand NowPlaying
       onVerticalDragStart: (_) {
@@ -474,3 +490,4 @@ class _MiniPlayerState extends State<MiniPlayer> {
     );
   }
 }
+

@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
-import '../models/playlist.dart';
 import 'catalog_service.dart';
 
 enum ExternalPlaylistSource { spotify, appleMusic, youtube, unsupported, unknown }

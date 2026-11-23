@@ -18,9 +18,13 @@ class PlaylistDetailSheet extends StatelessWidget {
   const PlaylistDetailSheet({super.key, required this.playlist});
 
   static void show(BuildContext context, Playlist playlist) {
+    bool isOled = false;
+    try {
+      isOled = context.read<PlayerProvider>().isOledBlack;
+    } catch (_) {}
     showModalBottomSheet(
       context: context,
-      backgroundColor: EmberColors.obsidianBase,
+      backgroundColor: isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase,
       isScrollControlled: true,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(

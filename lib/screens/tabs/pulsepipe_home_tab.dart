@@ -59,9 +59,6 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
     final hasSession = context.select<PlayerProvider, bool>((p) => p.recoverableSession != null);
     final isYtLoading = context.select<PlayerProvider, bool>((p) => p.isLoadingYouTube);
     final ytTracks = context.select<PlayerProvider, List<Song>>((p) => p.youtubeTracks);
-    final currentSongId = context.select<PlayerProvider, String?>((p) => p.currentSong?.id);
-    final isPlaying = context.select<PlayerProvider, bool>((p) => p.isPlaying);
-    final favoritesCount = context.select<PlayerProvider, int>((p) => p.favorites.length);
     final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
     final bgColor = isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase;
     final player = context.read<PlayerProvider>();
@@ -124,7 +121,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
           ),
 
           // 1b. Persistent Playback Session Recovery Banner
-          if (player.recoverableSession != null)
+          if (hasSession && player.recoverableSession != null)
             SliverToBoxAdapter(
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -268,13 +265,13 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                     ),
                   ),
                 ),
-                if (player.isLoadingYouTube)
+                if (isYtLoading)
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                     child: LinearProgressIndicator(
                       minHeight: 2,
                       backgroundColor: Colors.transparent,
-                      color: EmberColors.primaryBlue,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
               ],
@@ -339,15 +336,15 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
               subtitle: 'The world\'s biggest songs right now • High-Fidelity Audio',
               actionText: 'Play all',
               onAction: () {
-                if (player.youtubeTracks.isNotEmpty) {
+                if (ytTracks.isNotEmpty) {
                   player.playPlaylist(
                     Playlist(
                       id: 'yt_top_hits_all',
                       title: 'Today\'s Top Hits',
                       description: 'The world\'s biggest songs right now',
-                      songs: player.youtubeTracks,
+                      songs: ytTracks,
                       createdAt: DateTime.now(),
-                      coverUrl: player.youtubeTracks.first.artworkUrl,
+                      coverUrl: ytTracks.first.artworkUrl,
                     ),
                   );
                 }
@@ -357,17 +354,17 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
           SliverToBoxAdapter(
             child: SizedBox(
               height: 200,
-              child: player.youtubeTracks.isEmpty
-                  ? Center(child: CircularProgressIndicator(color: EmberColors.primaryBlue))
+              child: ytTracks.isEmpty
+                  ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
                   : ListView.builder(
                       key: const PageStorageKey<String>('sine_home_carousel'),
                       scrollDirection: Axis.horizontal,
                       cacheExtent: 600,
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: player.youtubeTracks.length,
+                      itemCount: ytTracks.length,
                       itemBuilder: (context, index) {
-                        final track = player.youtubeTracks[index];
+                        final track = ytTracks[index];
                         return RepaintBoundary(
                           key: ValueKey('carousel_${track.id}'),
                           child: _buildTrackCarouselCard(track, () => player.playSong(track, playingFrom: 'Today\'s Top Hits')),
@@ -391,109 +388,23 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  if (player.youtubeTracks.isEmpty) {
+                  if (ytTracks.isEmpty) {
                     return Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Center(child: CircularProgressIndicator(color: EmberColors.primaryBlue)),
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary)),
                     );
                   }
-                  final track = player.youtubeTracks[index];
-                  final isCurrent = player.currentSong?.id == track.id;
-
+                  final track = ytTracks[index];
                   return RepaintBoundary(
                     key: ValueKey(track.id),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                    decoration: BoxDecoration(
-                      color: isCurrent
-                          ? EmberColors.primaryBlue.withValues(alpha: 0.12)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
+                    child: _HomeTrackTile(
+                      track: track,
+                      index: index,
+                      allTracks: ytTracks,
                     ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                      dense: true,
-                      visualDensity: const VisualDensity(horizontal: -1, vertical: -2),
-                      leading: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: CachedNetworkImage(
-                              imageUrl: track.artworkUrl,
-                              width: 44,
-                              height: 44,
-                              memCacheWidth: 150,
-                              memCacheHeight: 150,
-                              fit: BoxFit.cover,
-                              errorWidget: (context, error, stackTrace) => Container(
-                                width: 44,
-                                height: 44,
-                                color: EmberColors.surfaceContainerHigh,
-                                child: FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.textMuted),
-                              ),
-                            ),
-                          ),
-                          if (isCurrent && player.isPlaying)
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.55),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Center(
-                                child: FaIcon(FontAwesomeIcons.volumeHigh, size: 14, color: EmberColors.primaryBlue),
-                              ),
-                            ),
-                        ],
-                      ),
-                      title: Text(
-                        track.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: isCurrent ? EmberColors.primaryBlue : EmberColors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
-                        ),
-                      ),
-                      subtitle: Text(
-                        track.artist,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: EmberColors.textSecondary,
-                          fontSize: 11,
-                        ),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: FaIcon(
-                              player.isFavorite(track.id) ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
-                              size: 14,
-                              color: player.isFavorite(track.id) ? EmberColors.primaryBlue : EmberColors.textMuted,
-                            ),
-                            onPressed: () => player.toggleFavorite(track),
-                          ),
-                          IconButton(
-                            icon: FaIcon(FontAwesomeIcons.ellipsisVertical, size: 13, color: EmberColors.textMuted),
-                            onPressed: () => TrackOptionsSheet.show(context, track),
-                          ),
-                        ],
-                      ),
-                      onTap: () => player.playCategoryTracks(
-                        player.youtubeTracks,
-                        startIndex: index,
-                        targetSong: track,
-                        playingFrom: 'YouTube Music Top Tracks',
-                      ),
-                    ),
-                  ));
+                  );
                 },
-                childCount: player.youtubeTracks.isEmpty ? 1 : player.youtubeTracks.length,
+                childCount: ytTracks.isEmpty ? 1 : ytTracks.length,
               ),
             ),
           ),
@@ -728,5 +639,115 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
       ),
     ),
   );
+  }
+}
+
+class _HomeTrackTile extends StatelessWidget {
+  final Song track;
+  final int index;
+  final List<Song> allTracks;
+
+  const _HomeTrackTile({
+    required this.track,
+    required this.index,
+    required this.allTracks,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isCurrent = context.select<PlayerProvider, bool>((p) => p.currentSong?.id == track.id);
+    final isPlaying = context.select<PlayerProvider, bool>((p) => p.isPlaying);
+    final isFav = context.select<PlayerProvider, bool>((p) => p.isFavorite(track.id));
+    final player = context.read<PlayerProvider>();
+    final accent = Theme.of(context).colorScheme.primary;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 2),
+      decoration: BoxDecoration(
+        color: isCurrent ? accent.withValues(alpha: 0.12) : Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+        dense: true,
+        visualDensity: const VisualDensity(horizontal: -1, vertical: -2),
+        leading: Stack(
+          alignment: Alignment.center,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: CachedNetworkImage(
+                imageUrl: track.artworkUrl,
+                width: 44,
+                height: 44,
+                memCacheWidth: 150,
+                memCacheHeight: 150,
+                fit: BoxFit.cover,
+                errorWidget: (context, error, stackTrace) => Container(
+                  width: 44,
+                  height: 44,
+                  color: EmberColors.surfaceContainerHigh,
+                  child: const FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.textMuted),
+                ),
+              ),
+            ),
+            if (isCurrent && isPlaying)
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Center(
+                  child: FaIcon(FontAwesomeIcons.volumeHigh, size: 14, color: accent),
+                ),
+              ),
+          ],
+        ),
+        title: Text(
+          track.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: isCurrent ? accent : EmberColors.textPrimary,
+            fontSize: 13,
+            fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
+        subtitle: Text(
+          track.artist,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: EmberColors.textSecondary,
+            fontSize: 11,
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: FaIcon(
+                isFav ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
+                size: 14,
+                color: isFav ? accent : EmberColors.textMuted,
+              ),
+              onPressed: () => player.toggleFavorite(track),
+            ),
+            IconButton(
+              icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 13, color: EmberColors.textMuted),
+              onPressed: () => TrackOptionsSheet.show(context, track),
+            ),
+          ],
+        ),
+        onTap: () => player.playCategoryTracks(
+          allTracks,
+          startIndex: index,
+          targetSong: track,
+          playingFrom: 'YouTube Music Top Tracks',
+        ),
+      ),
+    );
   }
 }

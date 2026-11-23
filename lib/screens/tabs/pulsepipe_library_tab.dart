@@ -5,7 +5,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/song.dart';
 import '../../models/playlist.dart';
-import '../../models/downloaded_video.dart';
 import '../../providers/player_provider.dart';
 import '../../theme/ember_theme.dart';
 import '../playlist_detail_sheet.dart';
@@ -260,8 +259,10 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                       // Try single playlist import first
                       final pl = await player.importPlaylistFromJson(raw);
                       if (pl != null) {
-                        setDialogState(() => isImporting = false);
-                        Navigator.of(dCtx).pop();
+                        if (dCtx.mounted) {
+                          setDialogState(() => isImporting = false);
+                          Navigator.of(dCtx).pop();
+                        }
                         messenger.showSnackBar(
                           SnackBar(
                             backgroundColor: EmberColors.surfaceContainerHigh,
@@ -276,8 +277,10 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
 
                       // Otherwise try full backup or settings import
                       final backupRes = await player.importLibraryBackup(raw, merge: true);
-                      setDialogState(() => isImporting = false);
-                      Navigator.of(dCtx).pop();
+                      if (dCtx.mounted) {
+                        setDialogState(() => isImporting = false);
+                        Navigator.of(dCtx).pop();
+                      }
                       if (backupRes != null) {
                         messenger.showSnackBar(
                           SnackBar(
@@ -372,17 +375,6 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
       title: 'Liked Songs',
       description: 'Your favorite tracks',
       songs: player.favorites,
-      createdAt: DateTime.now(),
-    );
-    PlaylistDetailSheet.show(context, pl);
-  }
-
-  void _openDownloads(BuildContext context, PlayerProvider player) {
-    final pl = Playlist(
-      id: 'downloaded_songs',
-      title: 'Downloaded Songs',
-      description: 'Tracks stored locally on your device for offline playback',
-      songs: player.downloads,
       createdAt: DateTime.now(),
     );
     PlaylistDetailSheet.show(context, pl);

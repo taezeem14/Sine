@@ -61,12 +61,14 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
   Widget build(BuildContext context) {
     final service = MusicDetectionService.instance;
     final player = context.read<PlayerProvider>();
+    final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
+    final accent = Theme.of(context).colorScheme.primary;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: EmberColors.obsidianBase,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
+      decoration: BoxDecoration(
+        color: isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: const Border(
           top: BorderSide(color: EmberColors.outlineVariant, width: 1),
         ),
       ),
@@ -104,12 +106,12 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
                             Container(
                               padding: const EdgeInsets.all(7),
                               decoration: BoxDecoration(
-                                color: EmberColors.primaryBlue.withValues(alpha: 0.15),
+                                color: accent.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: FaIcon(
                                 FontAwesomeIcons.waveSquare,
-                                color: EmberColors.primaryBlue,
+                                color: accent,
                                 size: 14,
                               ),
                             ),
@@ -149,7 +151,7 @@ class _MusicDetectorSheetState extends State<MusicDetectorSheet> with SingleTick
                               },
                             ),
                             IconButton(
-                              icon: Icon(Icons.close_rounded, color: EmberColors.textMuted, size: 20),
+                              icon: const Icon(Icons.close_rounded, color: EmberColors.textMuted, size: 20),
                               onPressed: () => Navigator.of(context).pop(),
                             ),
                           ],
