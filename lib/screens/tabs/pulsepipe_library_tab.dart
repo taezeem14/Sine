@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +7,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/song.dart';
 import '../../models/playlist.dart';
 import '../../providers/player_provider.dart';
+import '../../services/local_music_service.dart';
+import '../../services/storage_service.dart';
 import '../../theme/ember_theme.dart';
 import '../playlist_detail_sheet.dart';
 import '../track_options_sheet.dart';
@@ -52,24 +55,24 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
           style: TextStyle(color: EmberColors.textPrimary),
           decoration: InputDecoration(
             hintText: 'Playlist name',
-            hintStyle: const TextStyle(color: EmberColors.textMuted),
+            hintStyle: TextStyle(color: EmberColors.textMuted),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
+              borderSide: BorderSide(color: EmberColors.electricBlue),
             ),
             focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+              borderSide: BorderSide(color: EmberColors.electricBlueHi, width: 2),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+            child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.black,
+              backgroundColor: EmberColors.electricBlue,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
             onPressed: () {
@@ -95,9 +98,9 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            FaIcon(FontAwesomeIcons.link, size: 18, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(width: 10),
-            const Text('Import Link', style: TextStyle(color: EmberColors.textPrimary)),
+            FaIcon(FontAwesomeIcons.link, size: 18, color: EmberColors.electricBlue),
+            SizedBox(width: 10),
+            Text('Import Link', style: TextStyle(color: EmberColors.textPrimary)),
           ],
         ),
         content: Column(
@@ -112,10 +115,10 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
             TextField(
               controller: controller,
               autofocus: true,
-              style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13),
+              style: TextStyle(color: EmberColors.textPrimary, fontSize: 13),
               decoration: InputDecoration(
                 hintText: 'Spotify / Apple Music / YouTube URL',
-                hintStyle: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                hintStyle: TextStyle(color: EmberColors.textMuted, fontSize: 12),
                 filled: true,
                 fillColor: EmberColors.surfaceDark,
                 border: OutlineInputBorder(
@@ -129,12 +132,12 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+            child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.black,
+              backgroundColor: EmberColors.electricBlue,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
             onPressed: () async {
@@ -179,142 +182,305 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
   void _showImportPlaylistJsonDialog(BuildContext context, PlayerProvider player) {
     final controller = TextEditingController();
     bool isImporting = false;
+    bool isScanning = true;
+    bool scanStarted = false;
+    List<File> localJsonFiles = [];
     final messenger = ScaffoldMessenger.of(context);
 
     showDialog(
       context: context,
       builder: (dCtx) => StatefulBuilder(
-        builder: (dialogCtx, setDialogState) => AlertDialog(
-          backgroundColor: EmberColors.charcoalCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: Row(
-            children: [
-              FaIcon(FontAwesomeIcons.fileImport, size: 18, color: EmberColors.electricBlue),
-              const SizedBox(width: 10),
-              const Text('Import Playlist JSON', style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Paste exported playlist JSON or library backup JSON below to instantly restore tracks and playlists:',
-                    style: TextStyle(color: EmberColors.textSecondary, fontSize: 12.5, height: 1.4),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: controller,
-                    maxLines: 5,
-                    style: const TextStyle(color: EmberColors.textPrimary, fontSize: 11.5, fontFamily: 'monospace'),
-                    decoration: InputDecoration(
-                      hintText: 'Paste {"format": "SINE_PLAYLIST", ...} or SINE_BACKUP',
-                      hintStyle: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
-                      filled: true,
-                      fillColor: EmberColors.surfaceDark,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      icon: const Icon(Icons.paste_rounded, size: 14),
-                      label: const Text('Paste from Clipboard', style: TextStyle(fontSize: 11)),
-                      onPressed: () async {
-                        final data = await Clipboard.getData(Clipboard.kTextPlain);
-                        if (data?.text != null) {
-                          setDialogState(() {
-                            controller.text = data!.text!;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dCtx).pop(),
-              child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: EmberColors.electricBlue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              ),
-              onPressed: isImporting
-                  ? null
-                  : () async {
-                      final raw = controller.text.trim();
-                      if (raw.isEmpty) return;
-                      setDialogState(() => isImporting = true);
+        builder: (dialogCtx, setDialogState) {
+          if (isScanning && !scanStarted) {
+            scanStarted = true;
+            player.getAvailableBackupFiles().then((files) {
+              if (dCtx.mounted) {
+                setDialogState(() {
+                  localJsonFiles = files;
+                  isScanning = false;
+                });
+              }
+            }).catchError((_) {
+              if (dCtx.mounted) {
+                setDialogState(() {
+                  localJsonFiles = [];
+                  isScanning = false;
+                });
+              }
+            });
+          }
 
-                      // Try single playlist import first
-                      final pl = await player.importPlaylistFromJson(raw);
-                      if (pl != null) {
+          return AlertDialog(
+            backgroundColor: EmberColors.charcoalCard,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: Row(
+              children: [
+                FaIcon(FontAwesomeIcons.fileImport, size: 18, color: EmberColors.electricBlue),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Import Playlist / Backup',
+                    style: TextStyle(color: EmberColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Import any Sine Playlist (.json), Library Backup, or NewPipe playlist export from your device or clipboard:',
+                      style: TextStyle(color: EmberColors.textSecondary, fontSize: 12.5, height: 1.4),
+                    ),
+                    if (Platform.isAndroid) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: EmberColors.electricBlue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.folder_open_rounded, size: 18),
+                          label: const Text(
+                            'Pick .json File from Device',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: isImporting
+                              ? null
+                              : () async {
+                                  setDialogState(() => isImporting = true);
+                                  final nav = Navigator.of(dCtx);
+                                  final pickedRes = await player.pickAndImportJsonFile(merge: true);
+                                  if (dCtx.mounted) {
+                                    setDialogState(() => isImporting = false);
+                                  }
+                                  if (pickedRes.cancelled) return;
+                                  if (dCtx.mounted) nav.pop();
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      backgroundColor: pickedRes.ok ? EmberColors.surfaceContainerHigh : Colors.redAccent,
+                                      content: Text(
+                                        pickedRes.message,
+                                        style: TextStyle(color: pickedRes.ok ? EmberColors.electricBlueHi : Colors.white),
+                                      ),
+                                    ),
+                                  );
+                                },
+                        ),
+                      ),
+                    ],
+                    if (!isScanning && localJsonFiles.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Text(
+                        'RECENT EXPORTED FILES',
+                        style: TextStyle(
+                          color: EmberColors.electricBlueHi,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 140),
+                        decoration: BoxDecoration(
+                          color: EmberColors.surfaceDark,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: localJsonFiles.length,
+                          separatorBuilder: (_, _) => Divider(color: EmberColors.outlineVariant.withValues(alpha: 0.2), height: 1),
+                          itemBuilder: (_, idx) {
+                            final f = localJsonFiles[idx];
+                            final name = f.path.split(Platform.pathSeparator).last;
+                            final fType = StorageService.classifyBackupFile(f);
+                            return ListTile(
+                              dense: true,
+                              visualDensity: VisualDensity.compact,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                              leading: FaIcon(FontAwesomeIcons.fileCode, size: 14, color: EmberColors.electricBlue),
+                              title: Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12),
+                              ),
+                              subtitle: Text(fType, style: const TextStyle(color: EmberColors.textMuted, fontSize: 10)),
+                              trailing: TextButton(
+                                onPressed: isImporting
+                                    ? null
+                                    : () async {
+                                        setDialogState(() => isImporting = true);
+                                        final nav = Navigator.of(dCtx);
+                                        try {
+                                          final rawContent = await f.readAsString();
+                                          final pl = await player.importPlaylistFromJson(rawContent);
+                                          if (pl != null) {
+                                            if (dCtx.mounted) nav.pop();
+                                            messenger.showSnackBar(
+                                              SnackBar(
+                                                backgroundColor: EmberColors.surfaceContainerHigh,
+                                                content: Text(
+                                                  'Imported "${pl.title}" (${pl.songs.length} tracks)!',
+                                                  style: TextStyle(color: EmberColors.electricBlueHi),
+                                                ),
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          final res = await player.importLibraryBackupFromFile(f, merge: true);
+                                          if (dCtx.mounted) nav.pop();
+                                          messenger.showSnackBar(
+                                            SnackBar(
+                                              backgroundColor: res != null ? EmberColors.surfaceContainerHigh : Colors.redAccent,
+                                              content: Text(
+                                                res != null
+                                                    ? 'Restored ${res.playlistsCount} playlist(s) & ${res.favoritesCount} favorite(s)!'
+                                                    : 'Could not parse JSON file.',
+                                                style: TextStyle(color: res != null ? EmberColors.electricBlueHi : Colors.white),
+                                              ),
+                                            ),
+                                          );
+                                        } catch (_) {
+                                          if (dCtx.mounted) setDialogState(() => isImporting = false);
+                                        }
+                                      },
+                                child: const Text('Import', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'OR PASTE JSON TEXT',
+                          style: TextStyle(color: EmberColors.textSecondary, fontSize: 10.5, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                        ),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          icon: const Icon(Icons.paste_rounded, size: 14),
+                          label: const Text('Paste Clipboard', style: TextStyle(fontSize: 11)),
+                          onPressed: () async {
+                            final data = await Clipboard.getData(Clipboard.kTextPlain);
+                            if (data?.text != null && dCtx.mounted) {
+                              setDialogState(() {
+                                controller.text = data!.text!;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: controller,
+                      maxLines: 4,
+                      style: const TextStyle(color: EmberColors.textPrimary, fontSize: 11.5, fontFamily: 'monospace'),
+                      decoration: InputDecoration(
+                        hintText: 'Paste {"format": "SINE_PLAYLIST", ...} or SINE_BACKUP',
+                        hintStyle: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
+                        filled: true,
+                        fillColor: EmberColors.surfaceDark,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dCtx).pop(),
+                child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EmberColors.electricBlue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                ),
+                onPressed: isImporting
+                    ? null
+                    : () async {
+                        final raw = controller.text.trim();
+                        if (raw.isEmpty) return;
+                        setDialogState(() => isImporting = true);
+
+                        // Try single playlist / NewPipe / backup import
+                        final pl = await player.importPlaylistFromJson(raw);
+                        if (pl != null) {
+                          if (dCtx.mounted) {
+                            setDialogState(() => isImporting = false);
+                            Navigator.of(dCtx).pop();
+                          }
+                          messenger.showSnackBar(
+                            SnackBar(
+                              backgroundColor: EmberColors.surfaceContainerHigh,
+                              content: Text(
+                                'Imported playlist "${pl.title}" (${pl.songs.length} tracks)!',
+                                style: TextStyle(color: EmberColors.electricBlueHi),
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
+                        final backupRes = await player.importLibraryBackup(raw, merge: true);
                         if (dCtx.mounted) {
                           setDialogState(() => isImporting = false);
                           Navigator.of(dCtx).pop();
                         }
-                        messenger.showSnackBar(
-                          SnackBar(
-                            backgroundColor: EmberColors.surfaceContainerHigh,
-                            content: Text(
-                              'Imported playlist "${pl.title}" (${pl.songs.length} tracks)!',
-                              style: TextStyle(color: EmberColors.electricBlueHi),
-                            ),
-                          ),
-                        );
-                        return;
-                      }
-
-                      // Otherwise try full backup or settings import
-                      final backupRes = await player.importLibraryBackup(raw, merge: true);
-                      if (dCtx.mounted) {
-                        setDialogState(() => isImporting = false);
-                        Navigator.of(dCtx).pop();
-                      }
-                      if (backupRes != null) {
-                        messenger.showSnackBar(
-                          SnackBar(
-                            backgroundColor: EmberColors.surfaceContainerHigh,
-                            content: Text(
-                              'Restored ${backupRes.playlistsCount} playlists, ${backupRes.favoritesCount} favorites!',
-                              style: TextStyle(color: EmberColors.electricBlueHi),
-                            ),
-                          ),
-                        );
-                      } else {
-                        // Check if settings JSON
-                        final settingsRes = await player.importSettingsFromJson(raw);
-                        if (settingsRes) {
+                        if (backupRes != null) {
                           messenger.showSnackBar(
                             SnackBar(
                               backgroundColor: EmberColors.surfaceContainerHigh,
-                              content: Text('Restored settings successfully!', style: TextStyle(color: EmberColors.electricBlueHi)),
+                              content: Text(
+                                'Restored ${backupRes.playlistsCount} playlists, ${backupRes.favoritesCount} favorites!',
+                                style: TextStyle(color: EmberColors.electricBlueHi),
+                              ),
                             ),
                           );
                         } else {
-                          messenger.showSnackBar(
-                            const SnackBar(
-                              backgroundColor: Colors.redAccent,
-                              content: Text('Invalid JSON. Please verify the playlist/backup format.', style: TextStyle(color: Colors.white)),
-                            ),
-                          );
+                          final settingsRes = await player.importSettingsFromJson(raw);
+                          if (settingsRes) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                backgroundColor: EmberColors.surfaceContainerHigh,
+                                content: Text('Restored settings successfully!', style: TextStyle(color: EmberColors.electricBlueHi)),
+                              ),
+                            );
+                          } else {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                backgroundColor: Colors.redAccent,
+                                content: Text('Invalid JSON. Please verify the playlist/backup format.', style: TextStyle(color: Colors.white)),
+                              ),
+                            );
+                          }
                         }
-                      }
-                    },
-              child: Text(isImporting ? 'Importing...' : 'Import'),
-            ),
-          ],
-        ),
+                      },
+                child: Text(isImporting ? 'Importing...' : 'Import Text'),
+              ),
+            ],
+          );
+        },
       ),
     ).then((_) => controller.dispose());
   }
@@ -340,24 +506,24 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
               ),
             ),
             ListTile(
-              leading: FaIcon(FontAwesomeIcons.circlePlus, color: Theme.of(context).colorScheme.primary),
-              title: const Text('Create Playlist', style: TextStyle(color: EmberColors.textPrimary)),
+              leading: FaIcon(FontAwesomeIcons.circlePlus, color: EmberColors.electricBlue),
+              title: Text('Create Playlist', style: TextStyle(color: EmberColors.textPrimary)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showCreatePlaylistDialog(context, player);
               },
             ),
             ListTile(
-              leading: FaIcon(FontAwesomeIcons.link, color: Theme.of(context).colorScheme.primary),
-              title: const Text('Import YouTube Link', style: TextStyle(color: EmberColors.textPrimary)),
+              leading: FaIcon(FontAwesomeIcons.link, color: EmberColors.electricBlue),
+              title: Text('Import YouTube Link', style: TextStyle(color: EmberColors.textPrimary)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showImportUrlDialog(context, player);
               },
             ),
             ListTile(
-              leading: FaIcon(FontAwesomeIcons.fileImport, color: Theme.of(context).colorScheme.primary),
-              title: const Text('Import Playlist / Backup from JSON', style: TextStyle(color: EmberColors.textPrimary)),
+              leading: FaIcon(FontAwesomeIcons.fileImport, color: EmberColors.electricBlue),
+              title: Text('Import Playlist / Backup from JSON', style: TextStyle(color: EmberColors.textPrimary)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showImportPlaylistJsonDialog(context, player);
@@ -460,12 +626,12 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFF242424),
+                          color: isSelected ? EmberColors.electricBlue : EmberColors.charcoalCard,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isSelected
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.transparent,
+                                ? EmberColors.electricBlue
+                                : EmberColors.glassBorder.withValues(alpha: 0.2),
                             width: 1,
                           ),
                         ),
@@ -473,7 +639,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                           child: Text(
                             filter,
                             style: TextStyle(
-                              color: isSelected ? Colors.black : Colors.white,
+                              color: isSelected ? Colors.white : EmberColors.textSecondary,
                               fontSize: 13,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                             ),
@@ -492,7 +658,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
             if (_selectedFilter == 'All' || _selectedFilter == 'Liked Songs')
               SliverToBoxAdapter(
                 child: _LibraryRowItem(
-                  iconGradient: const [Color(0xFF450AF5), Color(0xFF8E8EE5)],
+                  iconGradient: const [Color(0xFF1565C0), Color(0xFF2979FF)],
                   icon: FontAwesomeIcons.solidHeart,
                   title: 'Liked Songs',
                   subtitle: 'Playlist • ${player.favorites.length} songs',
@@ -1094,6 +1260,15 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     ListTile(
+                                      leading: FaIcon(FontAwesomeIcons.fileExport, color: EmberColors.primaryBlue),
+                                      title: Text('Export / Share Playlist (.json)', style: TextStyle(color: EmberColors.textPrimary)),
+                                      subtitle: Text('Save via SAF picker, share file, or copy JSON', style: TextStyle(color: EmberColors.textSecondary, fontSize: 12)),
+                                      onTap: () {
+                                        Navigator.pop(ctx);
+                                        PlaylistDetailSheet.showExportDialog(context, player, pl);
+                                      },
+                                    ),
+                                    ListTile(
                                       leading: FaIcon(FontAwesomeIcons.qrcode, color: EmberColors.primaryBlue),
                                       title: Text('Share Playlist QR Code', style: TextStyle(color: EmberColors.textPrimary)),
                                       onTap: () {
@@ -1193,7 +1368,52 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                     ),
                   ),
                 )
-              else
+              else ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Row(
+                      children: [
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: EmberColors.primaryBlue,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                          onPressed: () {
+                            player.playCategoryTracks(
+                              player.deviceSongs,
+                              startIndex: 0,
+                              playingFrom: 'Device Storage',
+                            );
+                          },
+                          icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                          label: const Text('Play All', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                        const SizedBox(width: 10),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: EmberColors.textPrimary,
+                            side: BorderSide(color: EmberColors.outlineVariant.withValues(alpha: 0.6)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                          onPressed: () {
+                            final shuffled = List<Song>.from(player.deviceSongs)..shuffle();
+                            player.playCategoryTracks(
+                              shuffled,
+                              startIndex: 0,
+                              playingFrom: 'Device Storage (Shuffle)',
+                            );
+                          },
+                          icon: const FaIcon(FontAwesomeIcons.shuffle, size: 13),
+                          label: const Text('Shuffle', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverList(
@@ -1232,7 +1452,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                               ),
                             ),
                             subtitle: Text(
-                              song.artist,
+                              '${song.artist} • ${LocalMusicService.formatDuration(song.duration)}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
@@ -1242,7 +1462,12 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                               onPressed: () => TrackOptionsSheet.show(context, song),
                             ),
                             onTap: () {
-                              player.playSong(song, playingFrom: 'Device Storage');
+                              player.playCategoryTracks(
+                                player.deviceSongs,
+                                startIndex: index,
+                                targetSong: song,
+                                playingFrom: 'Device Storage',
+                              );
                             },
                           ),
                         );
@@ -1251,6 +1476,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                     ),
                   ),
                 ),
+              ],
             ],
 
             // 6. History Section (shown when filter is All or History)
@@ -1331,27 +1557,36 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                               children: [
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(6),
-                                  child: CachedNetworkImage(
-                                    imageUrl: song.artworkUrl,
-                                    width: 48,
-                                    height: 48,
-                                    memCacheWidth: 150,
-                                    memCacheHeight: 150,
-                                    fit: BoxFit.cover,
-                                    placeholder: (_, _) => Container(
-                                      width: 48,
-                                      height: 48,
-                                      color: EmberColors.charcoalCard,
-                                    ),
-                                    errorWidget: (_, _, _) => Container(
-                                      width: 48,
-                                      height: 48,
-                                      color: EmberColors.charcoalCard,
-                                      child: const Center(
-                                        child: FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.textMuted),
-                                      ),
-                                    ),
-                                  ),
+                                  child: (song.artworkUrl.isNotEmpty && !song.artworkUrl.startsWith('content://'))
+                                      ? CachedNetworkImage(
+                                          imageUrl: song.artworkUrl,
+                                          width: 48,
+                                          height: 48,
+                                          memCacheWidth: 150,
+                                          memCacheHeight: 150,
+                                          fit: BoxFit.cover,
+                                          placeholder: (_, _) => Container(
+                                            width: 48,
+                                            height: 48,
+                                            color: EmberColors.charcoalCard,
+                                          ),
+                                          errorWidget: (_, _, _) => Container(
+                                            width: 48,
+                                            height: 48,
+                                            color: EmberColors.charcoalCard,
+                                            child: const Center(
+                                              child: FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.textMuted),
+                                            ),
+                                          ),
+                                        )
+                                      : Container(
+                                          width: 48,
+                                          height: 48,
+                                          color: EmberColors.charcoalCard,
+                                          child: const Center(
+                                            child: FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.textMuted),
+                                          ),
+                                        ),
                                 ),
                                 const SizedBox(width: 14),
                                 Expanded(

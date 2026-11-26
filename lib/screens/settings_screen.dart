@@ -524,6 +524,28 @@ class _SettingsContentState extends State<SettingsContent> {
                   ? null
                   : () async {
                       setDialogState(() => isExporting = true);
+                      if (Platform.isAndroid) {
+                        final safRes = await player.saveSettingsViaSystemPicker();
+                        if (ctx.mounted) {
+                          setDialogState(() => isExporting = false);
+                          Navigator.of(ctx).pop();
+                        }
+                        if (safRes != null && safRes.saved) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              backgroundColor: EmberColors.surfaceContainerHigh,
+                              duration: const Duration(seconds: 4),
+                              content: Text(
+                                'Settings saved as "${safRes.name ?? "Sine_Settings.json"}"!',
+                                style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12.5),
+                              ),
+                            ),
+                          );
+                          return;
+                        } else if (safRes != null && safRes.cancelled) {
+                          return;
+                        }
+                      }
                       final file = await player.exportSettingsToFile();
                       if (ctx.mounted) {
                         setDialogState(() => isExporting = false);
@@ -651,6 +673,28 @@ class _SettingsContentState extends State<SettingsContent> {
                   ? null
                   : () async {
                       setDialogState(() => isExporting = true);
+                      if (Platform.isAndroid) {
+                        final safRes = await player.saveBackupViaSystemPicker();
+                        if (ctx.mounted) {
+                          setDialogState(() => isExporting = false);
+                          Navigator.of(ctx).pop();
+                        }
+                        if (safRes != null && safRes.saved) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              backgroundColor: EmberColors.surfaceContainerHigh,
+                              duration: const Duration(seconds: 4),
+                              content: Text(
+                                'Backup saved as "${safRes.name ?? "sine_backup.json"}"!',
+                                style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12.5),
+                              ),
+                            ),
+                          );
+                          return;
+                        } else if (safRes != null && safRes.cancelled) {
+                          return;
+                        }
+                      }
                       final file = await player.exportLibraryBackupToFile();
                       if (ctx.mounted) {
                         setDialogState(() => isExporting = false);
@@ -764,9 +808,49 @@ class _SettingsContentState extends State<SettingsContent> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Restore playlists, favorites, history, or settings from any Sine JSON file or pasted JSON.',
+                      'Restore playlists, favorites, history, or settings from any Sine or NewPipe JSON file.',
                       style: TextStyle(color: EmberColors.textSecondary, fontSize: 12, height: 1.35),
                     ),
+                    if (Platform.isAndroid) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: EmberColors.primaryBlue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.folder_open_rounded, size: 18),
+                          label: const Text(
+                            'Pick .json File from Device',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: isRestoring
+                              ? null
+                              : () async {
+                                  setDialogState(() => isRestoring = true);
+                                  final nav = Navigator.of(ctx);
+                                  final pickedRes = await player.pickAndImportJsonFile(merge: mergeData);
+                                  if (ctx.mounted) {
+                                    setDialogState(() => isRestoring = false);
+                                  }
+                                  if (pickedRes.cancelled) return;
+                                  if (ctx.mounted) nav.pop();
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      backgroundColor: pickedRes.ok ? EmberColors.surfaceContainerHigh : Colors.redAccent,
+                                      content: Text(
+                                        pickedRes.message,
+                                        style: TextStyle(color: pickedRes.ok ? EmberColors.primaryBlueHi : Colors.white),
+                                      ),
+                                    ),
+                                  );
+                                },
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

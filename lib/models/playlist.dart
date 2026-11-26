@@ -10,6 +10,8 @@ class Playlist {
   final DateTime createdAt;
   final String? coverUrl;
   final String? continuationToken;
+  final String? nextVideoId;
+  final String? nextParams;
 
   const Playlist({
     required this.id,
@@ -19,7 +21,11 @@ class Playlist {
     required this.createdAt,
     this.coverUrl,
     this.continuationToken,
+    this.nextVideoId,
+    this.nextParams,
   });
+
+  static const Object _unset = Object();
 
   Playlist copyWith({
     String? id,
@@ -28,7 +34,9 @@ class Playlist {
     List<Song>? songs,
     DateTime? createdAt,
     String? coverUrl,
-    String? continuationToken,
+    Object? continuationToken = _unset,
+    Object? nextVideoId = _unset,
+    Object? nextParams = _unset,
   }) {
     return Playlist(
       id: id ?? this.id,
@@ -37,7 +45,15 @@ class Playlist {
       songs: songs ?? this.songs,
       createdAt: createdAt ?? this.createdAt,
       coverUrl: coverUrl ?? this.coverUrl,
-      continuationToken: continuationToken ?? this.continuationToken,
+      continuationToken: identical(continuationToken, _unset)
+          ? this.continuationToken
+          : continuationToken as String?,
+      nextVideoId: identical(nextVideoId, _unset)
+          ? this.nextVideoId
+          : nextVideoId as String?,
+      nextParams: identical(nextParams, _unset)
+          ? this.nextParams
+          : nextParams as String?,
     );
   }
 
@@ -53,11 +69,13 @@ class Playlist {
       'cover_url': coverUrl,
       'continuationToken': continuationToken,
       'continuation_token': continuationToken,
+      if (nextVideoId != null) 'nextVideoId': nextVideoId,
+      if (nextParams != null) 'nextParams': nextParams,
     };
   }
 
   factory Playlist.fromMap(Map<String, dynamic> map) {
-    final rawSongs = map['songs'];
+    final rawSongs = map['songs'] ?? map['tracks'] ?? map['items'];
     final List<Song> songList = rawSongs is List
         ? rawSongs
             .whereType<Map>()
@@ -67,16 +85,21 @@ class Playlist {
 
     final rawCover = (map['coverUrl'] ?? map['cover_url'])?.toString();
     final rawToken = (map['continuationToken'] ?? map['continuation_token'])?.toString();
+    final rawNextVid = (map['nextVideoId'] ?? map['next_video_id'])?.toString();
+    final rawNextParams = (map['nextParams'] ?? map['next_params'])?.toString();
+    final rawTitle = (map['title'] ?? map['name'])?.toString();
 
     return Playlist(
       id: map['id']?.toString() ?? '',
-      title: map['title']?.toString() ?? 'Untitled Playlist',
+      title: (rawTitle != null && rawTitle.trim().isNotEmpty) ? rawTitle.trim() : 'Untitled Playlist',
       description: map['description']?.toString() ?? '',
       songs: songList,
       createdAt: DateTime.tryParse((map['createdAt'] ?? map['created_at'])?.toString() ?? '') ??
-          DateTime.fromMillisecondsSinceEpoch(0),
+          DateTime.now(),
       coverUrl: (rawCover != null && rawCover.isNotEmpty && rawCover != 'null') ? rawCover : null,
       continuationToken: (rawToken != null && rawToken.isNotEmpty && rawToken != 'null') ? rawToken : null,
+      nextVideoId: (rawNextVid != null && rawNextVid.isNotEmpty && rawNextVid != 'null') ? rawNextVid : null,
+      nextParams: (rawNextParams != null && rawNextParams.isNotEmpty && rawNextParams != 'null') ? rawNextParams : null,
     );
   }
 
@@ -89,10 +112,11 @@ class Playlist {
           title == other.title &&
           description == other.description &&
           coverUrl == other.coverUrl &&
+          continuationToken == other.continuationToken &&
           listEquals(songs, other.songs);
 
   @override
-  int get hashCode => Object.hash(id, title, description, coverUrl);
+  int get hashCode => Object.hash(id, title, description, coverUrl, continuationToken);
 
   @override
   String toString() => 'Playlist(id: $id, title: $title, ${songs.length} tracks)';

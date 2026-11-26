@@ -134,8 +134,10 @@ class Song {
 
   /// Identifies legacy mock/placeholder tracks (e.g. Coffee Steam, SoundHelix previews)
   static bool isPlaceholder(Song song) {
-    // Explicit offline downloads and local disk files are NEVER placeholders
+    // Explicit offline downloads, MediaStore content:// URIs, and local disk files are NEVER placeholders
     if (song.source == 'download' ||
+        song.source == 'device' ||
+        song.streamUrl.startsWith('content://') ||
         song.streamUrl.startsWith('file:') ||
         song.streamUrl.startsWith('/') ||
         RegExp(r'^[a-zA-Z]:[/\\]').hasMatch(song.streamUrl)) {

@@ -23,6 +23,7 @@ import '../services/performance_service.dart';
 import '../services/metadata_correction_service.dart';
 import '../services/gesture_service.dart';
 import '../services/local_music_service.dart';
+import '../services/native_storage_bridge.dart';
 import '../services/playlist_import_service.dart';
 import '../services/cover_color_service.dart';
 import '../widgets/spotify_graph_equalizer.dart';
@@ -122,10 +123,19 @@ class PlayerProvider extends ChangeNotifier {
   int _consecutiveStreamFailures = 0;
   static const int _maxConsecutiveFailures = 3;
 
-  // Pure YouTube NewPipe Library state
+  // Pure YouTube NewPipe Library & Infinite Pagination state
   List<Song> _youtubeTracks = [];
   bool _isLoadingYouTube = false;
+  bool _isLoadingMoreYouTube = false;
+  String _activeHomeCategory = 'trending';
+  String? _homeContinuationToken;
+  final Set<String> _homeSeenIds = {};
   String _searchEngine = 'YouTube';
+  String? _searchContinuationToken;
+  bool _isLoadingMoreSearch = false;
+  final Set<String> _searchSeenIds = {};
+  String? _activePaginatedPlaylistId;
+  final Set<String> _loadingMorePlaylistIds = {};
 
   // Equalizer state
   String _eqPreset = 'Flat';
@@ -325,7 +335,19 @@ class PlayerProvider extends ChangeNotifier {
 
   List<Song> get youtubeTracks => _youtubeTracks;
   bool get isLoadingYouTube => _isLoadingYouTube;
+  bool get isLoadingMoreYouTube => _isLoadingMoreYouTube;
+  String get activeHomeCategory => _activeHomeCategory;
+  bool get hasMoreYouTubeTracks =>
+      _homeContinuationToken != null && _homeContinuationToken!.isNotEmpty;
   String get searchEngine => _searchEngine;
+  bool get isLoadingMoreSearch => _isLoadingMoreSearch;
+  bool get hasMoreSearchResults =>
+      _searchContinuationToken != null && _searchContinuationToken!.isNotEmpty;
+  bool isPlaylistLoadingMore(String playlistId) =>
+      _loadingMorePlaylistIds.contains(playlistId);
+  bool canLoadMorePlaylist(Playlist pl) =>
+      pl.id.startsWith('yt_mix_') ||
+      (pl.continuationToken != null && pl.continuationToken!.isNotEmpty);
 
   void setSearchEngine(String engine) {
     _searchEngine = engine;
@@ -649,9 +671,18 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
 
-    // 3. YouTube Mix infinite continuation (NewPipe-style): fetch next batch before halting
+    // 3. YouTube Mix or Paginated Playlist infinite continuation (NewPipe-style): fetch next batch before halting
     if (_isMixActive && _activeMixPlaylistId != null) {
       await _fetchMoreMixTracksIfNeeded();
+      if (_currentIndex < _queue.length - 1) {
+        _currentIndex++;
+        notifyListeners();
+        await playSong(_queue[_currentIndex], isAutoAdvance: true);
+        return;
+      }
+    }
+    if (_activePaginatedPlaylistId != null) {
+      await loadMorePlaylistTracks(_activePaginatedPlaylistId!);
       if (_currentIndex < _queue.length - 1) {
         _currentIndex++;
         notifyListeners();
@@ -729,18 +760,22 @@ class PlayerProvider extends ChangeNotifier {
   /// NewPipe-style infinite mix expansion: loads the next batch whenever nearing the queue tail
   Future<void> _fetchMoreMixTracksIfNeeded() async {
     if (!_isMixActive || _isLoadingMoreMixTracks || _activeMixPlaylistId == null) return;
-    if (_queue.length - _currentIndex <= 4) {
+    if (_queue.length - _currentIndex <= 5) {
       _isLoadingMoreMixTracks = true;
       try {
+        final fallbackVid = _mixLastVideoId ??
+            (_queue.isNotEmpty ? _queue.last.id.replaceFirst('yt_', '') : null);
         final result = await YouTubeImporterService.fetchNextMixBatch(
           playlistId: _activeMixPlaylistId!,
           continuationToken: _mixContinuationToken,
-          currentVideoId: _mixLastVideoId,
+          currentVideoId: fallbackVid,
           currentParams: _mixLastParams,
           seenIds: _mixSeenVideoIds,
         );
         if (result != null) {
-          if (result.continuationToken != null) _mixContinuationToken = result.continuationToken;
+          // CRITICAL: Always overwrite _mixContinuationToken (even when null) so consumed tokens
+          // cleanly pivot to NewPipe's sliding-window videoId cursor!
+          _mixContinuationToken = result.continuationToken;
           if (result.nextVideoId != null) _mixLastVideoId = result.nextVideoId;
           if (result.nextParams != null) _mixLastParams = result.nextParams;
 
@@ -748,6 +783,24 @@ class PlayerProvider extends ChangeNotifier {
             _queue.addAll(result.songs);
             if (_isShuffle) {
               _unshuffledQueue.addAll(result.songs);
+            }
+            // Also keep saved Mix playlist in Library synced with newly discovered Mix tracks
+            final plId = 'yt_mix_$_activeMixPlaylistId';
+            final plIdx = _playlists.indexWhere((p) => p.id == plId);
+            if (plIdx != -1) {
+              final existingPl = _playlists[plIdx];
+              final existingIds = existingPl.songs.map((s) => s.id).toSet();
+              final merged = [
+                ...existingPl.songs,
+                ...result.songs.where((s) => existingIds.add(s.id)),
+              ];
+              _playlists[plIdx] = existingPl.copyWith(
+                songs: merged,
+                continuationToken: _mixContinuationToken,
+                nextVideoId: _mixLastVideoId,
+                nextParams: _mixLastParams,
+              );
+              unawaited(_storageService.savePlaylists(_playlists));
             }
             notifyListeners();
             debugPrint('[PlayerProvider] Infinitely appended ${result.songs.length} new mix tracks. Total in queue: ${_queue.length}');
@@ -811,29 +864,37 @@ class PlayerProvider extends ChangeNotifier {
 
     final thisSession = ++_playSessionId;
 
-    // Offline interception: if this song was downloaded to disk, play offline seamlessly
+    // Offline & Device MediaStore interception: play local files and content:// URIs directly
     Song resolvedSong = song;
-    var sPath = song.streamUrl.replaceFirst('file://', '');
-    if (Platform.isWindows && sPath.startsWith('/') && sPath.length > 2 && sPath[2] == ':') {
-      sPath = sPath.substring(1);
-    }
-    if ((song.source == 'download' || sPath.startsWith('/') || RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(sPath)) && File(sPath).existsSync()) {
+    if (song.streamUrl.startsWith('content://')) {
       resolvedSong = song;
     } else {
-      final downloadedIndex = _downloads.indexWhere((d) =>
-          d.id == song.id ||
-          d.id.replaceFirst('yt_', '') == song.id.replaceFirst('yt_', '') ||
-          (d.title.trim().toLowerCase() == song.title.trim().toLowerCase() &&
-              d.artist.trim().toLowerCase() == song.artist.trim().toLowerCase()));
+      var sPath = song.streamUrl.replaceFirst('file://', '');
+      if (Platform.isWindows && sPath.startsWith('/') && sPath.length > 2 && sPath[2] == ':') {
+        sPath = sPath.substring(1);
+      }
+      if ((song.source == 'download' ||
+              song.source == 'device' ||
+              sPath.startsWith('/') ||
+              RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(sPath)) &&
+          File(sPath).existsSync()) {
+        resolvedSong = song;
+      } else {
+        final downloadedIndex = _downloads.indexWhere((d) =>
+            d.id == song.id ||
+            d.id.replaceFirst('yt_', '') == song.id.replaceFirst('yt_', '') ||
+            (d.title.trim().toLowerCase() == song.title.trim().toLowerCase() &&
+                d.artist.trim().toLowerCase() == song.artist.trim().toLowerCase()));
 
-      if (downloadedIndex != -1) {
-        final downloaded = _downloads[downloadedIndex];
-        var checkPath = downloaded.streamUrl.replaceFirst('file://', '');
-        if (Platform.isWindows && checkPath.startsWith('/') && checkPath.length > 2 && checkPath[2] == ':') {
-          checkPath = checkPath.substring(1);
-        }
-        if (File(checkPath).existsSync()) {
-          resolvedSong = downloaded;
+        if (downloadedIndex != -1) {
+          final downloaded = _downloads[downloadedIndex];
+          var checkPath = downloaded.streamUrl.replaceFirst('file://', '');
+          if (Platform.isWindows && checkPath.startsWith('/') && checkPath.length > 2 && checkPath[2] == ':') {
+            checkPath = checkPath.substring(1);
+          }
+          if (File(checkPath).existsSync()) {
+            resolvedSong = downloaded;
+          }
         }
       }
     }
@@ -1392,6 +1453,9 @@ class PlayerProvider extends ChangeNotifier {
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
       _isSearching = false;
+      _isLoadingMoreSearch = false;
+      _searchContinuationToken = null;
+      _searchSeenIds.clear();
       _searchResults = CatalogService.getAllTracks();
       notifyListeners();
       return;
@@ -1412,15 +1476,25 @@ class PlayerProvider extends ChangeNotifier {
     }
 
     _isSearching = true;
+    _searchContinuationToken = null;
+    _searchSeenIds.clear();
     notifyListeners();
 
-    // Debounce 250ms before firing live YouTube NewPipe search
+    // Debounce 250ms before firing live YouTube NewPipe paged search
     _searchDebounce = Timer(const Duration(milliseconds: 250), () async {
       try {
-        final results = await CatalogService.searchOnline(trimmed, limit: 35);
+        final seen = <String>{};
+        final page = await CatalogService.searchOnlinePaged(
+          trimmed,
+          seenIds: seen,
+        );
 
         if (_searchQuery == query) {
-          _searchResults = results;
+          _searchResults = page.songs;
+          _searchContinuationToken = page.continuationToken;
+          _searchSeenIds
+            ..clear()
+            ..addAll(seen);
           _isSearching = false;
           notifyListeners();
         }
@@ -1431,6 +1505,50 @@ class PlayerProvider extends ChangeNotifier {
         }
       }
     });
+  }
+
+  /// NewPipe-style infinite search scroll: fetches the next page of search results
+  Future<void> loadMoreSearchResults() async {
+    final q = _searchQuery.trim();
+    if (q.isEmpty ||
+        _isSearching ||
+        _isLoadingMoreSearch ||
+        _searchContinuationToken == null ||
+        _searchContinuationToken!.isEmpty) {
+      return;
+    }
+
+    _isLoadingMoreSearch = true;
+    notifyListeners();
+
+    try {
+      final token = _searchContinuationToken;
+      final page = await CatalogService.searchOnlinePaged(
+        q,
+        continuationToken: token,
+        seenIds: _searchSeenIds,
+      );
+
+      if (_searchQuery.trim() == q) {
+        _searchContinuationToken = page.continuationToken;
+        if (page.songs.isNotEmpty) {
+          final existingIds = _searchResults.map((s) => s.id).toSet();
+          final uniqueNew = page.songs.where((s) => existingIds.add(s.id)).toList();
+          if (uniqueNew.isNotEmpty) {
+            _searchResults = [..._searchResults, ...uniqueNew];
+            if (_playingFrom.startsWith('Search:')) {
+              _queue.addAll(uniqueNew);
+              if (_isShuffle) _unshuffledQueue.addAll(uniqueNew);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[PlayerProvider] loadMoreSearchResults error: $e');
+    } finally {
+      _isLoadingMoreSearch = false;
+      notifyListeners();
+    }
   }
 
 
@@ -1764,16 +1882,22 @@ class PlayerProvider extends ChangeNotifier {
       final isMix = playlist.id.startsWith('yt_mix_');
       if (isMix) {
         _isMixActive = true;
+        _activePaginatedPlaylistId = null;
         _activeMixPlaylistId = playlist.id.replaceFirst('yt_mix_', '');
         _mixContinuationToken = playlist.continuationToken;
-        _mixLastVideoId = playlist.songs.isNotEmpty ? playlist.songs.last.id.replaceFirst('yt_', '') : null;
-        _mixLastParams = null;
+        _mixLastVideoId = playlist.nextVideoId ??
+            (playlist.songs.isNotEmpty ? playlist.songs.last.id.replaceFirst('yt_', '') : null);
+        _mixLastParams = playlist.nextParams;
         _mixSeenVideoIds.clear();
         _mixSeenVideoIds.addAll(playlist.songs.map((s) => s.id.replaceFirst('yt_', '')));
         _playingFrom = 'YouTube Mix: ${playlist.title}';
       } else {
         _isMixActive = false;
         _activeMixPlaylistId = null;
+        _activePaginatedPlaylistId =
+            (playlist.continuationToken != null && playlist.continuationToken!.isNotEmpty)
+                ? playlist.id
+                : null;
         _playingFrom = 'Playlist: ${playlist.title}';
       }
       if (shuffle) {
@@ -1786,6 +1910,109 @@ class PlayerProvider extends ChangeNotifier {
       }
       final idx = startIndex.clamp(0, playlist.songs.length - 1);
       await playSong(playlist.songs[idx], contextQueue: playlist.songs, playingFrom: _playingFrom);
+    }
+  }
+
+  /// NewPipe-style infinite playlist & Mix loader: appends the next batch of tracks
+  /// for either a YouTube Mix (`yt_mix_...`) or a paginated YouTube Playlist (`yt_pl_...`).
+  Future<int> loadMorePlaylistTracks(String playlistId) async {
+    if (_loadingMorePlaylistIds.contains(playlistId)) return 0;
+    final plIdx = _playlists.indexWhere((p) => p.id == playlistId);
+    if (plIdx == -1) return 0;
+
+    final pl = _playlists[plIdx];
+    final isMix = pl.id.startsWith('yt_mix_');
+    if (!isMix && (pl.continuationToken == null || pl.continuationToken!.isEmpty)) {
+      return 0;
+    }
+
+    _loadingMorePlaylistIds.add(playlistId);
+    notifyListeners();
+
+    try {
+      final seen = pl.songs.map((s) => s.id.replaceFirst('yt_', '')).toSet();
+
+      if (isMix) {
+        final rawMixId = pl.id.replaceFirst('yt_mix_', '');
+        final lastVid = pl.nextVideoId ??
+            (pl.songs.isNotEmpty ? pl.songs.last.id.replaceFirst('yt_', '') : null);
+        final batch = await YouTubeImporterService.fetchNextMixBatch(
+          playlistId: rawMixId,
+          continuationToken: pl.continuationToken,
+          currentVideoId: lastVid,
+          currentParams: pl.nextParams,
+          seenIds: seen,
+        );
+
+        if (batch == null) return 0;
+
+        final currentIdx = _playlists.indexWhere((p) => p.id == playlistId);
+        if (currentIdx == -1) return 0;
+        final latestPl = _playlists[currentIdx];
+        final existingIds = latestPl.songs.map((s) => s.id).toSet();
+        final newSongs = batch.songs.where((s) => existingIds.add(s.id)).toList();
+
+        final updatedPl = latestPl.copyWith(
+          songs: [...latestPl.songs, ...newSongs],
+          continuationToken: batch.continuationToken,
+          nextVideoId: batch.nextVideoId ?? lastVid,
+          nextParams: batch.nextParams ?? latestPl.nextParams,
+        );
+        _playlists[currentIdx] = updatedPl;
+        await _storageService.savePlaylists(_playlists);
+
+        if (_isMixActive && _activeMixPlaylistId == rawMixId && newSongs.isNotEmpty) {
+          _mixContinuationToken = batch.continuationToken;
+          if (batch.nextVideoId != null) _mixLastVideoId = batch.nextVideoId;
+          if (batch.nextParams != null) _mixLastParams = batch.nextParams;
+          _mixSeenVideoIds.addAll(newSongs.map((s) => s.id.replaceFirst('yt_', '')));
+          final qIds = _queue.map((s) => s.id).toSet();
+          final toAppend = newSongs.where((s) => qIds.add(s.id)).toList();
+          _queue.addAll(toAppend);
+          if (_isShuffle) _unshuffledQueue.addAll(toAppend);
+        }
+
+        return newSongs.length;
+      } else {
+        final rawPlId = pl.id.replaceFirst('yt_pl_', '');
+        final page = await YouTubeImporterService.fetchPlaylistPage(
+          rawPlId,
+          continuationToken: pl.continuationToken,
+          seenIds: seen,
+        );
+        if (page == null) return 0;
+
+        final currentIdx = _playlists.indexWhere((p) => p.id == playlistId);
+        if (currentIdx == -1) return 0;
+        final latestPl = _playlists[currentIdx];
+        final existingIds = latestPl.songs.map((s) => s.id).toSet();
+        final newSongs = page.songs.where((s) => existingIds.add(s.id)).toList();
+
+        final updatedPl = latestPl.copyWith(
+          songs: [...latestPl.songs, ...newSongs],
+          continuationToken: page.continuationToken,
+        );
+        _playlists[currentIdx] = updatedPl;
+        await _storageService.savePlaylists(_playlists);
+
+        if (_activePaginatedPlaylistId == playlistId && newSongs.isNotEmpty) {
+          final qIds = _queue.map((s) => s.id).toSet();
+          final toAppend = newSongs.where((s) => qIds.add(s.id)).toList();
+          _queue.addAll(toAppend);
+          if (_isShuffle) _unshuffledQueue.addAll(toAppend);
+          if (page.continuationToken == null || page.continuationToken!.isEmpty) {
+            _activePaginatedPlaylistId = null;
+          }
+        }
+
+        return newSongs.length;
+      }
+    } catch (e) {
+      debugPrint('[PlayerProvider] loadMorePlaylistTracks error: $e');
+      return 0;
+    } finally {
+      _loadingMorePlaylistIds.remove(playlistId);
+      notifyListeners();
     }
   }
 
@@ -2330,10 +2557,21 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadYouTubeCategory(String categoryKey) async {
-    final cached = CatalogService.getCachedCategory(categoryKey);
-    if (cached != null && cached.isNotEmpty) {
-      _youtubeTracks = cached;
+  Future<void> loadYouTubeCategory(String categoryKey, {bool force = false}) async {
+    final normKey = CatalogService.normalizeCategoryKey(categoryKey);
+    if (!force && _activeHomeCategory == normKey && _youtubeTracks.isNotEmpty) {
+      return;
+    }
+
+    _activeHomeCategory = normKey;
+    final cachedPage = !force ? CatalogService.getCachedCategoryPage(normKey) : null;
+    if (cachedPage != null && cachedPage.songs.isNotEmpty) {
+      _youtubeTracks = List<Song>.from(cachedPage.songs);
+      _homeContinuationToken = cachedPage.continuationToken;
+      _homeSeenIds
+        ..clear()
+        ..addAll(cachedPage.songs.map((s) => s.id.replaceFirst('yt_', '')));
+      _isLoadingYouTube = false;
       notifyListeners();
       return;
     }
@@ -2342,12 +2580,21 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final tracks = await CatalogService.fetchCategory(categoryKey);
-      if (tracks.isNotEmpty) {
-        _youtubeTracks = tracks;
+      final seen = <String>{};
+      final page = await CatalogService.fetchCategoryPage(
+        normKey,
+        seenIds: seen,
+        forceRefresh: force,
+      );
+      if (_activeHomeCategory == normKey && page.songs.isNotEmpty) {
+        _youtubeTracks = List<Song>.from(page.songs);
+        _homeContinuationToken = page.continuationToken;
+        _homeSeenIds
+          ..clear()
+          ..addAll(seen);
       }
     } catch (e) {
-      debugPrint('Error loading YouTube category $categoryKey: $e');
+      debugPrint('Error loading YouTube category $normKey: $e');
     } finally {
       _isLoadingYouTube = false;
       notifyListeners();
@@ -2355,19 +2602,48 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> loadYouTubeTrending({bool force = false}) async {
-    if (!force && _youtubeTracks.isNotEmpty) return;
-    _isLoadingYouTube = true;
+    return loadYouTubeCategory('trending', force: force);
+  }
+
+  /// NewPipe-style infinite scroll for Home Tab categories & charts
+  Future<void> loadMoreYouTubeTracks() async {
+    if (_isLoadingYouTube ||
+        _isLoadingMoreYouTube ||
+        _homeContinuationToken == null ||
+        _homeContinuationToken!.isEmpty) {
+      return;
+    }
+
+    final targetCategory = _activeHomeCategory;
+    final token = _homeContinuationToken;
+    _isLoadingMoreYouTube = true;
     notifyListeners();
 
     try {
-      final tracks = await CatalogService.fetchTrending();
-      if (tracks.isNotEmpty) {
-        _youtubeTracks = tracks;
+      final page = await CatalogService.fetchCategoryPage(
+        targetCategory,
+        continuationToken: token,
+        seenIds: _homeSeenIds,
+      );
+
+      if (_activeHomeCategory == targetCategory) {
+        _homeContinuationToken = page.continuationToken;
+        if (page.songs.isNotEmpty) {
+          final existingIds = _youtubeTracks.map((s) => s.id).toSet();
+          final uniqueNew = page.songs.where((s) => existingIds.add(s.id)).toList();
+          if (uniqueNew.isNotEmpty) {
+            _youtubeTracks = [..._youtubeTracks, ...uniqueNew];
+            if (_playingFrom.contains('Top') || _playingFrom.contains('Category')) {
+              _queue.addAll(uniqueNew);
+              if (_isShuffle) _unshuffledQueue.addAll(uniqueNew);
+            }
+          }
+        }
       }
     } catch (e) {
-      debugPrint('Error loading YouTube trending: $e');
+      debugPrint('[PlayerProvider] loadMoreYouTubeTracks error: $e');
     } finally {
-      _isLoadingYouTube = false;
+      _isLoadingMoreYouTube = false;
       notifyListeners();
     }
   }
@@ -2555,9 +2831,146 @@ class PlayerProvider extends ChangeNotifier {
     final pl = await _storageService.importPlaylistJson(jsonStr);
     if (pl != null) {
       _playlists = _storageService.loadPlaylists();
+      _favorites = _storageService.loadFavorites();
+      _history = _storageService.loadHistory();
       notifyListeners();
     }
     return pl;
+  }
+
+  /// Opens Android's native SAF "Save As..." dialog to save a playlist JSON anywhere on device
+  Future<SavedJsonDocumentResult?> savePlaylistViaSystemPicker(Playlist playlist) async {
+    final jsonStr = exportPlaylistJson(playlist);
+    // Also persist an internal backup copy automatically
+    await exportPlaylistToFile(playlist);
+    final sanitizedTitle = playlist.title.replaceAll(RegExp(r'[\/:*?"<>|]'), '_').trim();
+    final fileName = 'playlist_${sanitizedTitle.isNotEmpty ? sanitizedTitle : "export"}.json';
+    return NativeStorageBridge.saveJsonViaSystemPicker(
+      fileName: fileName,
+      jsonContent: jsonStr,
+    );
+  }
+
+  /// Shares an exported playlist `.json` file via Android's system Share Sheet
+  Future<bool> sharePlaylistJsonFile(Playlist playlist) async {
+    final file = await exportPlaylistToFile(playlist);
+    if (file == null) return false;
+    return NativeStorageBridge.shareFile(
+      file,
+      title: 'Share Playlist "${playlist.title}"',
+    );
+  }
+
+  /// Opens Android's native SAF "Save As..." dialog for full Library Backup JSON
+  Future<SavedJsonDocumentResult?> saveBackupViaSystemPicker() async {
+    final jsonStr = exportLibraryBackup();
+    await exportLibraryBackupToFile();
+    final now = DateTime.now();
+    final stamp = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_'
+        '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+    return NativeStorageBridge.saveJsonViaSystemPicker(
+      fileName: 'sine_backup_$stamp.json',
+      jsonContent: jsonStr,
+    );
+  }
+
+  /// Shares full Library Backup `.json` file via Android's system Share Sheet
+  Future<bool> shareBackupJsonFile() async {
+    final file = await exportLibraryBackupToFile();
+    if (file == null) return false;
+    return NativeStorageBridge.shareFile(
+      file,
+      title: 'Share Sine Library Backup',
+    );
+  }
+
+  /// Opens Android's native SAF "Save As..." dialog for Settings JSON
+  Future<SavedJsonDocumentResult?> saveSettingsViaSystemPicker() async {
+    final jsonStr = exportSettingsJson();
+    await exportSettingsToFile();
+    final now = DateTime.now();
+    final stamp = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    return NativeStorageBridge.saveJsonViaSystemPicker(
+      fileName: 'Sine_Settings_$stamp.json',
+      jsonContent: jsonStr,
+    );
+  }
+
+  /// Shares Settings `.json` file via Android's system Share Sheet
+  Future<bool> shareSettingsJsonFile() async {
+    final file = await exportSettingsToFile();
+    if (file == null) return false;
+    return NativeStorageBridge.shareFile(
+      file,
+      title: 'Share Sine Settings',
+    );
+  }
+
+  /// Opens Android's native File Picker (`ACTION_OPEN_DOCUMENT`), reads any `.json` file
+  /// (Sine Playlist, Sine Backup, Sine Settings, or NewPipe Export), and imports it atomically.
+  Future<({bool ok, bool cancelled, String message})> pickAndImportJsonFile({
+    bool merge = true,
+  }) async {
+    final picked = await NativeStorageBridge.pickJsonViaSystemPicker();
+    if (picked == null) {
+      return (ok: false, cancelled: true, message: 'No file selected');
+    }
+
+    final fmt = StorageService.detectJsonFormat(picked.content);
+    if (fmt == 'SINE_PLAYLIST') {
+      final pl = await importPlaylistFromJson(picked.content);
+      if (pl != null) {
+        return (
+          ok: true,
+          cancelled: false,
+          message: 'Imported playlist "${pl.title}" (${pl.songs.length} tracks) from ${picked.name}!',
+        );
+      }
+    }
+
+    final backupRes = await importLibraryBackup(picked.content, merge: merge);
+    if (backupRes != null) {
+      if (fmt == 'SINE_SETTINGS' ||
+          (backupRes.playlistsCount == 0 &&
+              backupRes.favoritesCount == 0 &&
+              backupRes.historyCount == 0)) {
+        return (
+          ok: true,
+          cancelled: false,
+          message: 'Restored settings, EQ & theme preferences from ${picked.name}!',
+        );
+      }
+      return (
+        ok: true,
+        cancelled: false,
+        message:
+            'Imported ${backupRes.playlistsCount} playlist(s) & ${backupRes.favoritesCount} favorite(s) from ${picked.name}!',
+      );
+    }
+
+    final plFallback = await importPlaylistFromJson(picked.content);
+    if (plFallback != null) {
+      return (
+        ok: true,
+        cancelled: false,
+        message: 'Imported playlist "${plFallback.title}" (${plFallback.songs.length} tracks)!',
+      );
+    }
+
+    final settingsOk = await importSettingsFromJson(picked.content);
+    if (settingsOk) {
+      return (
+        ok: true,
+        cancelled: false,
+        message: 'Restored settings from ${picked.name}!',
+      );
+    }
+
+    return (
+      ok: false,
+      cancelled: false,
+      message: 'Could not parse "${picked.name}". Ensure it is a valid Sine or NewPipe JSON file.',
+    );
   }
 
   Future<List<File>> getAvailableBackupFiles() {

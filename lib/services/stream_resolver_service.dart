@@ -128,6 +128,12 @@ class StreamResolverService {
   static Future<List<String>> _resolveCandidatesInternal(Song song, String cacheKey) async {
     final s = song.streamUrl;
 
+    // 0. Android MediaStore content:// URIs (Scoped Storage local device audio)
+    if (s.startsWith('content://')) {
+      LogService.stream('StreamResolver', 'MediaStore content URI verified for "${song.title}": $s');
+      return [s];
+    }
+
     // 1. Local offline files (POSIX, file://, and Windows drive letters)
     final isLocal = s.startsWith('/') ||
         s.startsWith('file://') ||

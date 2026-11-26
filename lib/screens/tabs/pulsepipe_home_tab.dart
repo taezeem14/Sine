@@ -6,6 +6,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/song.dart';
 import '../../models/playlist.dart';
 import '../../providers/player_provider.dart';
+import '../../services/catalog_service.dart';
 import '../../theme/ember_theme.dart';
 import '../settings_screen.dart';
 import '../sound_shaping_sheet.dart';
@@ -28,7 +29,22 @@ class PulsePipeHomeTab extends StatefulWidget {
 }
 
 class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
-  String _selectedPill = 'All';
+  static const Map<String, String> _pillToCategoryKey = {
+    'All': 'trending',
+    'Top Hits': 'top_hits',
+    'Pop': 'pop',
+    'Hip-Hop': 'hiphop',
+    'Electronic': 'electronic',
+    'Lo-Fi': 'lofi',
+    'Rock': 'rock',
+  };
+
+  String _pillForCategoryKey(String key) {
+    for (final entry in _pillToCategoryKey.entries) {
+      if (entry.value == key) return entry.key;
+    }
+    return 'All';
+  }
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
@@ -58,10 +74,14 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
   Widget build(BuildContext context) {
     final hasSession = context.select<PlayerProvider, bool>((p) => p.recoverableSession != null);
     final isYtLoading = context.select<PlayerProvider, bool>((p) => p.isLoadingYouTube);
+    final isYtLoadingMore = context.select<PlayerProvider, bool>((p) => p.isLoadingMoreYouTube);
+    final activeCatKey = context.select<PlayerProvider, String>((p) => p.activeHomeCategory);
     final ytTracks = context.select<PlayerProvider, List<Song>>((p) => p.youtubeTracks);
     final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
     final bgColor = isOled ? EmberColors.pitchBlack : EmberColors.obsidianBase;
     final player = context.read<PlayerProvider>();
+    final selectedPill = _pillForCategoryKey(activeCatKey);
+    final activeMeta = CatalogService.getCategoryMeta(activeCatKey);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -69,63 +89,31 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
         color: Theme.of(context).colorScheme.primary,
         backgroundColor: EmberColors.surfaceContainerHigh,
         onRefresh: () async {
-          await player.loadYouTubeTrending(force: true);
+          await player.loadYouTubeCategory(activeCatKey, force: true);
         },
-        child: CustomScrollView(
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (notification is ScrollUpdateNotification) {
+              final m = notification.metrics;
+              if (m.maxScrollExtent > 0 && m.extentAfter < 500) {
+                player.loadMoreYouTubeTracks();
+              }
+            }
+            return false;
+          },
+          child: CustomScrollView(
         key: const PageStorageKey<String>('sine_home_scroll'),
         cacheExtent: 800,
         physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         slivers: [
-          // 1. Top Bar with Spotify Avatar, Greeting & Quick Actions
+          // 1. Top Bar with Greeting & Quick Actions
           SliverAppBar(
             backgroundColor: bgColor.withValues(alpha: 0.95),
             elevation: 0,
             floating: true,
             pinned: false,
             automaticallyImplyLeading: false,
-            leadingWidth: 54,
-            leading: Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: GestureDetector(
-                onTap: () => SettingsScreen.show(context),
-                child: Center(
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          Theme.of(context).colorScheme.primary,
-                          Theme.of(context).colorScheme.primary.withValues(alpha: 0.75),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'S',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            titleSpacing: 12,
+            titleSpacing: 16,
             title: Text(
               _getGreeting(),
               maxLines: 1,
@@ -139,22 +127,22 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
             ),
             actions: [
               IconButton(
-                icon: FaIcon(FontAwesomeIcons.microphoneLines, size: 16, color: Theme.of(context).colorScheme.primary),
+                icon: FaIcon(FontAwesomeIcons.microphoneLines, size: 16, color: EmberColors.primaryBlue),
                 tooltip: 'Audile Music Detector',
                 onPressed: () => MusicDetectorSheet.show(context),
               ),
               IconButton(
-                icon: const FaIcon(FontAwesomeIcons.sliders, size: 16, color: EmberColors.textPrimary),
+                icon: FaIcon(FontAwesomeIcons.sliders, size: 16, color: EmberColors.textPrimary),
                 tooltip: 'Audiophile Equalizer',
                 onPressed: () => SoundShapingSheet.show(context),
               ),
               IconButton(
-                icon: const FaIcon(FontAwesomeIcons.clockRotateLeft, size: 16, color: EmberColors.textPrimary),
+                icon: FaIcon(FontAwesomeIcons.clockRotateLeft, size: 16, color: EmberColors.textPrimary),
                 tooltip: 'Listening History',
                 onPressed: widget.onOpenLibrary,
               ),
               IconButton(
-                icon: const FaIcon(FontAwesomeIcons.gear, size: 16, color: EmberColors.textPrimary),
+                icon: FaIcon(FontAwesomeIcons.gear, size: 16, color: EmberColors.textPrimary),
                 tooltip: 'Settings & Author',
                 onPressed: () => SettingsScreen.show(context),
               ),
@@ -268,18 +256,14 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
                     child: Row(
-                  children: ['All', 'Top Hits', 'Pop', 'Hip-Hop', 'Electronic', 'Lo-Fi', 'Rock'].map((pill) {
-                    final isSelected = _selectedPill == pill;
+                  children: _pillToCategoryKey.keys.map((pill) {
+                    final isSelected = selectedPill == pill;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: GestureDetector(
                         onTap: () {
-                          setState(() => _selectedPill = pill);
-                          if (pill == 'All' || pill == 'Top Hits') {
-                            player.loadYouTubeTrending();
-                          } else {
-                            player.loadYouTubeCategory(pill.toLowerCase().replaceAll('-', ''));
-                          }
+                          final targetKey = _pillToCategoryKey[pill] ?? 'trending';
+                          player.loadYouTubeCategory(targetKey);
                         },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
@@ -320,7 +304,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
             ),
           ),
 
-          // 3. Quick Access 2-Column Grid (Spotify Signature 6 Cards)
+          // 3. Quick Access 2-Column Grid (6 Cards)
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             sliver: SliverGrid(
@@ -332,65 +316,63 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
               ),
               delegate: SliverChildListDelegate([
                 _buildQuickAccessCard(
-                  title: 'Liked Songs',
+                  title: 'Liked Tracks',
                   isLikedSongs: true,
                   onTap: widget.onOpenLibrary,
                   isPlaying: player.favorites.any((s) => s.id == player.currentSong?.id),
                 ),
                 _buildQuickAccessCard(
                   title: 'Today\'s Top Hits',
-                  onTap: () => player.loadYouTubeTrending(),
+                  onTap: () => player.loadYouTubeCategory('trending'),
                   icon: FontAwesomeIcons.chartLine,
-                  iconColor: Theme.of(context).colorScheme.primary,
+                  iconColor: EmberColors.primaryBlue,
+                  isPlaying: activeCatKey == 'trending',
                 ),
                 _buildQuickAccessCard(
                   title: 'Global Top 50',
                   onTap: () => player.loadYouTubeCategory('top_hits'),
                   icon: FontAwesomeIcons.trophy,
-                  iconColor: const Color(0xFFFFD700),
+                  iconColor: EmberColors.secondaryCyan,
+                  isPlaying: activeCatKey == 'top_hits',
                 ),
                 _buildQuickAccessCard(
-                  title: 'Discover & Radio',
-                  onTap: () {
-                    final cur = player.currentSong;
-                    if (cur != null) {
-                      player.startRadio(cur);
-                    } else {
-                      player.loadYouTubeCategory('trending');
-                    }
-                  },
-                  icon: FontAwesomeIcons.towerBroadcast,
-                  iconColor: const Color(0xFF1DB954),
+                  title: 'Hip-Hop Beats',
+                  onTap: () => player.loadYouTubeCategory('hiphop'),
+                  icon: FontAwesomeIcons.microphoneLines,
+                  iconColor: EmberColors.electricBlue,
+                  isPlaying: activeCatKey == 'hiphop',
                 ),
                 _buildQuickAccessCard(
-                  title: 'Release Radar',
+                  title: 'Electronic Pulse',
                   onTap: () => player.loadYouTubeCategory('electronic'),
                   icon: FontAwesomeIcons.bolt,
-                  iconColor: const Color(0xFF00E5FF),
+                  iconColor: EmberColors.secondaryCyan,
+                  isPlaying: activeCatKey == 'electronic',
                 ),
                 _buildQuickAccessCard(
-                  title: 'Chill & Lo-Fi Lounge',
+                  title: 'Lo-Fi Chill',
                   onTap: () => player.loadYouTubeCategory('lofi'),
-                  icon: FontAwesomeIcons.mugSaucer,
-                  iconColor: const Color(0xFFFF9100),
+                  icon: FontAwesomeIcons.headphones,
+                  iconColor: EmberColors.electricBlue,
+                  isPlaying: activeCatKey == 'lofi',
                 ),
               ]),
             ),
           ),
 
-          // 4. Section: Today's Top Hits
+          // 4. Section: Active Category Carousel
           SliverToBoxAdapter(
             child: _buildSectionHeader(
-              title: 'Today\'s Top Hits',
-              subtitle: 'The world\'s biggest songs right now • High-Fidelity Audio',
+              title: activeMeta.title,
+              subtitle: activeMeta.subtitle,
               actionText: 'Play all',
               onAction: () {
                 if (ytTracks.isNotEmpty) {
                   player.playPlaylist(
                     Playlist(
-                      id: 'yt_top_hits_all',
-                      title: 'Today\'s Top Hits',
-                      description: 'The world\'s biggest songs right now',
+                      id: 'yt_cat_$activeCatKey',
+                      title: activeMeta.title,
+                      description: activeMeta.subtitle,
                       songs: ytTracks,
                       createdAt: DateTime.now(),
                       coverUrl: ytTracks.first.artworkUrl,
@@ -406,7 +388,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
               child: ytTracks.isEmpty
                   ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
                   : ListView.builder(
-                      key: const PageStorageKey<String>('sine_home_carousel'),
+                      key: PageStorageKey<String>('sine_home_carousel_$activeCatKey'),
                       scrollDirection: Axis.horizontal,
                       cacheExtent: 600,
                       physics: const BouncingScrollPhysics(),
@@ -416,7 +398,15 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                         final track = ytTracks[index];
                         return RepaintBoundary(
                           key: ValueKey('carousel_${track.id}'),
-                          child: _buildTrackCarouselCard(track, () => player.playSong(track, playingFrom: 'Today\'s Top Hits')),
+                          child: _buildTrackCarouselCard(
+                            track,
+                            () => player.playCategoryTracks(
+                              ytTracks,
+                              startIndex: index,
+                              targetSong: track,
+                              playingFrom: activeMeta.title,
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -425,11 +415,13 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
 
           const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-          // 5. Section: Global Charts & Fresh Releases
+          // 5. Section: Infinite Category / Charts Stream
           SliverToBoxAdapter(
             child: _buildSectionHeader(
-              title: 'Global Charts & Fresh Releases',
-              subtitle: 'Top curated tracks streaming directly via NewPipe',
+              title: activeCatKey == 'trending'
+                  ? 'Global Charts & Fresh Releases'
+                  : '${activeMeta.title} • Full Stream',
+              subtitle: 'Scroll down for infinite tracks streaming via NewPipe (${ytTracks.length}+ loaded)',
             ),
           ),
           SliverPadding(
@@ -458,10 +450,28 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
             ),
           ),
 
+          if (isYtLoadingMore)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                child: Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
           // Extra bottom padding for floating mini-player & bottom nav
           const SliverToBoxAdapter(child: SizedBox(height: 150)),
         ],
       ),
+        ),
       ),
     );
   }
@@ -475,30 +485,21 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
     required VoidCallback onTap,
     bool isPlaying = false,
   }) {
-    final activeAccent = Theme.of(context).colorScheme.primary;
-
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(10),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 240),
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
           color: EmberColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isPlaying
-                ? activeAccent.withValues(alpha: 0.55)
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.55)
                 : EmberColors.outlineVariant.withValues(alpha: 0.25),
             width: isPlaying ? 1.2 : 0.7,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.22),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         clipBehavior: Clip.antiAlias,
         child: Row(
@@ -509,7 +510,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                 height: double.infinity,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF450AF5), Color(0xFF8E8EE5)],
+                    colors: [Color(0xFF1565C0), Color(0xFF2979FF)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -522,9 +523,9 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
               Container(
                 width: 52,
                 height: double.infinity,
-                color: (iconColor ?? activeAccent).withValues(alpha: 0.18),
+                color: (iconColor ?? EmberColors.electricBlue).withValues(alpha: 0.15),
                 child: Center(
-                  child: FaIcon(icon, size: 20, color: iconColor ?? activeAccent),
+                  child: FaIcon(icon, size: 20, color: iconColor ?? EmberColors.electricBlue),
                 ),
               )
             else
@@ -541,7 +542,7 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                   child: const Center(child: FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.textMuted)),
                 ),
               ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 title,
@@ -549,30 +550,16 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: EmberColors.textPrimary,
-                  fontSize: 12.5,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.2,
                 ),
               ),
             ),
             if (isPlaying)
-              Container(
-                width: 28,
-                height: 28,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: activeAccent,
-                  boxShadow: [
-                    BoxShadow(
-                      color: activeAccent.withValues(alpha: 0.4),
-                      blurRadius: 8,
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Icon(Icons.volume_up_rounded, size: 16, color: Colors.black),
-                ),
+              Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: FaIcon(FontAwesomeIcons.volumeHigh, size: 12, color: EmberColors.primaryBlue),
               ),
           ],
         ),
@@ -636,88 +623,81 @@ class _PulsePipeHomeTabState extends State<PulsePipeHomeTab> {
   }
 
   Widget _buildTrackCarouselCard(Song track, VoidCallback onTap) {
-    final activeAccent = Theme.of(context).colorScheme.primary;
-
     return RepaintBoundary(
       key: ValueKey(track.id),
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 140,
-          margin: const EdgeInsets.only(right: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: CachedNetworkImage(
-                      imageUrl: track.artworkUrl,
-                      width: 140,
-                      height: 140,
-                      memCacheWidth: 320,
-                      memCacheHeight: 320,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, error, stackTrace) => Container(
-                        width: 140,
-                        height: 140,
-                        color: EmberColors.surfaceContainerHigh,
-                        child: const Center(child: FaIcon(FontAwesomeIcons.music, size: 28, color: EmberColors.textMuted)),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 8,
-                    bottom: 8,
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: activeAccent,
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x66000000),
-                            blurRadius: 8,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.play_arrow_rounded, color: Colors.black, size: 22),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 7),
-              Text(
-                track.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: EmberColors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.2,
+          width: 135,
+        margin: const EdgeInsets.only(right: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: CachedNetworkImage(
+                imageUrl: track.artworkUrl,
+                width: 135,
+                height: 135,
+                memCacheWidth: 300,
+                memCacheHeight: 300,
+                fit: BoxFit.cover,
+                errorWidget: (context, error, stackTrace) => Container(
+                  width: 135,
+                  height: 135,
+                  color: EmberColors.surfaceContainerHigh,
+                  child: const Center(child: FaIcon(FontAwesomeIcons.music, size: 28, color: EmberColors.textMuted)),
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                track.artist,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: EmberColors.textSecondary,
-                  fontSize: 11.5,
-                ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              track.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: EmberColors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: EmberColors.electricBlue.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: Text(
+                    'OPUS',
+                    style: TextStyle(
+                      color: EmberColors.secondaryCyan,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    track.artist,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: EmberColors.textSecondary,
+                      fontSize: 10.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

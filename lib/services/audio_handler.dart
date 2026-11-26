@@ -665,6 +665,24 @@ class SineAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
 
     try {
       final s = song.streamUrl;
+
+      // 0. Android MediaStore content:// URI playback (Scoped Storage compliant)
+      if (s.startsWith('content://')) {
+        _activeStreamUrl = s;
+        await _player.setAudioSource(
+          AudioSource.uri(Uri.parse(s)),
+          initialPosition: Duration.zero,
+          preload: true,
+        );
+        if (currentRequestId != _playRequestId) {
+          try { await _player.pause(); } catch (_) {}
+          return;
+        }
+        await _restorePlaybackParameters(forceRebindEq: false);
+        _triggerPlayNonBlocking();
+        return;
+      }
+
       final isLocal = s.startsWith('/') || s.startsWith('file://') || RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(s);
 
       if (isLocal) {

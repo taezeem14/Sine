@@ -6,7 +6,7 @@ typedef SineTheme = EmberTheme;
 
 enum SineThemePreset {
   blue('Electric Blue', Color(0xFF2979FF)),
-  green('Spotify Green', Color(0xFF1DB954)),
+  green('Emerald Green', Color(0xFF1DB954)),
   orange('Sunset Orange', Color(0xFFFF6D00)),
   red('Crimson Red', Color(0xFFFF1744)),
   yellow('Electric Yellow', Color(0xFFFFD600)),
@@ -20,7 +20,6 @@ enum SineThemePreset {
 
   static SineThemePreset fromKey(String? key) {
     switch (key?.toLowerCase().trim()) {
-      case 'spotify':
       case 'green':
         return SineThemePreset.green;
       case 'orange':
@@ -48,14 +47,6 @@ class EmberColors {
 
   static Color _currentPrimary = const Color(0xFF2979FF);
   static bool _isOledBlack = false;
-
-  // Spotify Official Color Foundations
-  static const Color spotifyGreen = Color(0xFF1DB954);
-  static const Color spotifyBlack = Color(0xFF121212);
-  static const Color spotifyCard = Color(0xFF181818);
-  static const Color spotifyElevated = Color(0xFF242424);
-  static const Color spotifyHover = Color(0xFF282828);
-  static const Color spotifySubtext = Color(0xFFB3B3B3);
 
   static Color get currentPrimary => _currentPrimary;
   static bool get isOledBlack => _isOledBlack;

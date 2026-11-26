@@ -31,8 +31,8 @@ AntiFeatures:
 
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
-CurrentVersion: 1.4.4
-CurrentVersionCode: 44
+CurrentVersion: 1.4.5
+CurrentVersionCode: 45
 
 Builds:
   - versionName: 1.2.5

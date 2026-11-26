@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.4.4%20(Build%2044)-1DB954?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.4.5%20(Build%2045)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.4.4)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.4.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.4.5)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.5.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy studio-grade ad-free music instantly.*
 
@@ -36,7 +36,7 @@
 
 ## 📖 Table of Contents
 - [What Is Sine?](#-what-is-sine)
-- [What's New in v1.4.4](#-whats-new-in-v144)
+- [What's New in v1.4.5](#-whats-new-in-v145)
 - [What's New in v1.4.3](#-whats-new-in-v143)
 - [What's New in v1.4.2](#-whats-new-in-v142)
 - [What's New in v1.4.1](#-whats-new-in-v141)
@@ -74,17 +74,18 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 
 ---
 
-## 🌟 What's New in v1.4.4
-- **Authentic Spotify UI & Aesthetic Overhaul**:
-  - **Spotify Green & Dark Palette**: Integrated official Spotify Green (`#1DB954`) as a first-class theme preset and obsidian surface hierarchy (`#121212` background, `#181818` card surfaces, `#242424` elevated pills).
-  - **Home Tab**: Added Spotify profile avatar pill, dynamic time-of-day greeting ("Good morning / afternoon / evening"), Spotify genre filter pills, iconic 6-card quick access grid (Liked Songs with gradient `0xFF450AF5` -> `0xFF8E8EE5`, Discover & Radio, Release Radar, Chill & Lo-Fi Lounge with active green play buttons), 140x140 square carousel cards with floating circular green play buttons, and sleek track tiles.
-  - **Search Tab**: Spotify header, search bar ("What do you want to listen to?"), vibrant 2-column genre browse cards, and Spotify top-result card with circular green play button.
-  - **Library Tab**: Spotify header, active green filter pills, and pinned Liked Songs row with authentic Spotify gradient.
-  - **Now Playing Screen**: Dynamic theme/Spotify green active scrubber, bouncy animated heart, Spotify shuffle and repeat controls with active dot indicator badges, and 68px circular play/pause button.
-  - **MiniPlayer**: Retained user-mandated signature rotating `VinylDisc` (size 42) and hairline progress bar, integrated with dynamic Spotify accent colors.
-- **Bug Fixes & System Stability**:
-  - Hardened repeat/shuffle cycling and skip transport controls.
-  - Verified zero analyzer issues, zero memory leaks, and 100% pass on all test suites.
+## 🌟 What's New in v1.4.5
+- **Authentic Sine v1.4.3 UI Restored + Original OG MiniPlayer with 120 FPS Swipes**:
+  - Reverted all screens and theme presets (`EmberTheme`) back to the crisp Sine `v1.4.3` Cobalt Blue aesthetic.
+  - Restored the original pre-color-coded MiniPlayer (`surfaceContainerLow` dark glass surface, `outlineVariant` border, top `2.5px` hairline progress bar, untinted rotating `VinylDisc(size: 42)` with circular artwork peek, animated favorite heart, solid circular play/pause, and skip button) while preserving 120 FPS `ValueNotifier` horizontal swipe-to-skip, swipe-up to open Now Playing, and swipe-down/long-press to dismiss.
+- **Native SAF Export/Import & Universal JSON Playlist Support**:
+  - Added Android Storage Access Framework (`ACTION_CREATE_DOCUMENT`, `ACTION_OPEN_DOCUMENT`, and `FileProvider` Share Sheet) in `MainActivity.kt` so playlists, backups, and settings can be saved anywhere and imported reliably on Android 11–15 without intrusive `MANAGE_EXTERNAL_STORAGE` prompts.
+  - Universal JSON parser sanitizes UTF-8 BOM and markdown code fences, supporting `SINE_PLAYLIST`, `SINE_BACKUP`, `SINE_SETTINGS`, raw song lists, and **NewPipe JSON playlist exports**.
+- **NewPipe-Style Infinite Pagination Across Search, Categories, Playlists & YouTube Mixes**:
+  - Removed finite single-page track caps across Search, Home genre pills (`All`, `Top Hits`, `Pop`, `Hip-Hop`, `Electronic`, `Lo-Fi`, `Rock`), Category Detail sheets, and imported YouTube playlists using InnerTube `continuationToken` pagination.
+  - Fixed YouTube Mix (`RD...` / `RDCLAK...`) continuation token exhaustion so mixes seamlessly pivot to NewPipe's sliding-window `videoId + playlistId` cursor for truly infinite radio playback.
+- **Native MediaStore Local Device Audio Scanner & Playback**:
+  - Replaced Scoped-Storage-blocked `Directory.list()` scanning with native Android `MediaStore.Audio.Media` `ContentResolver` queries and full `content://` URI playback in `SineAudioHandler`.
 
 ---
 

@@ -34,6 +34,9 @@ class CategoryDetailSheet extends StatefulWidget {
 class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
   List<Song> _tracks = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  String? _continuationToken;
+  final Set<String> _seenIds = {};
 
   @override
   void initState() {
@@ -42,16 +45,58 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
   }
 
   Future<void> _loadCategoryTracks() async {
-    final songs = await CatalogService.fetchCuratedGenre(
+    final page = await CatalogService.fetchCategoryPage(
       widget.category.title,
-      widget.category.query,
+      customQuery: widget.category.query,
+      seenIds: _seenIds,
     );
 
     if (mounted) {
       setState(() {
-        _tracks = songs;
+        _tracks = page.songs;
+        _continuationToken = page.continuationToken;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadMoreTracks() async {
+    if (_isLoading ||
+        _isLoadingMore ||
+        _continuationToken == null ||
+        _continuationToken!.isEmpty) {
+      return;
+    }
+
+    setState(() => _isLoadingMore = true);
+    try {
+      final page = await CatalogService.fetchCategoryPage(
+        widget.category.title,
+        customQuery: widget.category.query,
+        continuationToken: _continuationToken,
+        seenIds: _seenIds,
+      );
+      if (mounted) {
+        final existingIds = _tracks.map((s) => s.id).toSet();
+        final uniqueNew = page.songs.where((s) => existingIds.add(s.id)).toList();
+        setState(() {
+          _continuationToken = page.continuationToken;
+          if (uniqueNew.isNotEmpty) {
+            _tracks = [..._tracks, ...uniqueNew];
+          }
+          _isLoadingMore = false;
+        });
+        if (uniqueNew.isNotEmpty && mounted) {
+          final player = context.read<PlayerProvider>();
+          if (player.playingFrom == widget.category.title) {
+            player.addTracksToQueue(uniqueNew);
+          }
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+      }
     }
   }
 
@@ -79,6 +124,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
     context.select<PlayerProvider, (String?, bool)>((p) => (p.currentSong?.id, p.isPlaying));
     final isOled = context.select<PlayerProvider, bool>((p) => p.isOledBlack);
     final accent = Theme.of(context).colorScheme.primary;
+    final hasMore = _continuationToken != null && _continuationToken!.isNotEmpty;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.88,
@@ -109,7 +155,6 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Drag handle
                 Center(
                   child: Container(
                     width: 40,
@@ -121,7 +166,6 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                     ),
                   ),
                 ),
-
                 Row(
                   children: [
                     Container(
@@ -148,7 +192,9 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            _isLoading ? 'Loading curated tracks...' : '${_tracks.length} high-fidelity tracks',
+                            _isLoading
+                                ? 'Loading curated tracks...'
+                                : '${_tracks.length}${hasMore ? "+" : ""} high-fidelity tracks',
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.7),
                               fontSize: 12,
@@ -163,10 +209,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 16),
-
-                // Controls: Play All & Shuffle
                 Row(
                   children: [
                     ElevatedButton.icon(
@@ -198,7 +241,7 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
             ),
           ),
 
-          // Track List
+          // Infinite Paginated Track List
           Expanded(
             child: _isLoading
                 ? Center(
@@ -211,84 +254,107 @@ class _CategoryDetailSheetState extends State<CategoryDetailSheet> {
                           style: TextStyle(color: EmberColors.textMuted),
                         ),
                       )
-                    : ListView.builder(
-                        itemCount: _tracks.length,
-                        padding: const EdgeInsets.only(bottom: 24),
-                        itemBuilder: (context, index) {
-                          final song = _tracks[index];
-                          final isCurrent = player.currentSong?.id == song.id;
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (notification) {
+                          if (notification is ScrollUpdateNotification &&
+                              notification.metrics.maxScrollExtent > 0 &&
+                              notification.metrics.extentAfter < 450) {
+                            _loadMoreTracks();
+                          }
+                          return false;
+                        },
+                        child: ListView.builder(
+                          itemCount: _tracks.length + (_isLoadingMore ? 1 : 0),
+                          padding: const EdgeInsets.only(bottom: 24),
+                          itemBuilder: (context, index) {
+                            if (index >= _tracks.length) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: accent),
+                                  ),
+                                ),
+                              );
+                            }
 
-                          return Container(
-                            key: ValueKey(song.id),
-                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isCurrent ? accent.withValues(alpha: 0.12) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: ListTile(
-                              dense: true,
-                              visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
-                              leading: ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: CachedNetworkImage(
-                                  imageUrl: song.artworkUrl,
-                                  width: 44,
-                                  height: 44,
-                                  memCacheWidth: 150,
-                                  memCacheHeight: 150,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (_, _, _) => Container(
+                            final song = _tracks[index];
+                            final isCurrent = player.currentSong?.id == song.id;
+
+                            return Container(
+                              key: ValueKey(song.id),
+                              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isCurrent ? accent.withValues(alpha: 0.12) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: ListTile(
+                                dense: true,
+                                visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: CachedNetworkImage(
+                                    imageUrl: song.artworkUrl,
                                     width: 44,
                                     height: 44,
-                                    color: EmberColors.surfaceContainerHigh,
-                                    child: const Icon(Icons.music_note, color: EmberColors.textMuted, size: 20),
-                                  ),
-                                ),
-                              ),
-                              title: Text(
-                                song.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: isCurrent ? accent : EmberColors.textPrimary,
-                                  fontSize: 13,
-                                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
-                                ),
-                              ),
-                              subtitle: Text(
-                                song.artist,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: EmberColors.textSecondary, fontSize: 11),
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: FaIcon(
-                                      player.isFavorite(song.id) ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
-                                      size: 14,
-                                      color: player.isFavorite(song.id) ? accent : EmberColors.textMuted,
+                                    memCacheWidth: 150,
+                                    memCacheHeight: 150,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (_, _, _) => Container(
+                                      width: 44,
+                                      height: 44,
+                                      color: EmberColors.surfaceContainerHigh,
+                                      child: const Icon(Icons.music_note, color: EmberColors.textMuted, size: 20),
                                     ),
-                                    onPressed: () => player.toggleFavorite(song),
                                   ),
-                                  IconButton(
-                                    icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
-                                    onPressed: () => TrackOptionsSheet.show(context, song),
+                                ),
+                                title: Text(
+                                  song.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: isCurrent ? accent : EmberColors.textPrimary,
+                                    fontSize: 13,
+                                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
                                   ),
-                                ],
+                                ),
+                                subtitle: Text(
+                                  song.artist,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: EmberColors.textSecondary, fontSize: 11),
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: FaIcon(
+                                        player.isFavorite(song.id) ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
+                                        size: 14,
+                                        color: player.isFavorite(song.id) ? accent : EmberColors.textMuted,
+                                      ),
+                                      onPressed: () => player.toggleFavorite(song),
+                                    ),
+                                    IconButton(
+                                      icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, size: 14, color: EmberColors.textMuted),
+                                      onPressed: () => TrackOptionsSheet.show(context, song),
+                                    ),
+                                  ],
+                                ),
+                                onTap: () {
+                                  player.playCategoryTracks(
+                                    _tracks,
+                                    startIndex: index,
+                                    targetSong: song,
+                                    playingFrom: widget.category.title,
+                                  );
+                                },
                               ),
-                              onTap: () {
-                                player.playCategoryTracks(
-                                  _tracks,
-                                  startIndex: index,
-                                  targetSong: song,
-                                  playingFrom: widget.category.title,
-                                );
-                              },
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
           ),
         ],

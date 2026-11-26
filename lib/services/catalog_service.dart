@@ -27,116 +27,153 @@ class CatalogService {
       key: 'trending',
       icon: FontAwesomeIcons.bolt,
       title: 'Trending Electric Hits',
-      subtitle: 'Electric, Dance & Chart-topping English Hits',
-      searchQuery: 'electronic dance edm english hits official audio',
+      subtitle: 'Curated electronic dance & festival anthems • High-Fidelity Audio',
+      searchQuery: 'electronic dance hits official audio song',
     ),
     MusicCategory(
       key: 'top_hits',
       icon: FontAwesomeIcons.headphones,
       title: 'Global Top 50',
       subtitle: 'The hottest tracks worldwide',
-      searchQuery: 'Top 50 Global Music Hits Official Audio',
+      searchQuery: 'billboard hot 100 global top 50 official audio',
     ),
     MusicCategory(
       key: 'pop',
       icon: FontAwesomeIcons.compactDisc,
       title: 'Pop Anthems',
       subtitle: 'Upbeat melodies & anthems',
-      searchQuery: 'Popular Pop Music Hits',
+      searchQuery: 'pop hits songs official audio',
     ),
     MusicCategory(
       key: 'hiphop',
       icon: FontAwesomeIcons.microphoneLines,
       title: 'Hip-Hop & Rap',
       subtitle: 'Beats, bars & urban hits',
-      searchQuery: 'Hip Hop Rap Top Songs',
+      searchQuery: 'hip hop rap songs official audio',
     ),
     MusicCategory(
       key: 'lofi',
       icon: FontAwesomeIcons.headphones,
       title: 'Lo-Fi Chill',
       subtitle: 'Atmospheric study & relax beats',
-      searchQuery: 'Lofi Hip Hop Chill Beats',
+      searchQuery: 'chill lofi hip hop beat track',
     ),
     MusicCategory(
       key: 'electronic',
       icon: FontAwesomeIcons.bolt,
       title: 'Electronic & Dance',
       subtitle: 'EDM, Synthwave & Club',
-      searchQuery: 'EDM Electronic Music Top Hits',
+      searchQuery: 'electronic dance edm song official audio',
     ),
     MusicCategory(
       key: 'rock',
       icon: FontAwesomeIcons.guitar,
       title: 'Rock & Alternative',
       subtitle: 'Anthems, guitars & indie rock',
-      searchQuery: 'Rock Classics Modern Alternative Hits',
+      searchQuery: 'rock alternative anthems official audio',
     ),
     MusicCategory(
       key: 'acoustic',
       icon: FontAwesomeIcons.music,
       title: 'Acoustic & Calm',
       subtitle: 'Soothing vocals and melodies',
-      searchQuery: 'Acoustic Guitar Calm Chill Songs',
+      searchQuery: 'acoustic indie folk song official audio',
     ),
   ];
 
-  static const int _maxCategoryCache = 25;
-  static final Map<String, List<Song>> _categoryCache = {};
+  static const int _maxCategoryCache = 30;
+  static final Map<String, YouTubePageResult> _categoryPageCache = {};
 
   static final Map<String, String> _genreSearchTerms = {
-    'electric & dance': 'electronic dance edm hits',
-    'today\'s top hits': 'top hits billboard chart',
-    'pop global': 'pop hits top tracks',
-    'hip-hop & rap': 'hip hop rap top hits',
-    'rock & alt': 'rock classics alternative hits',
-    'indie vibes': 'indie rock alternative',
-    'chill & lo-fi': 'lofi chill beats study relax',
-    'bollywood hits': 'bollywood top hits hindi songs',
-    'pakistani hits': 'pakistani top hits coke studio urdu',
-    'workout & hype': 'workout cardio hype gym hits',
-    'classical & piano': 'classical masterpieces piano orchestra',
-    'acoustic & folk': 'acoustic guitar folk calm',
+    'electric & dance': 'electronic dance edm song official audio',
+    'today\'s top hits': 'billboard hot 100 official audio song',
+    'pop global': 'pop hits songs official audio',
+    'hip-hop & rap': 'hip hop rap songs official audio',
+    'rock & alt': 'rock classics alternative songs official audio',
+    'indie vibes': 'indie rock alternative song official audio',
+    'chill & lo-fi': 'chill lofi hip hop beat track',
+    'bollywood hits': 'bollywood hindi hit song official audio',
+    'pakistani hits': 'pakistani coke studio urdu song official audio',
+    'workout & hype': 'workout gym hype song official audio',
+    'classical & piano': 'classical piano solo piece',
+    'acoustic & folk': 'acoustic guitar folk song official audio',
   };
 
-  static void _cacheCategory(String key, List<Song> songs) {
-    if (_categoryCache.length >= _maxCategoryCache) {
-      _categoryCache.remove(_categoryCache.keys.first);
+  /// Normalizes pill labels or slugs ('All', 'Top Hits', 'Hip-Hop', 'Lo-Fi', etc.) to canonical category keys.
+  static String normalizeCategoryKey(String raw) {
+    final cleaned = raw.toLowerCase().trim().replaceAll('-', '').replaceAll(' ', '_');
+    switch (cleaned) {
+      case 'all':
+      case 'trending':
+        return 'trending';
+      case 'top_hits':
+      case 'tophits':
+        return 'top_hits';
+      case 'pop':
+        return 'pop';
+      case 'hiphop':
+      case 'hip_hop':
+        return 'hiphop';
+      case 'electronic':
+      case 'edm':
+        return 'electronic';
+      case 'lofi':
+      case 'lo_fi':
+        return 'lofi';
+      case 'rock':
+        return 'rock';
+      case 'acoustic':
+        return 'acoustic';
+      default:
+        return raw.toLowerCase().trim();
     }
-    _categoryCache[key] = songs;
   }
 
-  static List<Song>? getCachedCategory(String key) => _categoryCache[key];
+  static MusicCategory getCategoryMeta(String rawKey) {
+    final norm = normalizeCategoryKey(rawKey);
+    return categories.firstWhere(
+      (c) => c.key == norm,
+      orElse: () => categories.first,
+    );
+  }
+
+  static void _cacheCategoryPage(String key, YouTubePageResult page) {
+    if (!_categoryPageCache.containsKey(key) && _categoryPageCache.length >= _maxCategoryCache) {
+      _categoryPageCache.remove(_categoryPageCache.keys.first);
+    }
+    _categoryPageCache[key] = page;
+  }
+
+  static List<Song>? getCachedCategory(String key) {
+    final norm = normalizeCategoryKey(key);
+    return _categoryPageCache[norm]?.songs ?? _categoryPageCache[key]?.songs;
+  }
+
+  static YouTubePageResult? getCachedCategoryPage(String key) {
+    final norm = normalizeCategoryKey(key);
+    return _categoryPageCache[norm] ?? _categoryPageCache[key];
+  }
 
   static bool _isValidMusicTrack(Song song) {
     final secs = song.duration.inSeconds;
-    // Discard tracks that are too short (<45s) or too long (>480s / 8 minutes)
-    // to rigorously filter out hour-long in-video playlists and multi-song compilations
-    if (secs > 0 && (secs < 45 || secs > 480)) {
+    // Allow tracks from 25s up to 720s (12 minutes) while filtering out hour-long DJ compilations
+    if (secs > 0 && (secs < 25 || secs > 720)) {
       return false;
     }
     final lowerTitle = song.title.toLowerCase();
     const spamTerms = [
       '10 hour',
       '10-hour',
-      '1 hour loop',
-      '1 hour mix',
+      '1 hour',
+      '2 hour',
+      '3 hour',
       '10 hours',
-      'compilation',
-      'meme song',
-      'tiktok meme',
-      'breaking news',
-      'live news',
-      'top hits 202',
-      'hits 202',
       'in-video playlist',
       'full album',
       'full playlist',
-      'playlist mix',
-      'mashup 202',
-      'greatest hits',
       'nonstop mix',
-      'best songs of',
+      'breaking news',
+      'live news',
     ];
     for (final term in spamTerms) {
       if (lowerTitle.contains(term)) return false;
@@ -144,82 +181,50 @@ class CatalogService {
     return true;
   }
 
-  /// Curated Genre Provider: Fetches genuine top tracks via iTunes Search API with fallback to YouTube
-  static Future<List<Song>> fetchCuratedGenre(
-    String categoryTitle,
+  /// NewPipe-style paged online search supporting infinite continuation tokens.
+  static Future<YouTubePageResult> searchOnlinePaged(
     String query, {
-    bool forceRefresh = false,
+    String? continuationToken,
+    Set<String>? seenIds,
+    bool filterCompilations = false,
   }) async {
-    final cacheKey = 'curated_${categoryTitle.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
-
-    if (!forceRefresh && _categoryCache.containsKey(cacheKey)) {
-      final cached = _categoryCache[cacheKey]!;
-      if (cached.isNotEmpty) return cached;
+    final cleanQ = query.trim();
+    if (cleanQ.isEmpty && (continuationToken == null || continuationToken.isEmpty)) {
+      return const YouTubePageResult(songs: []);
     }
 
-    final lowerTitle = categoryTitle.toLowerCase().trim();
-    final searchTerm = _genreSearchTerms[lowerTitle] ??
-        (query.trim().isNotEmpty ? query.trim() : categoryTitle.trim());
+    final seen = seenIds ?? <String>{};
+    final collected = <Song>[];
+    String? nextToken = continuationToken;
 
-    // 1. Primary: High-fidelity iTunes Music API (returns genuine top tracks, clean metadata, and HD 600x600 covers)
-    try {
-      final uri = Uri.parse(
-        'https://itunes.apple.com/search?term=${Uri.encodeComponent(searchTerm)}&media=music&entity=song&limit=50',
+    // Fetch page (and if compilation filtering pruned heavily, eagerly pull one more page)
+    final maxAttempts = filterCompilations ? 2 : 1;
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0 && (nextToken == null || nextToken.isEmpty)) break;
+
+      final page = await YouTubeImporterService.searchYouTubePaged(
+        cleanQ,
+        continuationToken: attempt == 0 ? continuationToken : nextToken,
+        seenIds: seen,
       );
-      final resp = await http.get(uri).timeout(const Duration(seconds: 6));
-      if (resp.statusCode == 200) {
-        final data = jsonDecode(resp.body) as Map<String, dynamic>;
-        final results = data['results'] as List? ?? [];
-        final songs = <Song>[];
 
-        for (final item in results) {
-          final trackName = item['trackName'] as String?;
-          final artistName = item['artistName'] as String?;
-          final trackId = item['trackId'];
-          if (trackName == null || trackName.isEmpty || artistName == null || artistName.isEmpty) {
-            continue;
-          }
+      nextToken = page.continuationToken;
+      if (page.songs.isEmpty) break;
 
-          final rawArtwork = item['artworkUrl100'] as String? ?? '';
-          final hdArtwork = rawArtwork.replaceAll('100x100bb', '600x600bb');
-          final durationMs = item['trackTimeMillis'] as int? ?? 0;
-
-          songs.add(
-            Song(
-              id: 'itunes_${trackId ?? songs.length}',
-              title: trackName,
-              artist: artistName,
-              duration: Duration(milliseconds: durationMs),
-              artworkUrl: hdArtwork,
-              streamUrl: '', // Resolved on-demand by StreamResolverService via YouTube
-              source: 'itunes',
-            ),
-          );
-        }
-
-        if (songs.isNotEmpty) {
-          debugPrint('[CatalogService] Curated genre "$categoryTitle" fetched ${songs.length} real tracks via iTunes API');
-          _cacheCategory(cacheKey, songs);
-          return songs;
-        }
+      if (filterCompilations) {
+        final valid = page.songs.where(_isValidMusicTrack).toList();
+        collected.addAll(valid.isNotEmpty ? valid : page.songs);
+      } else {
+        collected.addAll(page.songs);
       }
-    } catch (e) {
-      debugPrint('[CatalogService] iTunes genre fetch error for "$categoryTitle": $e');
+
+      if (collected.length >= 16) break;
     }
 
-    // 2. Resilient Fallback: YouTube Search
-    try {
-      final fallbackQuery = '$searchTerm best songs';
-      final results = await searchOnline(fallbackQuery, limit: 40);
-      if (results.isNotEmpty) {
-        _cacheCategory(cacheKey, results);
-        return results;
-      }
-    } catch (e) {
-      debugPrint('[CatalogService] Fallback YouTube search error: $e');
-    }
-
-    return _categoryCache[cacheKey] ?? [];
+    return YouTubePageResult(
+      songs: collected,
+      continuationToken: nextToken,
+    );
   }
 
   /// Search online catalog via YouTube NewPipe extractor
@@ -228,11 +233,10 @@ class CatalogService {
     if (cleanQ.isEmpty) return [];
 
     try {
-      debugPrint('[CatalogService] Searching YouTube for "$cleanQ"...');
-      final results = await YouTubeImporterService.searchYouTube(cleanQ, limit: limit);
-      final filtered = results.where(_isValidMusicTrack).toList();
-      if (filtered.isNotEmpty) return filtered;
-      if (results.isNotEmpty) return results;
+      final page = await YouTubeImporterService.searchYouTubePaged(cleanQ, maxItems: limit);
+      final filtered = page.songs.where(_isValidMusicTrack).toList();
+      if (filtered.isNotEmpty) return filtered.take(limit).toList();
+      if (page.songs.isNotEmpty) return page.songs.take(limit).toList();
     } catch (e) {
       debugPrint('[CatalogService] Search error: $e');
     }
@@ -240,54 +244,131 @@ class CatalogService {
     return [];
   }
 
-  /// Fetch songs for a curated category via YouTube
-  static Future<List<Song>> fetchCategory(String categoryKey, {bool forceRefresh = false}) async {
-    if (!forceRefresh && _categoryCache.containsKey(categoryKey)) {
-      final cached = _categoryCache[categoryKey]!;
-      if (cached.isNotEmpty) return cached;
+  /// NewPipe-style infinite category fetcher:
+  /// Page 1 returns a rich initial list + `continuationToken`; subsequent pages use `continuationToken`
+  /// to stream unlimited tracks as the user scrolls!
+  static Future<YouTubePageResult> fetchCategoryPage(
+    String categoryKeyOrTitle, {
+    String? customQuery,
+    String? continuationToken,
+    Set<String>? seenIds,
+    bool forceRefresh = false,
+  }) async {
+    final normKey = normalizeCategoryKey(categoryKeyOrTitle);
+    final isInitialPage = continuationToken == null || continuationToken.isEmpty;
+
+    if (isInitialPage && !forceRefresh && _categoryPageCache.containsKey(normKey)) {
+      final cached = _categoryPageCache[normKey]!;
+      if (cached.songs.isNotEmpty) {
+        if (seenIds != null) {
+          for (final s in cached.songs) {
+            seenIds.add(s.id.replaceFirst('yt_', ''));
+          }
+        }
+        return cached;
+      }
     }
 
-    final cat = categories.firstWhere(
-      (c) => c.key == categoryKey,
-      orElse: () => categories.first,
+    final lowerTitle = categoryKeyOrTitle.toLowerCase().trim();
+    String effectiveQuery;
+    if (_genreSearchTerms.containsKey(lowerTitle)) {
+      effectiveQuery = _genreSearchTerms[lowerTitle]!;
+    } else if (categories.any((c) => c.key == normKey)) {
+      effectiveQuery = categories.firstWhere((c) => c.key == normKey).searchQuery;
+    } else if (customQuery != null && customQuery.trim().isNotEmpty) {
+      effectiveQuery = '${customQuery.trim()} song official audio';
+    } else {
+      effectiveQuery = '${categoryKeyOrTitle.trim()} song official audio';
+    }
+
+    final seen = seenIds ?? <String>{};
+
+    // Fetch via NewPipe InnerTube paged search (with continuation token for infinite scrolling!)
+    final ytPage = await searchOnlinePaged(
+      effectiveQuery,
+      continuationToken: continuationToken,
+      seenIds: seen,
+      filterCompilations: true,
     );
 
-    try {
-      final results = await searchOnline(cat.searchQuery, limit: 50);
-      if (results.isNotEmpty) {
-        _cacheCategory(categoryKey, results);
-        return results;
+    if (ytPage.songs.isNotEmpty) {
+      if (isInitialPage) {
+        _cacheCategoryPage(normKey, ytPage);
       }
-    } catch (e) {
-      debugPrint('[CatalogService] Category fetch error for $categoryKey: $e');
+      return ytPage;
     }
 
-    return _categoryCache[categoryKey] ?? [];
+    // Fallback on initial page if YouTube search was blocked: iTunes Music API
+    if (isInitialPage) {
+      try {
+        final uri = Uri.parse(
+          'https://itunes.apple.com/search?term=${Uri.encodeComponent(effectiveQuery)}&media=music&entity=song&limit=60',
+        );
+        final resp = await http.get(uri).timeout(const Duration(seconds: 6));
+        if (resp.statusCode == 200) {
+          final data = jsonDecode(resp.body) as Map<String, dynamic>;
+          final results = data['results'] as List? ?? [];
+          final songs = <Song>[];
+          for (final item in results) {
+            final trackName = item['trackName'] as String?;
+            final artistName = item['artistName'] as String?;
+            final trackId = item['trackId'];
+            if (trackName == null || trackName.isEmpty || artistName == null || artistName.isEmpty) {
+              continue;
+            }
+            final rawArtwork = item['artworkUrl100'] as String? ?? '';
+            final hdArtwork = rawArtwork.replaceAll('100x100bb', '600x600bb');
+            final durationMs = item['trackTimeMillis'] as int? ?? 0;
+            songs.add(
+              Song(
+                id: 'itunes_${trackId ?? songs.length}',
+                title: trackName,
+                artist: artistName,
+                duration: Duration(milliseconds: durationMs),
+                artworkUrl: hdArtwork,
+                streamUrl: '',
+                source: 'itunes',
+              ),
+            );
+          }
+          if (songs.isNotEmpty) {
+            final fallbackPage = YouTubePageResult(songs: songs);
+            _cacheCategoryPage(normKey, fallbackPage);
+            return fallbackPage;
+          }
+        }
+      } catch (e) {
+        debugPrint('[CatalogService] iTunes fallback error: $e');
+      }
+    }
+
+    return _categoryPageCache[normKey] ?? const YouTubePageResult(songs: []);
   }
 
-  /// Fetch trending tracks: prioritize authentic electronic, dance & English pop hits
-  /// using iTunes API for clean standalone metadata, with YouTube fallback. Never returns in-video playlists.
+  /// Curated Genre Provider (backward compatible, backed by NewPipe paged engine)
+  static Future<List<Song>> fetchCuratedGenre(
+    String categoryTitle,
+    String query, {
+    bool forceRefresh = false,
+  }) async {
+    final page = await fetchCategoryPage(
+      categoryTitle,
+      customQuery: query,
+      forceRefresh: forceRefresh,
+    );
+    return page.songs;
+  }
+
+  /// Fetch songs for a curated category via YouTube
+  static Future<List<Song>> fetchCategory(String categoryKey, {bool forceRefresh = false}) async {
+    final page = await fetchCategoryPage(categoryKey, forceRefresh: forceRefresh);
+    return page.songs;
+  }
+
+  /// Fetch trending tracks
   static Future<List<Song>> fetchTrending({bool forceRefresh = false}) async {
-    final cached = getCachedCategory('trending');
-    if (!forceRefresh && cached != null && cached.isNotEmpty) return cached;
-
-    // 1. Primary: Curated genuine electric, dance & English hits via iTunes Music API
-    try {
-      final curated = await fetchCuratedGenre(
-        'Electric & Dance',
-        'electronic dance edm english hits',
-        forceRefresh: forceRefresh,
-      );
-      if (curated.isNotEmpty) {
-        _cacheCategory('trending', curated);
-        return curated;
-      }
-    } catch (e) {
-      debugPrint('[CatalogService] Curated trending fetch error: $e');
-    }
-
-    // 2. Fallback: YouTube search filtered against in-video playlists
-    return fetchCategory('trending', forceRefresh: forceRefresh);
+    final page = await fetchCategoryPage('trending', forceRefresh: forceRefresh);
+    return page.songs;
   }
 
   /// Backward-compatible aliases for player provider
@@ -306,6 +387,6 @@ class CatalogService {
   }
 
   static List<Song> getAllTracks() {
-    return _categoryCache.values.expand((list) => list).toList();
+    return _categoryPageCache.values.expand((p) => p.songs).toList();
   }
 }

@@ -749,11 +749,86 @@ class StorageService {
     if (shake != null) await saveShakeToSkip(shake);
   }
 
-  /// Writes a JSON payload using a resilient 4-tier storage strategy:
-  /// 1. Public vault: /storage/emulated/0/Sine-Music/<subFolder>
-  /// 2. Public Downloads: /storage/emulated/0/Download/Sine-<subFolder>
-  /// 3. App External Storage (visible in File Managers without special permissions)
-  /// 4. App Internal Documents (100% guaranteed writable fallback)
+  /// Cleans UTF-8 BOM, markdown code fences, and surrounding chat wrapper text before JSON decoding.
+  static String sanitizeJsonPayload(String raw) {
+    var clean = raw.replaceAll('\uFEFF', '').trim();
+    if (clean.startsWith('```')) {
+      clean = clean
+          .replaceFirst(RegExp(r'^```(?:json)?\s*', caseSensitive: false), '')
+          .replaceFirst(RegExp(r'\s*```$'), '')
+          .trim();
+    }
+    if (!clean.startsWith('{') && !clean.startsWith('[')) {
+      final firstBrace = clean.indexOf('{');
+      final lastBrace = clean.lastIndexOf('}');
+      if (firstBrace != -1 && lastBrace > firstBrace) {
+        clean = clean.substring(firstBrace, lastBrace + 1);
+      }
+    }
+    return clean;
+  }
+
+  /// Parses NewPipe / PipePipe / LibreTube exported JSON playlists into Sine Playlists.
+  static List<Playlist> _extractNewPipePlaylists(Map<String, dynamic> map) {
+    final extracted = <Playlist>[];
+
+    Song? parseNewPipeStream(Map rawStream) {
+      final url = (rawStream['url'] ?? rawStream['stream_url'] ?? '').toString().trim();
+      final title = (rawStream['title'] ?? rawStream['name'] ?? '').toString().trim();
+      if (url.isEmpty && title.isEmpty) return null;
+      final uploader = (rawStream['uploader'] ?? rawStream['artist'] ?? rawStream['uploaderName'] ?? 'YouTube').toString().trim();
+      final durSec = (rawStream['duration'] as num?)?.toInt() ?? 0;
+      String vid = '';
+      final match = RegExp(r'(?:v=|youtu\.be\/|shorts\/)([0-9A-Za-z_-]{11})').firstMatch(url);
+      if (match != null) vid = match.group(1) ?? '';
+      final thumb = (rawStream['thumbnail_url'] ?? rawStream['thumbnailUrl'] ?? rawStream['thumbnail'] ?? '').toString().trim();
+      return Song(
+        id: vid.isNotEmpty ? 'yt_$vid' : 'np_${(url.isNotEmpty ? url : title).hashCode.abs()}',
+        title: title.isNotEmpty ? title : 'Imported Track',
+        artist: uploader.isNotEmpty ? uploader : 'YouTube',
+        duration: durSec > 0 ? Duration(seconds: durSec) : const Duration(minutes: 3, seconds: 30),
+        artworkUrl: thumb.isNotEmpty ? thumb : (vid.isNotEmpty ? 'https://i.ytimg.com/vi/$vid/hqdefault.jpg' : ''),
+        streamUrl: url.isNotEmpty ? url : (vid.isNotEmpty ? 'https://www.youtube.com/watch?v=$vid' : ''),
+        source: 'youtube',
+      );
+    }
+
+    if (map['playlists'] is List) {
+      for (final p in (map['playlists'] as List)) {
+        if (p is! Map) continue;
+        final pm = Map<String, dynamic>.from(p);
+        // Check if this is NewPipe format (uses 'streams' or 'videos' instead of Sine 'songs')
+        final rawStreams = pm['streams'] ?? pm['videos'];
+        if (rawStreams is List) {
+          final songs = rawStreams
+              .whereType<Map>()
+              .map(parseNewPipeStream)
+              .whereType<Song>()
+              .toList();
+          if (songs.isNotEmpty) {
+            extracted.add(
+              Playlist(
+                id: 'pl_${DateTime.now().millisecondsSinceEpoch}_${extracted.length}',
+                title: (pm['name'] ?? pm['title'] ?? 'Imported Playlist').toString(),
+                description: 'Imported from NewPipe JSON',
+                songs: songs,
+                createdAt: DateTime.now(),
+                coverUrl: songs.first.artworkUrl.isNotEmpty ? songs.first.artworkUrl : null,
+              ),
+            );
+          }
+        }
+      }
+    }
+    return extracted;
+  }
+
+  /// Writes a JSON payload using a resilient, non-blocking 4-tier storage strategy
+  /// WITHOUT triggering intrusive system All-Files-Access settings pages:
+  /// 1. Public vault: /storage/emulated/0/Sine-Music/<subFolder> (if writable)
+  /// 2. Public Downloads: /storage/emulated/0/Download/Sine-<subFolder> (if writable)
+  /// 3. App External Storage (visible in File Managers / USB without special permissions)
+  /// 4. App Internal Documents (100% guaranteed writable fallback + Share / SAF source)
   Future<File?> _writeJsonToResilientStorage(
     String jsonStr,
     String fileName, {
@@ -778,20 +853,22 @@ class StorageService {
       }
     }
 
-    // Tier 1: Primary media directory (/storage/emulated/0/Sine-Music/<subFolder>)
+    // Always write a shadow copy in App Documents so in-app Restore ALWAYS discovers it immediately
+    File? guaranteedInternalCopy;
     try {
-      final mediaDir = await DownloadService.getMediaDirectory(isVideo: false);
-      final written = await tryWrite(Directory('${mediaDir.path}/$subFolder'));
-      if (written != null) {
-        debugPrint('[StorageService] Exported JSON to Tier 1: ${written.path}');
-        return written;
-      }
-    } catch (e) {
-      debugPrint('[StorageService] Tier 1 dir lookup failed: $e');
-    }
+      final docs = await getApplicationDocumentsDirectory();
+      guaranteedInternalCopy = await tryWrite(Directory('${docs.path}/$subFolder'));
+    } catch (_) {}
 
-    // Tier 2: Public Downloads folder on Android (/storage/emulated/0/Download/Sine-<subFolder>)
     if (Platform.isAndroid) {
+      // Tier 1: Direct public /storage/emulated/0/Sine-Music/<subFolder> (non-blocking probe, zero permission popup!)
+      final vaultWritten = await tryWrite(Directory('/storage/emulated/0/Sine-Music/$subFolder'));
+      if (vaultWritten != null) {
+        debugPrint('[StorageService] Exported JSON to Tier 1: ${vaultWritten.path}');
+        return vaultWritten;
+      }
+
+      // Tier 2: Public Downloads folder (/storage/emulated/0/Download/Sine-<subFolder>)
       final dlWritten = await tryWrite(Directory('/storage/emulated/0/Download/Sine-$subFolder'));
       if (dlWritten != null) {
         debugPrint('[StorageService] Exported JSON to Tier 2 (Download): ${dlWritten.path}');
@@ -809,18 +886,23 @@ class StorageService {
           }
         }
       } catch (_) {}
+    } else if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+      try {
+        final downloads = await getDownloadsDirectory();
+        if (downloads != null) {
+          final deskWritten = await tryWrite(Directory('${downloads.path}/Sine-Music/$subFolder'));
+          if (deskWritten != null) return deskWritten;
+        }
+      } catch (_) {}
     }
 
-    // Tier 4: App Documents /<subFolder> (Always writable on every OS)
+    // Tier 4: App Documents (already written above or direct fallback)
+    if (guaranteedInternalCopy != null) return guaranteedInternalCopy;
     try {
       final docs = await getApplicationDocumentsDirectory();
       final docWritten = await tryWrite(Directory('${docs.path}/$subFolder'));
-      if (docWritten != null) {
-        debugPrint('[StorageService] Exported JSON to Tier 4 (Documents): ${docWritten.path}');
-        return docWritten;
-      }
-      final rootWritten = await tryWrite(docs);
-      if (rootWritten != null) return rootWritten;
+      if (docWritten != null) return docWritten;
+      return await tryWrite(docs);
     } catch (e) {
       debugPrint('[StorageService] Tier 4 Documents fallback failed: $e');
     }
@@ -900,7 +982,7 @@ class StorageService {
   /// Imports and applies Settings JSON
   Future<bool> importSettingsJson(String jsonString) async {
     try {
-      final decoded = jsonDecode(jsonString);
+      final decoded = jsonDecode(sanitizeJsonPayload(jsonString));
       if (decoded is! Map) return false;
       final map = Map<String, dynamic>.from(decoded);
       final settings = (map['settings'] is Map ? map['settings'] : map) as Map;
@@ -923,37 +1005,113 @@ class StorageService {
     return const JsonEncoder.withIndent('  ').convert(payload);
   }
 
-  /// Imports a single playlist from JSON string (supports SINE_PLAYLIST or raw playlist map)
+  /// Imports a playlist from JSON string (supports SINE_PLAYLIST, raw playlist map,
+  /// SINE_BACKUP, NewPipe JSON export, or raw Song JSON array).
   Future<Playlist?> importPlaylistJson(String jsonString) async {
     try {
-      final decoded = jsonDecode(jsonString);
+      final cleanedInput = sanitizeJsonPayload(jsonString);
+      final decoded = jsonDecode(cleanedInput);
+
+      // Case A: Raw JSON array of songs [...]
+      if (decoded is List) {
+        final songs = decoded
+            .whereType<Map>()
+            .map((m) => Song.fromMap(Map<String, dynamic>.from(m)))
+            .where((s) => !Song.isPlaceholder(s))
+            .toList();
+        if (songs.isEmpty) return null;
+        final pl = Playlist(
+          id: 'pl_${DateTime.now().millisecondsSinceEpoch}',
+          title: 'Imported Playlist',
+          description: 'Imported from JSON track list',
+          songs: songs,
+          createdAt: DateTime.now(),
+          coverUrl: songs.first.artworkUrl.isNotEmpty ? songs.first.artworkUrl : null,
+        );
+        await savePlaylist(pl);
+        return pl;
+      }
+
       if (decoded is! Map) return null;
       final map = Map<String, dynamic>.from(decoded);
 
+      // Case B: NewPipe / LibreTube JSON export
+      final npPlaylists = _extractNewPipePlaylists(map);
+      if (npPlaylists.isNotEmpty) {
+        final existing = loadPlaylists();
+        for (final np in npPlaylists.reversed) {
+          existing.insert(0, np);
+        }
+        await savePlaylists(existing);
+        return npPlaylists.first;
+      }
+
+      // Case C: Full SINE_BACKUP passed into playlist importer
+      if (map['format'] == 'SINE_BACKUP' || (map['playlists'] is List && map['playlist'] == null)) {
+        final res = await importBackupJson(cleanedInput, merge: true);
+        if (res != null) {
+          final all = loadPlaylists();
+          if (all.isNotEmpty) return all.first;
+          final favs = loadFavorites();
+          if (favs.isNotEmpty) {
+            final favPl = Playlist(
+              id: 'pl_${DateTime.now().millisecondsSinceEpoch}',
+              title: 'Imported Favorites',
+              description: 'Restored from Sine Backup',
+              songs: favs,
+              createdAt: DateTime.now(),
+              coverUrl: favs.first.artworkUrl.isNotEmpty ? favs.first.artworkUrl : null,
+            );
+            await savePlaylist(favPl);
+            return favPl;
+          }
+        }
+        return null;
+      }
+
+      // Case D: SINE_PLAYLIST or direct Playlist map
       Map<String, dynamic>? rawPlaylist;
       if (map['playlist'] is Map) {
         rawPlaylist = Map<String, dynamic>.from(map['playlist']);
-      } else if (map.containsKey('title') && map.containsKey('songs')) {
+      } else if ((map.containsKey('title') || map.containsKey('name')) &&
+          (map.containsKey('songs') || map.containsKey('tracks') || map.containsKey('items'))) {
         rawPlaylist = map;
       }
 
       if (rawPlaylist == null) return null;
 
       final playlist = Playlist.fromMap(rawPlaylist);
-      final uniqueId = playlist.id.isNotEmpty && playlist.id != 'liked_songs' && playlist.id != 'downloaded_songs'
+      final uniqueId = playlist.id.isNotEmpty &&
+              playlist.id != 'liked_songs' &&
+              playlist.id != 'downloaded_songs'
           ? playlist.id
           : 'pl_${DateTime.now().millisecondsSinceEpoch}';
 
-      final finalPlaylist = playlist.copyWith(id: uniqueId);
+      final sanitizedSongs = playlist.songs.where((s) => !Song.isPlaceholder(s)).toList();
+      final finalPlaylist = playlist.copyWith(id: uniqueId, songs: sanitizedSongs);
+
       final existing = loadPlaylists();
       final idx = existing.indexWhere((p) => p.id == finalPlaylist.id);
       if (idx != -1) {
-        existing[idx] = finalPlaylist;
+        // Smart merge tracks into existing playlist with same ID so zero tracks are lost
+        final mergedSongs = List<Song>.from(existing[idx].songs);
+        final songIds = mergedSongs.map((s) => s.id).toSet();
+        for (final s in finalPlaylist.songs) {
+          if (!songIds.contains(s.id)) {
+            mergedSongs.add(s);
+            songIds.add(s.id);
+          }
+        }
+        final updated = finalPlaylist.copyWith(songs: mergedSongs);
+        existing.removeAt(idx);
+        existing.insert(0, updated);
+        await savePlaylists(existing);
+        return updated;
       } else {
-        existing.add(finalPlaylist);
+        existing.insert(0, finalPlaylist);
+        await savePlaylists(existing);
+        return finalPlaylist;
       }
-      await savePlaylists(existing);
-      return finalPlaylist;
     } catch (e) {
       debugPrint('[StorageService] importPlaylistJson error: $e');
       return null;
@@ -980,7 +1138,8 @@ class StorageService {
   /// Lightweight format classifier for UI display badges (BACKUP / SETTINGS / PLAYLIST / JSON)
   static String detectJsonFormat(String content) {
     try {
-      final decoded = jsonDecode(content);
+      final decoded = jsonDecode(sanitizeJsonPayload(content));
+      if (decoded is List) return 'SINE_PLAYLIST';
       if (decoded is Map) {
         final fmt = decoded['format']?.toString();
         if (fmt == 'SINE_BACKUP') return 'SINE_BACKUP';
@@ -988,7 +1147,9 @@ class StorageService {
         if (fmt == 'SINE_PLAYLIST') return 'SINE_PLAYLIST';
         if (decoded.containsKey('playlists') || decoded.containsKey('favorites')) return 'SINE_BACKUP';
         if (decoded.containsKey('settings')) return 'SINE_SETTINGS';
-        if (decoded.containsKey('playlist') || (decoded.containsKey('title') && decoded.containsKey('songs'))) {
+        if (decoded.containsKey('playlist') ||
+            ((decoded.containsKey('title') || decoded.containsKey('name')) &&
+                (decoded.containsKey('songs') || decoded.containsKey('tracks')))) {
           return 'SINE_PLAYLIST';
         }
       }
@@ -1130,14 +1291,34 @@ class StorageService {
     bool merge = true,
   }) async {
     try {
-      final decoded = jsonDecode(jsonString);
+      final cleanedInput = sanitizeJsonPayload(jsonString);
+      final decoded = jsonDecode(cleanedInput);
+      if (decoded is List) {
+        final pl = await importPlaylistJson(cleanedInput);
+        return pl != null ? (playlistsCount: 1, favoritesCount: 0, historyCount: 0) : null;
+      }
       if (decoded is! Map) return null;
       final map = Map<String, dynamic>.from(decoded);
+
+      // 0. NewPipe JSON backup support
+      final npPlaylists = _extractNewPipePlaylists(map);
+      if (npPlaylists.isNotEmpty) {
+        if (merge) {
+          final existing = loadPlaylists();
+          for (final np in npPlaylists.reversed) {
+            existing.insert(0, np);
+          }
+          await savePlaylists(existing);
+        } else {
+          await savePlaylists(npPlaylists);
+        }
+        return (playlistsCount: npPlaylists.length, favoritesCount: 0, historyCount: 0);
+      }
 
       // 1. Smart handling for SINE_SETTINGS format
       if (map['format'] == 'SINE_SETTINGS' ||
           (map.containsKey('settings') && !map.containsKey('playlists') && !map.containsKey('favorites') && !map.containsKey('history'))) {
-        final ok = await importSettingsJson(jsonString);
+        final ok = await importSettingsJson(cleanedInput);
         if (ok) {
           return (playlistsCount: 0, favoritesCount: 0, historyCount: 0);
         }
@@ -1147,8 +1328,10 @@ class StorageService {
       // 2. Smart handling for SINE_PLAYLIST format
       if (map['format'] == 'SINE_PLAYLIST' ||
           map['playlist'] is Map ||
-          (map.containsKey('songs') && map.containsKey('title') && !map.containsKey('playlists'))) {
-        final pl = await importPlaylistJson(jsonString);
+          ((map.containsKey('songs') || map.containsKey('tracks')) &&
+              (map.containsKey('title') || map.containsKey('name')) &&
+              !map.containsKey('playlists'))) {
+        final pl = await importPlaylistJson(cleanedInput);
         if (pl != null) {
           return (playlistsCount: 1, favoritesCount: 0, historyCount: 0);
         }

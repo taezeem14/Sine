@@ -179,8 +179,8 @@ class PlaylistImportService {
         );
       }
 
-      // Resolve tracks to YouTube audio streams (limit first 40 for responsiveness)
-      final resolvedSongs = await _resolveTracksToYouTube(trackMetas.take(40).toList(), onProgress);
+      // Resolve all tracks to YouTube audio streams in parallel batches (no 40-track cap!)
+      final resolvedSongs = await _resolveTracksToYouTube(trackMetas, onProgress);
 
       return PlaylistImportResult(
         source: ExternalPlaylistSource.spotify,
@@ -258,7 +258,7 @@ class PlaylistImportService {
         );
       }
 
-      final resolvedSongs = await _resolveTracksToYouTube(trackMetas.take(40).toList(), onProgress);
+      final resolvedSongs = await _resolveTracksToYouTube(trackMetas, onProgress);
 
       return PlaylistImportResult(
         source: ExternalPlaylistSource.appleMusic,
@@ -281,32 +281,48 @@ class PlaylistImportService {
     List<ImportedTrackMeta> metas,
     void Function(int current, int total)? onProgress,
   ) async {
-    final List<Song> results = [];
-    int count = 0;
+    final List<Song?> ordered = List<Song?>.filled(metas.length, null);
+    int completed = 0;
+    const int batchSize = 4;
 
-    for (final meta in metas) {
-      count++;
-      onProgress?.call(count, metas.length);
-      try {
-        final query = '${cleanTrackTitle(meta.title)} ${meta.artist} audio'.trim();
-        final searchResults = await CatalogService.searchOnline(query, limit: 5);
-        if (searchResults.isNotEmpty) {
-          results.add(searchResults.first);
-        } else {
-          // Create placeholder song that will resolve on tap
-          results.add(Song(
-            id: 'imp_${meta.title.hashCode.abs()}',
-            title: meta.title,
-            artist: meta.artist,
-            duration: const Duration(minutes: 3, seconds: 30),
-            artworkUrl: '',
-            streamUrl: '',
-          ));
-        }
-      } catch (_) {
-        // Graceful skip
-      }
+    for (int start = 0; start < metas.length; start += batchSize) {
+      final end = (start + batchSize < metas.length) ? start + batchSize : metas.length;
+      await Future.wait(
+        List.generate(end - start, (offset) async {
+          final i = start + offset;
+          final meta = metas[i];
+          try {
+            final query = '${cleanTrackTitle(meta.title)} ${meta.artist} audio'.trim();
+            final searchResults = await CatalogService.searchOnline(query, limit: 5);
+            if (searchResults.isNotEmpty) {
+              ordered[i] = searchResults.first;
+            } else {
+              ordered[i] = Song(
+                id: 'imp_${meta.title.hashCode.abs()}_$i',
+                title: meta.title,
+                artist: meta.artist,
+                duration: const Duration(minutes: 3, seconds: 30),
+                artworkUrl: '',
+                streamUrl: '',
+              );
+            }
+          } catch (_) {
+            ordered[i] = Song(
+              id: 'imp_${meta.title.hashCode.abs()}_$i',
+              title: meta.title,
+              artist: meta.artist,
+              duration: const Duration(minutes: 3, seconds: 30),
+              artworkUrl: '',
+              streamUrl: '',
+            );
+          } finally {
+            completed++;
+            onProgress?.call(completed, metas.length);
+          }
+        }),
+      );
     }
-    return results;
+
+    return ordered.whereType<Song>().toList();
   }
 }

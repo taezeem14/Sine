@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -34,7 +35,7 @@ class PlaylistDetailSheet extends StatelessWidget {
     );
   }
 
-  String _formatTotalDuration(Playlist pl) {
+  static String formatTotalDuration(Playlist pl) {
     int totalSec = 0;
     for (final s in pl.songs) {
       totalSec += s.duration.inSeconds;
@@ -51,7 +52,7 @@ class PlaylistDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final player = context.read<PlayerProvider>();
-    // Surgical selectors: only rebuild when this playlist or active playing track changes
+    // Surgical selectors: only rebuild when this playlist, pagination, or active playing track changes
     final currentPl = context.select<PlayerProvider, Playlist>((p) {
       if (playlist.id == 'downloaded_songs') {
         return Playlist(
@@ -75,6 +76,11 @@ class PlaylistDetailSheet extends StatelessWidget {
         orElse: () => playlist,
       );
     });
+    final isLoadingMore = context.select<PlayerProvider, bool>(
+      (p) => p.isPlaylistLoadingMore(currentPl.id),
+    );
+    final canLoadMore = player.canLoadMorePlaylist(currentPl);
+    final isMix = currentPl.id.startsWith('yt_mix_');
     context.select<PlayerProvider, String?>((p) => p.currentSong?.id);
     context.select<PlayerProvider, bool>((p) => p.isPlaying);
     final isSystemPlaylist = currentPl.id == 'downloaded_songs' || currentPl.id == 'liked_songs';
@@ -104,7 +110,7 @@ class PlaylistDetailSheet extends StatelessWidget {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: (currentPl.id == 'downloaded_songs' || currentPl.id == 'liked_songs')
+                    onTap: isSystemPlaylist
                         ? null
                         : () => _showAestheticCoverPicker(context, player, currentPl),
                     child: Stack(
@@ -114,7 +120,7 @@ class PlaylistDetailSheet extends StatelessWidget {
                           size: 64,
                           borderRadius: 12,
                         ),
-                        if (currentPl.id != 'downloaded_songs' && currentPl.id != 'liked_songs')
+                        if (!isSystemPlaylist)
                           Positioned(
                             right: 2,
                             bottom: 2,
@@ -147,7 +153,7 @@ class PlaylistDetailSheet extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${currentPl.songs.length} tracks • ${_formatTotalDuration(currentPl)}',
+                          '${currentPl.songs.length}${canLoadMore ? "+" : ""} tracks • ${isMix ? "Infinite Mix • " : ""}${formatTotalDuration(currentPl)}',
                           style: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
                         ),
                       ],
@@ -160,50 +166,50 @@ class PlaylistDetailSheet extends StatelessWidget {
                   ),
                   IconButton(
                     icon: FaIcon(FontAwesomeIcons.fileArrowDown, size: 16, color: EmberColors.primaryBlue),
-                    tooltip: 'Export Playlist JSON',
-                    onPressed: () => _showExportPlaylistDialog(context, player, currentPl),
+                    tooltip: 'Export / Share Playlist JSON',
+                    onPressed: () => showExportDialog(context, player, currentPl),
                   ),
                   if (!isSystemPlaylist)
                     IconButton(
                       icon: const FaIcon(FontAwesomeIcons.penToSquare, size: 16, color: EmberColors.textMuted),
                       tooltip: 'Rename Playlist',
                       onPressed: () {
-                      final textController = TextEditingController(text: currentPl.title);
-                      showDialog(
-                        context: context,
-                        builder: (dCtx) => AlertDialog(
-                          backgroundColor: EmberColors.surfaceContainerHigh,
-                          title: const Text('Rename Playlist', style: TextStyle(color: EmberColors.textPrimary)),
-                          content: TextField(
-                            controller: textController,
-                            autofocus: true,
-                            style: const TextStyle(color: EmberColors.textPrimary),
-                            decoration: const InputDecoration(
-                              hintText: 'Playlist Title',
-                              hintStyle: TextStyle(color: EmberColors.textMuted),
+                        final textController = TextEditingController(text: currentPl.title);
+                        showDialog(
+                          context: context,
+                          builder: (dCtx) => AlertDialog(
+                            backgroundColor: EmberColors.surfaceContainerHigh,
+                            title: const Text('Rename Playlist', style: TextStyle(color: EmberColors.textPrimary)),
+                            content: TextField(
+                              controller: textController,
+                              autofocus: true,
+                              style: const TextStyle(color: EmberColors.textPrimary),
+                              decoration: const InputDecoration(
+                                hintText: 'Playlist Title',
+                                hintStyle: TextStyle(color: EmberColors.textMuted),
+                              ),
                             ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dCtx),
+                                child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: EmberColors.primaryAmber),
+                                onPressed: () {
+                                  final newTitle = textController.text.trim();
+                                  if (newTitle.isNotEmpty) {
+                                    player.renamePlaylist(currentPl.id, newTitle);
+                                  }
+                                  Navigator.pop(dCtx);
+                                },
+                                child: const Text('Save', style: TextStyle(color: EmberColors.obsidianBase, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
                           ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(dCtx),
-                              child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(backgroundColor: EmberColors.primaryAmber),
-                              onPressed: () {
-                                final newTitle = textController.text.trim();
-                                if (newTitle.isNotEmpty) {
-                                  player.renamePlaylist(currentPl.id, newTitle);
-                                }
-                                Navigator.pop(dCtx);
-                              },
-                              child: const Text('Save', style: TextStyle(color: EmberColors.obsidianBase, fontWeight: FontWeight.bold)),
-                            ),
-                          ],
-                        ),
-                      ).then((_) => textController.dispose());
-                    },
-                  ),
+                        ).then((_) => textController.dispose());
+                      },
+                    ),
                   if (!isSystemPlaylist)
                     IconButton(
                       icon: const FaIcon(FontAwesomeIcons.trashCan, size: 16, color: EmberColors.textMuted),
@@ -270,8 +276,7 @@ class PlaylistDetailSheet extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
                         onPressed: () {
-                          final shuffled = List<Song>.from(currentPl.songs)..shuffle();
-                          player.playCategoryTracks(shuffled, playingFrom: 'Playlist: ${currentPl.title} (Shuffle)');
+                          player.playPlaylist(currentPl, shuffle: true);
                           Navigator.pop(context);
                         },
                         icon: const FaIcon(FontAwesomeIcons.shuffle, size: 14),
@@ -284,7 +289,7 @@ class PlaylistDetailSheet extends StatelessWidget {
 
             const Divider(color: EmberColors.outlineVariant, height: 16),
 
-            // Song list
+            // Song list with NewPipe-style Infinite Mix & Playlist Pagination
             Expanded(
               child: currentPl.songs.isEmpty
                   ? SingleChildScrollView(
@@ -318,142 +323,199 @@ class PlaylistDetailSheet extends StatelessWidget {
                         ),
                       ),
                     )
-                  : ReorderableListView.builder(
-                      scrollController: scrollController,
-                      buildDefaultDragHandles: false,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                      itemCount: currentPl.songs.length,
-                      onReorder: (oldIndex, newIndex) {
-                        HapticFeedback.mediumImpact();
-                        player.reorderPlaylistSongs(currentPl.id, oldIndex, newIndex);
+                  : NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        if (canLoadMore &&
+                            !isLoadingMore &&
+                            notification is ScrollUpdateNotification &&
+                            notification.metrics.maxScrollExtent > 0 &&
+                            notification.metrics.extentAfter < 450) {
+                          player.loadMorePlaylistTracks(currentPl.id);
+                        }
+                        return false;
                       },
-                      itemBuilder: (context, index) {
-                        final song = currentPl.songs[index];
-                        final isCurrent = player.currentSong?.id == song.id;
+                      child: ReorderableListView.builder(
+                        scrollController: scrollController,
+                        buildDefaultDragHandles: false,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                        itemCount: currentPl.songs.length,
+                        footer: canLoadMore
+                            ? Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                child: Center(
+                                  child: isLoadingMore
+                                      ? Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: EmberColors.primaryAmber,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            const Text(
+                                              'Loading more tracks...',
+                                              style: TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                                            ),
+                                          ],
+                                        )
+                                      : TextButton.icon(
+                                          onPressed: () => player.loadMorePlaylistTracks(currentPl.id),
+                                          icon: Icon(Icons.add_circle_outline_rounded, size: 16, color: EmberColors.primaryAmber),
+                                          label: Text(
+                                            isMix ? 'Load More Mix Tracks' : 'Load More Playlist Tracks',
+                                            style: TextStyle(color: EmberColors.primaryAmber, fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                ),
+                              )
+                            : const SizedBox(height: 20),
+                        onReorder: (oldIndex, newIndex) {
+                          HapticFeedback.mediumImpact();
+                          player.reorderPlaylistSongs(currentPl.id, oldIndex, newIndex);
+                        },
+                        itemBuilder: (context, index) {
+                          final song = currentPl.songs[index];
+                          final isCurrent = player.currentSong?.id == song.id;
+                          final hasHttpArt = song.artworkUrl.isNotEmpty && !song.artworkUrl.startsWith('content://');
 
-                        return Dismissible(
-                          key: ValueKey('pl_song_${song.id}_${song.hashCode}'),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 3),
-                            decoration: BoxDecoration(
-                              color: EmberColors.error.withValues(alpha: 0.85),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 20),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Text(
-                                  'REMOVE',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    letterSpacing: 0.8,
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                FaIcon(FontAwesomeIcons.trashCan, color: Colors.white, size: 16),
-                              ],
-                            ),
-                          ),
-                          onDismissed: (_) {
-                            final deletedSong = song;
-                            final playlistId = currentPl.id;
-                            player.removeSongFromPlaylistAt(playlistId, index);
-                            HapticFeedback.lightImpact();
-                            ScaffoldMessenger.of(context).clearSnackBars();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: EmberColors.surfaceContainerHigh,
-                                content: Text(
-                                  'Removed "${deletedSong.title}"',
-                                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                                ),
-                                action: SnackBarAction(
-                                  label: 'UNDO',
-                                  textColor: EmberColors.primaryAmber,
-                                  onPressed: () {
-                                    player.addSongToPlaylist(playlistId, deletedSong);
-                                  },
-                                ),
-                                duration: const Duration(seconds: 3),
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          return Dismissible(
+                            key: ValueKey('pl_song_${song.id}_$index'),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 3),
+                              decoration: BoxDecoration(
+                                color: EmberColors.error.withValues(alpha: 0.85),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            );
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 3),
-                            decoration: BoxDecoration(
-                              color: isCurrent
-                                  ? EmberColors.primaryAmber.withValues(alpha: 0.12)
-                                  : EmberColors.surfaceContainerLow.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                              leading: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: song.artworkUrl.isNotEmpty
-                                    ? CachedNetworkImage(
-                                        imageUrl: song.artworkUrl,
-                                        width: 44,
-                                        height: 44,
-                                        memCacheWidth: 150,
-                                        memCacheHeight: 150,
-                                        fit: BoxFit.cover,
-                                        errorWidget: (_, _, _) => FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryAmber),
-                                      )
-                                    : FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryAmber),
-                              ),
-                              title: Text(
-                                song.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: isCurrent ? EmberColors.primaryAmber : EmberColors.textPrimary,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              subtitle: Text(
-                                song.artist,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
-                              ),
-                              trailing: Row(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  IconButton(
-                                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-                                    padding: const EdgeInsets.all(4),
-                                    icon: const FaIcon(FontAwesomeIcons.ellipsis, size: 14, color: EmberColors.textMuted),
-                                    onPressed: () => TrackOptionsSheet.show(context, song),
-                                  ),
-                                  ReorderableDragStartListener(
-                                    index: index,
-                                    child: const Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                                      child: Icon(
-                                        Icons.drag_handle_rounded,
-                                        size: 20,
-                                        color: EmberColors.textMuted,
-                                      ),
+                                  Text(
+                                    'REMOVE',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      letterSpacing: 0.8,
                                     ),
                                   ),
+                                  SizedBox(width: 8),
+                                  FaIcon(FontAwesomeIcons.trashCan, color: Colors.white, size: 16),
                                 ],
                               ),
-                              onTap: () {
-                                player.playPlaylist(currentPl, startIndex: index);
-                              },
                             ),
-                          ),
-                        );
-                      },
+                            onDismissed: (_) {
+                              final deletedSong = song;
+                              final playlistId = currentPl.id;
+                              player.removeSongFromPlaylistAt(playlistId, index);
+                              HapticFeedback.lightImpact();
+                              ScaffoldMessenger.of(context).clearSnackBars();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: EmberColors.surfaceContainerHigh,
+                                  content: Text(
+                                    'Removed "${deletedSong.title}"',
+                                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                                  ),
+                                  action: SnackBarAction(
+                                    label: 'UNDO',
+                                    textColor: EmberColors.primaryAmber,
+                                    onPressed: () {
+                                      player.addSongToPlaylist(playlistId, deletedSong);
+                                    },
+                                  ),
+                                  duration: const Duration(seconds: 3),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 3),
+                              decoration: BoxDecoration(
+                                color: isCurrent
+                                    ? EmberColors.primaryAmber.withValues(alpha: 0.12)
+                                    : EmberColors.surfaceContainerLow.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: hasHttpArt
+                                      ? CachedNetworkImage(
+                                          imageUrl: song.artworkUrl,
+                                          width: 44,
+                                          height: 44,
+                                          memCacheWidth: 150,
+                                          memCacheHeight: 150,
+                                          fit: BoxFit.cover,
+                                          errorWidget: (_, _, _) => Container(
+                                            width: 44,
+                                            height: 44,
+                                            color: EmberColors.surfaceContainerHigh,
+                                            child: Center(child: FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryAmber)),
+                                          ),
+                                        )
+                                      : Container(
+                                          width: 44,
+                                          height: 44,
+                                          color: EmberColors.surfaceContainerHigh,
+                                          child: Center(child: FaIcon(FontAwesomeIcons.music, size: 16, color: EmberColors.primaryAmber)),
+                                        ),
+                                ),
+                                title: Text(
+                                  song.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: isCurrent ? EmberColors.primaryAmber : EmberColors.textPrimary,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  song.artist,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: EmberColors.textMuted, fontSize: 11),
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                                      padding: const EdgeInsets.all(4),
+                                      icon: const FaIcon(FontAwesomeIcons.ellipsis, size: 14, color: EmberColors.textMuted),
+                                      onPressed: () => TrackOptionsSheet.show(context, song),
+                                    ),
+                                    ReorderableDragStartListener(
+                                      index: index,
+                                      child: const Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                        child: Icon(
+                                          Icons.drag_handle_rounded,
+                                          size: 20,
+                                          color: EmberColors.textMuted,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                onTap: () {
+                                  player.playPlaylist(currentPl, startIndex: index);
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
             ),
           ],
@@ -546,7 +608,7 @@ class PlaylistDetailSheet extends StatelessWidget {
     );
   }
 
-  void _showExportPlaylistDialog(BuildContext context, PlayerProvider player, Playlist pl) {
+  static void showExportDialog(BuildContext context, PlayerProvider player, Playlist pl) {
     bool isSaving = false;
     final messenger = ScaffoldMessenger.of(context);
 
@@ -574,7 +636,7 @@ class PlaylistDetailSheet extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Export "${pl.title}" into a portable JSON file. You can share or restore this playlist on any Sine device.',
+                'Export "${pl.title}" into a portable .json file. Save directly to Downloads, share via WhatsApp/Telegram, or copy to clipboard.',
                 style: const TextStyle(color: EmberColors.textSecondary, fontSize: 12.5, height: 1.4),
               ),
               const SizedBox(height: 12),
@@ -593,12 +655,46 @@ class PlaylistDetailSheet extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text('• Tracks: ${pl.songs.length}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
                     const SizedBox(height: 3),
-                    Text('• Duration: ${_formatTotalDuration(pl)}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
+                    Text('• Duration: ${formatTotalDuration(pl)}', style: const TextStyle(color: EmberColors.textPrimary, fontSize: 12)),
                     const SizedBox(height: 3),
                     Text('• Format: SINE_PLAYLIST (v${AppConstants.version})', style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 11, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
+              if (Platform.isAndroid) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: EmberColors.primaryBlueHi,
+                      side: BorderSide(color: EmberColors.primaryBlue.withValues(alpha: 0.55)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.share_rounded, size: 16),
+                    label: const Text('Share .json File (WhatsApp / Nearby)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            setDialogState(() => isSaving = true);
+                            final shared = await player.sharePlaylistJsonFile(pl);
+                            if (dCtx.mounted) {
+                              setDialogState(() => isSaving = false);
+                              Navigator.of(dCtx).pop();
+                            }
+                            if (!shared) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  backgroundColor: Colors.redAccent,
+                                  content: Text('Unable to launch share sheet.', style: TextStyle(color: Colors.white)),
+                                ),
+                              );
+                            }
+                          },
+                  ),
+                ),
+              ],
             ],
           ),
           actions: [
@@ -612,7 +708,7 @@ class PlaylistDetailSheet extends StatelessWidget {
                 side: const BorderSide(color: EmberColors.outlineVariant),
               ),
               icon: const Icon(Icons.copy_rounded, size: 14),
-              label: const Text('Copy JSON', style: TextStyle(fontSize: 12)),
+              label: const Text('Copy', style: TextStyle(fontSize: 12)),
               onPressed: () {
                 final jsonStr = player.exportPlaylistJson(pl);
                 Clipboard.setData(ClipboardData(text: jsonStr));
@@ -638,9 +734,34 @@ class PlaylistDetailSheet extends StatelessWidget {
                   ? null
                   : () async {
                       setDialogState(() => isSaving = true);
+                      if (Platform.isAndroid) {
+                        final safRes = await player.savePlaylistViaSystemPicker(pl);
+                        if (dCtx.mounted) {
+                          setDialogState(() => isSaving = false);
+                          Navigator.of(dCtx).pop();
+                        }
+                        if (safRes != null && safRes.saved) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              backgroundColor: EmberColors.surfaceContainerHigh,
+                              duration: const Duration(seconds: 4),
+                              content: Text(
+                                'Saved "${safRes.name ?? pl.title}" successfully!',
+                                style: TextStyle(color: EmberColors.primaryBlueHi, fontSize: 12.5),
+                              ),
+                            ),
+                          );
+                          return;
+                        } else if (safRes != null && safRes.cancelled) {
+                          return;
+                        }
+                      }
+
                       final file = await player.exportPlaylistToFile(pl);
-                      setDialogState(() => isSaving = false);
-                      Navigator.of(dCtx).pop();
+                      if (dCtx.mounted) {
+                        setDialogState(() => isSaving = false);
+                        Navigator.of(dCtx).pop();
+                      }
                       if (file != null) {
                         messenger.showSnackBar(
                           SnackBar(
