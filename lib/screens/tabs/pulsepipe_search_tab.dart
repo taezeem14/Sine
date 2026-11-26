@@ -271,7 +271,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: _focusNode.hasFocus
-                          ? EmberColors.electricBlue
+                          ? Theme.of(context).colorScheme.primary
                           : EmberColors.glassBorder.withValues(alpha: 0.3),
                       width: 1.2,
                     ),
@@ -295,7 +295,7 @@ class _PulsePipeSearchTabState extends State<PulsePipeSearchTab> {
                             fontWeight: FontWeight.w500,
                           ),
                           decoration: const InputDecoration(
-                            hintText: 'Search songs, artists, albums...',
+                            hintText: 'What do you want to listen to?',
                             hintStyle: TextStyle(
                               color: EmberColors.textMuted,
                               fontSize: 14,
@@ -760,7 +760,7 @@ class _SearchResultRow extends StatelessWidget {
                         child: FaIcon(
                           isPlaying ? FontAwesomeIcons.volumeHigh : FontAwesomeIcons.play,
                           size: 16,
-                          color: EmberColors.electricBlue,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ),
@@ -780,7 +780,7 @@ class _SearchResultRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: isCurrent ? EmberColors.electricBlue : EmberColors.textPrimary,
+                      color: isCurrent ? Theme.of(context).colorScheme.primary : EmberColors.textPrimary,
                       fontSize: 14.5,
                       fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
                     ),
@@ -791,13 +791,13 @@ class _SearchResultRow extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                         decoration: BoxDecoration(
-                          color: EmberColors.primaryBlue.withValues(alpha: 0.18),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(3),
                         ),
                         child: Text(
                           'Opus HQ',
                           style: TextStyle(
-                            color: EmberColors.primaryBlue,
+                            color: Theme.of(context).colorScheme.primary,
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                           ),
@@ -850,6 +850,8 @@ class _SpotifyTopResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final activeAccent = Theme.of(context).colorScheme.primary;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
@@ -857,7 +859,7 @@ class _SpotifyTopResultCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isCurrent
-              ? EmberColors.primaryBlue.withValues(alpha: 0.5)
+              ? activeAccent.withValues(alpha: 0.5)
               : EmberColors.outlineVariant.withValues(alpha: 0.5),
           width: isCurrent ? 1.5 : 1.0,
         ),
@@ -888,7 +890,7 @@ class _SpotifyTopResultCard extends StatelessWidget {
                           width: 76,
                           height: 76,
                           color: EmberColors.surfaceContainerHigh,
-                          child: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                          child: Icon(Icons.music_note_rounded, color: activeAccent),
                         ),
                       ),
                     ),
@@ -950,17 +952,17 @@ class _SpotifyTopResultCard extends StatelessWidget {
                         height: 44,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: EmberColors.primaryBlue,
+                          color: activeAccent,
                           boxShadow: [
                             BoxShadow(
-                              color: EmberColors.primaryBlue.withValues(alpha: 0.4),
+                              color: activeAccent.withValues(alpha: 0.4),
                               blurRadius: 10,
                               offset: const Offset(0, 3),
                             ),
                           ],
                         ),
                         child: const Center(
-                          child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
+                          child: Icon(Icons.play_arrow_rounded, color: Colors.black, size: 28),
                         ),
                       ),
                   ],

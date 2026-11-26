@@ -142,7 +142,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> with SingleTickerPr
               const SizedBox(height: 20),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: EmberColors.primaryBlue,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -160,6 +160,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> with SingleTickerPr
     final stemBadge = context.select<PlayerProvider, String?>((p) => p.stemStatusBadgeText);
     final isStemLoading = context.select<PlayerProvider, bool>((p) => p.isLoadingStem);
     final isPlaying = context.select<PlayerProvider, bool>((p) => p.isPlaying);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return ValueListenableBuilder<double>(
       valueListenable: _dismissDragY,
@@ -264,10 +265,10 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> with SingleTickerPr
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                                 decoration: BoxDecoration(
-                                  color: EmberColors.primaryBlue.withValues(alpha: 0.15),
+                                  color: primaryColor.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: EmberColors.primaryBlue.withValues(alpha: 0.4),
+                                    color: primaryColor.withValues(alpha: 0.4),
                                     width: 1,
                                   ),
                                 ),
@@ -280,7 +281,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> with SingleTickerPr
                                         height: 10,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 1.5,
-                                          color: EmberColors.primaryBlue,
+                                          color: primaryColor,
                                         ),
                                       ),
                                       const SizedBox(width: 6),
@@ -290,7 +291,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> with SingleTickerPr
                                             ? Icons.music_note_rounded
                                             : Icons.mic_rounded,
                                         size: 13,
-                                        color: EmberColors.primaryBlue,
+                                        color: primaryColor,
                                       ),
                                       const SizedBox(width: 5),
                                     ],
@@ -300,7 +301,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> with SingleTickerPr
                                               ? 'AI Karaoke Active'
                                               : 'AI Acapella Active'),
                                       style: TextStyle(
-                                        color: EmberColors.primaryBlue,
+                                        color: primaryColor,
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -587,12 +588,12 @@ class _ScrubberSectionState extends State<_ScrubberSection> {
                 child: SliderTheme(
                   data: SliderTheme.of(context).copyWith(
                     trackHeight: 4,
-                    activeTrackColor: EmberColors.primaryBlue,
+                    activeTrackColor: Theme.of(context).colorScheme.primary,
                     inactiveTrackColor: EmberColors.outlineVariant.withValues(alpha: 0.6),
                     thumbColor: Colors.white,
                     thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                     overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                    overlayColor: EmberColors.primaryBlue.withValues(alpha: 0.2),
+                    overlayColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                   ),
                   child: Slider(
                     value: currentMs.clamp(0.0, totalMs),
@@ -665,16 +666,34 @@ class _TransportControlsSection extends StatelessWidget {
     final isLoadingStream = context.select<PlayerProvider, bool>((p) => p.isLoadingStream);
     final player = context.read<PlayerProvider>();
 
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           IconButton(
-            icon: FaIcon(
-              FontAwesomeIcons.shuffle,
-              color: isShuffle ? EmberColors.primaryBlue : EmberColors.textMuted,
-              size: 18,
+            icon: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FaIcon(
+                  FontAwesomeIcons.shuffle,
+                  color: isShuffle ? primaryColor : EmberColors.textMuted,
+                  size: 18,
+                ),
+                if (isShuffle) ...[
+                  const SizedBox(height: 3),
+                  Container(
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: primaryColor,
+                    ),
+                  ),
+                ],
+              ],
             ),
             tooltip: isShuffle ? 'Shuffle: On' : 'Shuffle: Off',
             onPressed: () {
@@ -701,14 +720,10 @@ class _TransportControlsSection extends StatelessWidget {
                 height: 68,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [EmberColors.primaryBlueHi, EmberColors.primaryBlue],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: primaryColor,
                   boxShadow: [
                     BoxShadow(
-                      color: EmberColors.primaryBlue.withValues(alpha: 0.42),
+                      color: primaryColor.withValues(alpha: 0.42),
                       blurRadius: 18,
                       spreadRadius: 1,
                       offset: const Offset(0, 5),
@@ -729,13 +744,13 @@ class _TransportControlsSection extends StatelessWidget {
                           height: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                           ),
                         )
                       : FaIcon(
                           isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
                           key: ValueKey(isPlaying ? 'pause' : 'play'),
-                          color: Colors.white,
+                          color: Colors.black,
                           size: 24,
                         ),
                 ),
@@ -756,12 +771,28 @@ class _TransportControlsSection extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: Icon(
-              repeatMode == 'one'
-                  ? Icons.repeat_one_rounded
-                  : Icons.repeat_rounded,
-              color: repeatMode != 'off' ? EmberColors.primaryBlue : EmberColors.textMuted,
-              size: 24,
+            icon: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  repeatMode == 'one'
+                      ? Icons.repeat_one_rounded
+                      : Icons.repeat_rounded,
+                  color: repeatMode != 'off' ? primaryColor : EmberColors.textMuted,
+                  size: 24,
+                ),
+                if (repeatMode != 'off') ...[
+                  const SizedBox(height: 2),
+                  Container(
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: primaryColor,
+                    ),
+                  ),
+                ],
+              ],
             ),
             tooltip: repeatMode == 'one'
                 ? 'Repeat: One'
@@ -816,6 +847,7 @@ class _SpotifyHeartButtonState extends State<_SpotifyHeartButton> with SingleTic
     final isFav = player.isFavorite(widget.song.id);
     player.toggleFavorite(widget.song);
 
+    final primaryColor = Theme.of(context).colorScheme.primary;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -827,7 +859,7 @@ class _SpotifyHeartButtonState extends State<_SpotifyHeartButton> with SingleTic
           children: [
             FaIcon(
               !isFav ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
-              color: !isFav ? EmberColors.primaryBlue : EmberColors.textMuted,
+              color: !isFav ? primaryColor : EmberColors.textMuted,
               size: 15,
             ),
             const SizedBox(width: 10),
@@ -844,6 +876,7 @@ class _SpotifyHeartButtonState extends State<_SpotifyHeartButton> with SingleTic
   @override
   Widget build(BuildContext context) {
     final isFavorite = context.select<PlayerProvider, bool>((p) => p.isFavorite(widget.song.id));
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return GestureDetector(
       onTap: _onTap,
@@ -858,7 +891,7 @@ class _SpotifyHeartButtonState extends State<_SpotifyHeartButton> with SingleTic
               child: FaIcon(
                 isFavorite ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
                 size: 24,
-                color: isFavorite ? EmberColors.primaryBlue : EmberColors.textMuted,
+                color: isFavorite ? primaryColor : EmberColors.textMuted,
               ),
             ),
           );
@@ -904,6 +937,7 @@ class _UtilityPillsRow extends StatelessWidget {
                 child: ValueListenableBuilder<int>(
                   valueListenable: player.sleepSecondsNotifier,
                   builder: (context, remainingSecs, _) {
+                    final primaryColor = Theme.of(context).colorScheme.primary;
                     final isTimerActive = player.sleepAtTrackEnd || remainingSecs > 0;
                     final remainingText = player.sleepAtTrackEnd
                         ? 'At end of this song'
@@ -941,7 +975,7 @@ class _UtilityPillsRow extends StatelessWidget {
                           child: Text(
                             isTimerActive ? 'Active: $remainingText' : 'Set music to stop automatically',
                             style: TextStyle(
-                              color: isTimerActive ? EmberColors.primaryBlue : EmberColors.textMuted,
+                              color: isTimerActive ? primaryColor : EmberColors.textMuted,
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -975,9 +1009,9 @@ class _UtilityPillsRow extends StatelessWidget {
                         const Divider(color: EmberColors.outlineVariant, height: 16),
 
                         ListTile(
-                          leading: Icon(Icons.music_note_rounded, color: EmberColors.primaryBlue),
+                          leading: Icon(Icons.music_note_rounded, color: primaryColor),
                           title: Text('End of this song', style: TextStyle(color: EmberColors.textPrimary, fontWeight: FontWeight.w600)),
-                          trailing: player.sleepAtTrackEnd ? Icon(Icons.check, color: EmberColors.primaryBlue) : null,
+                          trailing: player.sleepAtTrackEnd ? Icon(Icons.check, color: primaryColor) : null,
                           onTap: () {
                             player.setSleepAtTrackEnd(true);
                             Navigator.pop(context);
@@ -988,7 +1022,7 @@ class _UtilityPillsRow extends StatelessWidget {
                             leading: FaIcon(FontAwesomeIcons.clock, size: 16, color: EmberColors.textMuted),
                             title: Text('$mins minutes', style: TextStyle(color: EmberColors.textPrimary)),
                             trailing: (!player.sleepAtTrackEnd && remainingSecs == mins * 60)
-                                ? Icon(Icons.check, color: EmberColors.primaryBlue)
+                                ? Icon(Icons.check, color: primaryColor)
                                 : null,
                             onTap: () {
                               player.startSleepTimer(mins);
@@ -1099,27 +1133,28 @@ class _PillAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(9999),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
         decoration: BoxDecoration(
-          color: active ? EmberColors.primaryBlue.withValues(alpha: 0.18) : EmberColors.surfaceContainerLow,
+          color: active ? primaryColor.withValues(alpha: 0.18) : EmberColors.surfaceContainerLow,
           borderRadius: BorderRadius.circular(9999),
           border: Border.all(
-            color: active ? EmberColors.primaryBlue : EmberColors.outlineVariant.withValues(alpha: 0.5),
+            color: active ? primaryColor : EmberColors.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            FaIcon(icon, size: 12, color: active ? EmberColors.primaryBlue : EmberColors.textSecondary),
+            FaIcon(icon, size: 12, color: active ? primaryColor : EmberColors.textSecondary),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
-                color: active ? EmberColors.primaryBlueHi : EmberColors.textSecondary,
+                color: active ? primaryColor : EmberColors.textSecondary,
                 fontWeight: FontWeight.w600,
                 fontSize: 11.5,
               ),

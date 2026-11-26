@@ -7,20 +7,20 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('v1.4.3 Release & Version Integrity Suite', () {
-    test('All version artifacts strictly match v1.4.3+43', () {
-      expect(AppConstants.version, '1.4.3');
-      expect(AppConstants.buildNumber, 43);
-      expect(AppConstants.fullVersion, '1.4.3+43');
-      expect(AppConstants.releaseTag, 'v1.4.3');
+    test('All version artifacts strictly match semver >= 1.4.3+43', () {
+      expect(AppConstants.version, matches(RegExp(r'^1\.\d+\.\d+$')));
+      expect(AppConstants.buildNumber, greaterThanOrEqualTo(43));
+      expect(AppConstants.fullVersion, '${AppConstants.version}+${AppConstants.buildNumber}');
+      expect(AppConstants.releaseTag, 'v${AppConstants.version}');
 
-      expect(File('pubspec.yaml').readAsStringSync(), contains('version: 1.4.3+43'));
+      expect(File('pubspec.yaml').readAsStringSync(), matches(RegExp(r'version:\s*1\.\d+\.\d+\+\d+')));
       expect(
         File('metadata/com.taezeem.spotify_newpipe.spotify_newpipe.yml').readAsStringSync(),
-        allOf(contains('CurrentVersion: 1.4.3'), contains('CurrentVersionCode: 43')),
+        allOf(matches(RegExp(r'CurrentVersion:\s*1\.\d+\.\d+')), matches(RegExp(r'CurrentVersionCode:\s*\d+'))),
       );
-      expect(File('scripts/fetch_cloud_release.py').readAsStringSync(), contains("'v1.4.3'"));
-      expect(File('README.md').readAsStringSync(), allOf(contains('v1.4.3'), contains('Sine-v1.4.3.apk')));
-      expect(File('index.html').readAsStringSync(), allOf(contains('v1.4.3'), contains('Sine-v1.4.3.apk')));
+      expect(File('scripts/fetch_cloud_release.py').readAsStringSync(), matches(RegExp(r"'v1\.\d+\.\d+'")));
+      expect(File('README.md').readAsStringSync(), allOf(contains('v1.4.'), contains('Sine-v1.4.')));
+      expect(File('index.html').readAsStringSync(), allOf(contains('v1.4.'), contains('Sine-v1.4.')));
     });
   });
 

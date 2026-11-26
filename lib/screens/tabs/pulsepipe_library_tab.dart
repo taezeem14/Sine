@@ -52,24 +52,24 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
           style: TextStyle(color: EmberColors.textPrimary),
           decoration: InputDecoration(
             hintText: 'Playlist name',
-            hintStyle: TextStyle(color: EmberColors.textMuted),
+            hintStyle: const TextStyle(color: EmberColors.textMuted),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: EmberColors.electricBlue),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
             ),
             focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: EmberColors.electricBlueHi, width: 2),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+            child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: EmberColors.electricBlue,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.black,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
             onPressed: () {
@@ -95,9 +95,9 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            FaIcon(FontAwesomeIcons.link, size: 18, color: EmberColors.electricBlue),
-            SizedBox(width: 10),
-            Text('Import Link', style: TextStyle(color: EmberColors.textPrimary)),
+            FaIcon(FontAwesomeIcons.link, size: 18, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 10),
+            const Text('Import Link', style: TextStyle(color: EmberColors.textPrimary)),
           ],
         ),
         content: Column(
@@ -112,10 +112,10 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
             TextField(
               controller: controller,
               autofocus: true,
-              style: TextStyle(color: EmberColors.textPrimary, fontSize: 13),
+              style: const TextStyle(color: EmberColors.textPrimary, fontSize: 13),
               decoration: InputDecoration(
                 hintText: 'Spotify / Apple Music / YouTube URL',
-                hintStyle: TextStyle(color: EmberColors.textMuted, fontSize: 12),
+                hintStyle: const TextStyle(color: EmberColors.textMuted, fontSize: 12),
                 filled: true,
                 fillColor: EmberColors.surfaceDark,
                 border: OutlineInputBorder(
@@ -129,12 +129,12 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
+            child: const Text('Cancel', style: TextStyle(color: EmberColors.textMuted)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: EmberColors.electricBlue,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.black,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
             onPressed: () async {
@@ -340,24 +340,24 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
               ),
             ),
             ListTile(
-              leading: FaIcon(FontAwesomeIcons.circlePlus, color: EmberColors.electricBlue),
-              title: Text('Create Playlist', style: TextStyle(color: EmberColors.textPrimary)),
+              leading: FaIcon(FontAwesomeIcons.circlePlus, color: Theme.of(context).colorScheme.primary),
+              title: const Text('Create Playlist', style: TextStyle(color: EmberColors.textPrimary)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showCreatePlaylistDialog(context, player);
               },
             ),
             ListTile(
-              leading: FaIcon(FontAwesomeIcons.link, color: EmberColors.electricBlue),
-              title: Text('Import YouTube Link', style: TextStyle(color: EmberColors.textPrimary)),
+              leading: FaIcon(FontAwesomeIcons.link, color: Theme.of(context).colorScheme.primary),
+              title: const Text('Import YouTube Link', style: TextStyle(color: EmberColors.textPrimary)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showImportUrlDialog(context, player);
               },
             ),
             ListTile(
-              leading: FaIcon(FontAwesomeIcons.fileImport, color: EmberColors.electricBlue),
-              title: Text('Import Playlist / Backup from JSON', style: TextStyle(color: EmberColors.textPrimary)),
+              leading: FaIcon(FontAwesomeIcons.fileImport, color: Theme.of(context).colorScheme.primary),
+              title: const Text('Import Playlist / Backup from JSON', style: TextStyle(color: EmberColors.textPrimary)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showImportPlaylistJsonDialog(context, player);
@@ -460,12 +460,12 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: isSelected ? EmberColors.electricBlue : EmberColors.charcoalCard,
+                          color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFF242424),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isSelected
-                                ? EmberColors.electricBlue
-                                : EmberColors.glassBorder.withValues(alpha: 0.2),
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.transparent,
                             width: 1,
                           ),
                         ),
@@ -473,7 +473,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
                           child: Text(
                             filter,
                             style: TextStyle(
-                              color: isSelected ? Colors.white : EmberColors.textSecondary,
+                              color: isSelected ? Colors.black : Colors.white,
                               fontSize: 13,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                             ),
@@ -492,7 +492,7 @@ class _PulsePipeLibraryTabState extends State<PulsePipeLibraryTab> {
             if (_selectedFilter == 'All' || _selectedFilter == 'Liked Songs')
               SliverToBoxAdapter(
                 child: _LibraryRowItem(
-                  iconGradient: const [Color(0xFF1565C0), Color(0xFF2979FF)],
+                  iconGradient: const [Color(0xFF450AF5), Color(0xFF8E8EE5)],
                   icon: FontAwesomeIcons.solidHeart,
                   title: 'Liked Songs',
                   subtitle: 'Playlist • ${player.favorites.length} songs',

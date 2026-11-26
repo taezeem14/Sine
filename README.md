@@ -13,7 +13,7 @@
 
 ### *Pure acoustics. Zero telemetry. No monthly subscription. 🎧✨*
 
-[![Version](https://img.shields.io/badge/Version-v1.4.3%20(Build%2043)-00D2FF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v1.4.4%20(Build%2044)-1DB954?style=for-the-badge&logo=android&logoColor=white)](https://github.com/taezeem14/Sine/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-success?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/taezeem14/Sine)
 [![Ads](https://img.shields.io/badge/Ads-ZERO%20ADS-success?style=for-the-badge&logo=adguard&logoColor=white)](https://github.com/taezeem14/Sine)
@@ -22,7 +22,7 @@
 
 <br/>
 
-### [👉 📲 DOWNLOAD LATEST APK (v1.4.3)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.3.apk) 👈
+### [👉 📲 DOWNLOAD LATEST APK (v1.4.4)](https://github.com/taezeem14/Sine/releases/latest/download/Sine-v1.4.4.apk) 👈
 
 *Tap above to download the APK, install on Android 8.0+, and enjoy studio-grade ad-free music instantly.*
 
@@ -36,6 +36,7 @@
 
 ## 📖 Table of Contents
 - [What Is Sine?](#-what-is-sine)
+- [What's New in v1.4.4](#-whats-new-in-v144)
 - [What's New in v1.4.3](#-whats-new-in-v143)
 - [What's New in v1.4.2](#-whats-new-in-v142)
 - [What's New in v1.4.1](#-whats-new-in-v141)
@@ -70,6 +71,20 @@ Commercial streaming platforms charge \$11+/month, clutter interfaces with video
 - **Pure Local Data**: Playlists, listening history, and cached media remain 100% on your device.
 - **Sub-1.2s Cold-Start Playback**: Progressive hardware decoding starting audio almost instantaneously.
 - **Direct Public Storage Vault**: Music downloads save directly to `/storage/emulated/0/Sine-Music` with standard ID3 tags and HD artwork.
+
+---
+
+## 🌟 What's New in v1.4.4
+- **Authentic Spotify UI & Aesthetic Overhaul**:
+  - **Spotify Green & Dark Palette**: Integrated official Spotify Green (`#1DB954`) as a first-class theme preset and obsidian surface hierarchy (`#121212` background, `#181818` card surfaces, `#242424` elevated pills).
+  - **Home Tab**: Added Spotify profile avatar pill, dynamic time-of-day greeting ("Good morning / afternoon / evening"), Spotify genre filter pills, iconic 6-card quick access grid (Liked Songs with gradient `0xFF450AF5` -> `0xFF8E8EE5`, Discover & Radio, Release Radar, Chill & Lo-Fi Lounge with active green play buttons), 140x140 square carousel cards with floating circular green play buttons, and sleek track tiles.
+  - **Search Tab**: Spotify header, search bar ("What do you want to listen to?"), vibrant 2-column genre browse cards, and Spotify top-result card with circular green play button.
+  - **Library Tab**: Spotify header, active green filter pills, and pinned Liked Songs row with authentic Spotify gradient.
+  - **Now Playing Screen**: Dynamic theme/Spotify green active scrubber, bouncy animated heart, Spotify shuffle and repeat controls with active dot indicator badges, and 68px circular play/pause button.
+  - **MiniPlayer**: Retained user-mandated signature rotating `VinylDisc` (size 42) and hairline progress bar, integrated with dynamic Spotify accent colors.
+- **Bug Fixes & System Stability**:
+  - Hardened repeat/shuffle cycling and skip transport controls.
+  - Verified zero analyzer issues, zero memory leaks, and 100% pass on all test suites.
 
 ---
 
